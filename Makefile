@@ -1,5 +1,8 @@
 export BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
+CURL_OPTS = ''
+ifdef MYPROXY
+  CURL_OPTS += -x $(MYPROXY)
 # Speacial characters
 COMMA:= ,
 EMPTY:=
@@ -700,7 +703,7 @@ $(DATA_DEPS): $(DATA_TAR_GZ) | $(DATA_BASE)/md5.txt
 	touch $(DATA_DEPS)
 
 $(DATA_TAR_GZ): | $(DATA_BASE)/url.txt
-	curl -x $(MYPROXY) -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
+	curl $CURL_OPTS -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
 
 # External rules
 $(EXTERNAL_BASE):
@@ -746,7 +749,7 @@ external_boost: $(BOOST_BASE)
 $(BOOST_BASE): CXXFLAGS:=
 $(BOOST_BASE):
 	$(eval BOOST_TMP := $(shell mktemp -d))
-	curl -x $(MYPROXY) -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
+	curl $CURL_OPTS -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
 	cd $(BOOST_TMP)/boost_1_78_0 && ./bootstrap.sh && ./b2 install --prefix=$@ --without-graph_parallel --without-mpi --without-python
 	@rm -rf $(BOOST_TMP)
 	$(eval undefine BOOST_TMP)
@@ -774,7 +777,7 @@ external_hwloc: $(HWLOC_BASE)
 $(HWLOC_BASE): CXXFLAGS:=
 $(HWLOC_BASE):
 	$(eval HWLOC_TMP := $(shell mktemp -d))
-	curl -x $(MYPROXY) -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
+	curl $CURL_OPTS -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
 	cd $(HWLOC_TMP)/ && ./configure --prefix=$@ --enable-shared
 	$(MAKE) -C $(HWLOC_TMP)
 	$(MAKE) -C $(HWLOC_TMP) install
