@@ -8,7 +8,7 @@
 #include "AlpakaCore/VecArray.h"
 #include "AlpakaDataFormats/gpuClusteringConstants.h"
 
-// #define ONLY_PHICUT
+#define ONLY_PHICUT
 
 namespace CAConstants {
 
@@ -20,7 +20,7 @@ namespace CAConstants {
   constexpr uint32_t maxNumberOfTuples() { return 96 * 1024; }
 #endif
 #else
-  constexpr uint32_t maxNumberOfTuples() { return 192 * 1024; }
+  constexpr uint32_t maxNumberOfTuples() { return 128 * 1024; }
 #endif
   constexpr uint32_t maxNumberOfQuadruplets() { return maxNumberOfTuples(); }
 #ifndef ONLY_PHICUT
@@ -37,20 +37,20 @@ namespace CAConstants {
 #endif
   constexpr uint32_t maxNumOfActiveDoublets() { return maxNumberOfDoublets() / 8; }
 
-  constexpr uint32_t maxNumberOfLayerPairs() { return 20; }
+  constexpr uint32_t maxNumberOfLayerPairs() { return 50; }
   constexpr uint32_t maxNumberOfLayers() { return 10; }
   constexpr uint32_t maxTuples() { return maxNumberOfTuples(); }
 
   // types
-  using hindex_type = uint16_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
-  using tindex_type = uint16_t;  //  for tuples
+  using hindex_type = uint32_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
+  using tindex_type = uint32_t;  //  for tuples
 
 #ifndef ONLY_PHICUT
   using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 36>;
   using CellTracks = cms::alpakatools::VecArray<tindex_type, 48>;
 #else
-  using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 64>;
-  using CellTracks = cms::alpakatools::VecArray<tindex_type, 64>;
+  using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 128>;
+  using CellTracks = cms::alpakatools::VecArray<tindex_type, 128>;
 #endif
 
   using PhiHist =

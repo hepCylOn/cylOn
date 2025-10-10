@@ -5,7 +5,7 @@
 // Author: Felice Pantaleo, CERN
 //
 
-// #define BROKENLINE_DEBUG
+#define BROKENLINE_DEBUG
 
 #include <cmath>
 #include <cstdint>
@@ -66,6 +66,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // get it from the ntuple container (one to one to helix)
         auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
         ALPAKA_ASSERT_ACC(tkid < foundNtuplets->nbins());
+
+        if(foundNtuplets->size(tkid) != nHits)
+          printf("tkid %d foundNtuplets->size(tkid) %d nHits %d \n",tkid,foundNtuplets->size(tkid),nHits);
 
         ALPAKA_ASSERT_ACC(foundNtuplets->size(tkid) == nHits);
 

@@ -6,7 +6,7 @@
 //
 
 // #define NTUPLE_DEBUG
-// #define GPU_DEBUG
+#define GPU_DEBUG
 
 #include <algorithm>
 #include <cmath>
@@ -124,6 +124,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                apc->get().n,
                nHits);
         if (apc->get().m < CAConstants::maxNumberOfQuadruplets()) {
+          printf("apc->get().m %d \n",apc->get().m);
+          printf("foundNtuplets->size(apc->get().m) %d\n",foundNtuplets->size(apc->get().m));
+          
+
           ALPAKA_ASSERT_ACC(foundNtuplets->size(apc->get().m) == 0);
           ALPAKA_ASSERT_ACC(foundNtuplets->size() == apc->get().n);
         }
@@ -341,7 +345,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   auto z1 = oc.get_inner_z(hh);
                   auto innerLayer = oc.innerLayer();
                   auto dcaCut = caLayers[innerLayer].caDCACut;
-#ifdef GPU_DEBUG
+#ifdef GPU_DEBUG_HIGH
                   printf("cuts;i = %d; o = %d middleLayer = %d innerLayer = %d ;caThetaCut = %.4f dcaCut = %.4f\n",thisCell.theLayerPairId,oc.theLayerPairId,middleLayer, innerLayer,caThetaCut,dcaCut);
 #endif
                   // auto isBarrel = oc.get_outer_detIndex(hh) < last_barrel_detIndex;

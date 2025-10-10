@@ -61,7 +61,7 @@ namespace pixelTrack {
 #ifdef GPU_SMALL_EVENTS
   constexpr uint32_t maxNumber() { return 2 * 1024; }
 #else
-  constexpr uint32_t maxNumber() { return 32 * 1024; }
+  constexpr uint32_t maxNumber() { return 128 * 1024; }
 #endif
 
   using TrackSoA = TrackSoAT<maxNumber()>;

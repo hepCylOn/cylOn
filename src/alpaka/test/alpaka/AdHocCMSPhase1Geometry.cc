@@ -261,7 +261,7 @@ int verify(std::string dataDir) {
 int main(int argc, char* argv[]) {
     fs::path exePath = fs::absolute(argv[0]);
     fs::path exeDir = exePath.parent_path();
-    fs::path dataDir = exeDir / "../../../../data/";
+    fs::path dataDir = exeDir / "../../data/";
     dataDir = fs::canonical(dataDir);
     writeModules(dataDir.string());
     write(dataDir.string());
