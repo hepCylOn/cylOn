@@ -36,42 +36,42 @@ public:
   friend class alpaka_tbb_async::TrackingRecHit2DAlpaka;
   friend class alpaka_serial_sync::TrackingRecHit2DAlpaka;
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE uint32_t nHits() const { return m_nHits; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t nHits() const { return m_nHits; }
 
   // TO DO: removed __ldg, check impact on perf
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& xLocal(int i) { return m_xl[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float xLocal(int i) const { return m_xl[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& yLocal(int i) { return m_yl[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float yLocal(int i) const { return m_yl[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& xLocal(int i) { return m_xl[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float xLocal(int i) const { return m_xl[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& yLocal(int i) { return m_yl[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float yLocal(int i) const { return m_yl[i]; }
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& xerrLocal(int i) { return m_xerr[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float xerrLocal(int i) const { return m_xerr[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& yerrLocal(int i) { return m_yerr[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float yerrLocal(int i) const { return m_yerr[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& xerrLocal(int i) { return m_xerr[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float xerrLocal(int i) const { return m_xerr[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& yerrLocal(int i) { return m_yerr[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float yerrLocal(int i) const { return m_yerr[i]; }
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& xGlobal(int i) { return m_xg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float xGlobal(int i) const { return m_xg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& yGlobal(int i) { return m_yg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float yGlobal(int i) const { return m_yg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& zGlobal(int i) { return m_zg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float zGlobal(int i) const { return m_zg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float& rGlobal(int i) { return m_rg[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE float rGlobal(int i) const { return m_rg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& xGlobal(int i) { return m_xg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float xGlobal(int i) const { return m_xg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& yGlobal(int i) { return m_yg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float yGlobal(int i) const { return m_yg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& zGlobal(int i) { return m_zg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float zGlobal(int i) const { return m_zg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float& rGlobal(int i) { return m_rg[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE float rGlobal(int i) const { return m_rg[i]; }
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t& iphi(int i) { return m_iphi[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t iphi(int i) const { return m_iphi[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t& iphi(int i) { return m_iphi[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t iphi(int i) const { return m_iphi[i]; }
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int32_t& charge(int i) { return m_charge[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int32_t charge(int i) const { return m_charge[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t& clusterSizeX(int i) { return m_xsize[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t clusterSizeX(int i) const { return m_xsize[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t& clusterSizeY(int i) { return m_ysize[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t clusterSizeY(int i) const { return m_ysize[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t& detectorIndex(int i) { return m_detInd[i]; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE int16_t detectorIndex(int i) const { return m_detInd[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int32_t& charge(int i) { return m_charge[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int32_t charge(int i) const { return m_charge[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t& clusterSizeX(int i) { return m_xsize[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t clusterSizeX(int i) const { return m_xsize[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t& clusterSizeY(int i) { return m_ysize[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t clusterSizeY(int i) const { return m_ysize[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t& detectorIndex(int i) { return m_detInd[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t detectorIndex(int i) const { return m_detInd[i]; }
 
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE uint32_t const* hitsModuleStarts() const { return m_hitsModuleStart; }
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE uint32_t hitsModuleStart(int i) const { return m_hitsModuleStart[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t const* hitsModuleStarts() const { return m_hitsModuleStart; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t hitsModuleStart(int i) const { return m_hitsModuleStart[i]; }
 private:
   // TO DO: NB: added __restrict__ versus legacy
 

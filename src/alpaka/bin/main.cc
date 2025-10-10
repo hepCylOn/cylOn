@@ -38,7 +38,7 @@ namespace {
         << "[--hip] "
 #endif
         << "[--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--warmupEvents WE] [--data PATH] "
-           "[--transfer] [--validation] [--histogram]\n\n"
+           "[--transfer] [--validation] [--histogram] [--isPhase2]\n\n"
         << "Options\n"
 #ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
         << " --serial            Use CPU Serial backend\n"
@@ -62,6 +62,7 @@ namespace {
         << " --transfer          Transfer results from GPU to CPU (default is to leave them on GPU)\n"
         << " --validation        Run (rudimentary) validation at the end (implies --transfer)\n"
         << " --histogram         Produce histograms at the end (implies --transfer)\n"
+        << " --isPhase2          Choose which geometry to use (default is CMS Phase1)\n"
         << " --empty             Ignore all producers (for testing only)\n"
         << std::endl;
   }
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
   bool transfer = false;
   bool validation = false;
   bool histogram = false;
+  bool isPhase2 = false;
   bool empty = false;
   bool fromHits = false;
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
@@ -182,6 +184,8 @@ int main(int argc, char** argv) {
     } else if (*i == "--histogram") {
       transfer = true;
       histogram = true;
+    } else if (*i == "--isPhase2") {
+      isPhase2 = true;
     } else if (*i == "--empty") {
       empty = true;
     } else {
@@ -275,7 +279,10 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryESProducer");
-      if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
+      if (fromHits){
+        if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryESProducerFromHits");
+        else esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
+      }
       // "portable" EDModules
       std::vector<std::string> edmodules;
       edmodules.emplace_back(prefix + "BeamSpotToAlpaka");
@@ -289,7 +296,8 @@ int main(int argc, char** argv) {
         edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
       }
       if (validation) {
-        edmodules.emplace_back(prefix + "CountValidator");
+        if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
+        else edmodules.emplace_back(prefix + "CountValidatorFromHits");
       }
       if (histogram) {
         edmodules.emplace_back(prefix + "HistoValidator");

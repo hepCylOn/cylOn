@@ -23,6 +23,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         alpaka::createTaskKernel<Acc1D>(
             oneBlockWorkDiv, setHitsLayerStart(), hits_d.view(), geometry, this->device_layerStarts_.data()));
 
+    // Lines below are used to write input files to be used with fromHits;
+    // Remember to also uncomment lines 45-50 in CAHitNtupletAlpaka.cc
+    // for(uint32_t i = 0; i < 11; ++i){
+    //   if(i < 10) std::cout << this->device_layerStarts_.data()[i] << ",";
+    //   else std::cout << this->device_layerStarts_.data()[i] << std::endl;
+    // }
+
     // std::cout << "this->m_Layers " << this->m_Layers << " - " << hits_d.nHits() << std::endl;
 
     cms::alpakatools::fillManyFromVector<Acc1D>(this->device_hitHist_.data(), this->m_Layers, hits_d.c_iphi(), this->device_layerStarts_.data(), hits_d.nHits(), 256, queue);

@@ -161,6 +161,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     TrackingRecHit2DSoAView* view() { return (*m_view).data(); }
     TrackingRecHit2DSoAView const* view() const { return (*m_view).data(); }
 
+    TrackingRecHit2DSoAView* view_h() { return (*m_view_h).data(); }
+    TrackingRecHit2DSoAView const* view_h() const { return (*m_view_h).data(); }
+
     uint32_t nHits() const { return m_nHits; }
 
     uint32_t const* hitsModuleStart() const { return m_hitsModuleStart; }

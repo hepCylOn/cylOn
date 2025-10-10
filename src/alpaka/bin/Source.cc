@@ -46,79 +46,70 @@ namespace edm {
         validation_(validation),
         fromHits_(fromHits) {
     
-    
-    if(fromHits_ and validation_)
-     throw std::runtime_error("--fromHits and --validation can't work together (yet)");
-    
     std::ifstream in_raw;
+    std::ifstream in_hits;
       
-    if (not fromHits_)
-    {
-      in_raw.open(datadir / "raw.bin", std::ios::binary);
-      rawToken_ = reg.produces<FEDRawDataCollection>();
-    }
-    else
-    {
-      in_raw.open(datadir / "hits.txt");
-      // TODO: remember to set this back to something more general
-      // in_raw.open(datadir / "hitsTest.txt", std::ios::binary);
-      hitToken_ = reg.produces<TrackingRecHitSimpleSoA>();
-    }
+    in_raw.open(datadir / "raw.bin", std::ios::binary);
+    rawToken_ = reg.produces<FEDRawDataCollection>();
+
+    in_hits.open(datadir / "hits.txt");
+    // TODO: remember to set this back to something more general
+    // in_raw.open(datadir / "hitsTest.txt", std::ios::binary);
+    hitToken_ = reg.produces<TrackingRecHitSimpleSoA>();
+    
     std::ifstream in_digiclusters;
     std::ifstream in_tracks;
     std::ifstream in_vertices;
 
     if (validation_) {
-      digiClusterToken_ = reg.produces<DigiClusterCount>();
+      if (not fromHits_) digiClusterToken_ = reg.produces<DigiClusterCount>();
       trackToken_ = reg.produces<TrackCount>();
       vertexToken_ = reg.produces<VertexCount>();
 
-      in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
+      if (not fromHits_) in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
       in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
       in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
-      in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      if (not fromHits_) in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
     }
 
-    if(not fromHits_)
-    {
-      unsigned int nfeds;
+    unsigned int nfeds;
+    in_raw.exceptions(std::ifstream::badbit);
+    in_raw.read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
+    while (not in_raw.eof()) {
+      in_raw.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+
+      raw_.emplace_back(readRaw(in_raw, nfeds));
+
+      if (validation_) {
+        unsigned int nm, nd, nc, nt, nv;
+        if (not fromHits_) in_digiclusters.read(reinterpret_cast<char *>(&nm), sizeof(unsigned int));
+        if (not fromHits_) in_digiclusters.read(reinterpret_cast<char *>(&nd), sizeof(unsigned int));
+        if (not fromHits_) in_digiclusters.read(reinterpret_cast<char *>(&nc), sizeof(unsigned int));
+        in_tracks.read(reinterpret_cast<char *>(&nt), sizeof(unsigned int));
+        in_vertices.read(reinterpret_cast<char *>(&nv), sizeof(unsigned int));
+        if (not fromHits_) digiclusters_.emplace_back(nm, nd, nc);
+        tracks_.emplace_back(nt);
+        vertices_.emplace_back(nv);
+      }
+
+      // next event
       in_raw.exceptions(std::ifstream::badbit);
       in_raw.read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
-      while (not in_raw.eof()) {
-        in_raw.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-
-        raw_.emplace_back(readRaw(in_raw, nfeds));
-
-        if (validation_) {
-          unsigned int nm, nd, nc, nt, nv;
-          in_digiclusters.read(reinterpret_cast<char *>(&nm), sizeof(unsigned int));
-          in_digiclusters.read(reinterpret_cast<char *>(&nd), sizeof(unsigned int));
-          in_digiclusters.read(reinterpret_cast<char *>(&nc), sizeof(unsigned int));
-          in_tracks.read(reinterpret_cast<char *>(&nt), sizeof(unsigned int));
-          in_vertices.read(reinterpret_cast<char *>(&nv), sizeof(unsigned int));
-          digiclusters_.emplace_back(nm, nd, nc);
-          tracks_.emplace_back(nt);
-          vertices_.emplace_back(nv);
-        }
-
-        // next event
-        in_raw.exceptions(std::ifstream::badbit);
-        in_raw.read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
-      }
     }
-    else
+
+    if (fromHits_)
     {
       while (true) {
         TrackingRecHitSimpleSoA soa;
-        if (!soa.readText(in_raw)) break;
+        if (!soa.readText(in_hits)) break;
         hits_.push_back(std::move(soa));
       }
     }
 
     if (validation_ and not fromHits_) { //TODO allow for fromHits validation
-      assert(raw_.size() == digiclusters_.size());
+      if (not fromHits_) assert(raw_.size() == digiclusters_.size());
       assert(raw_.size() == tracks_.size());
       assert(raw_.size() == vertices_.size());
     }
@@ -185,7 +176,7 @@ namespace edm {
     else 
       ev->emplace(hitToken_, hits_[index]);
     if (validation_) {
-      ev->emplace(digiClusterToken_, digiclusters_[index]);
+      if (not fromHits_) ev->emplace(digiClusterToken_, digiclusters_[index]);
       ev->emplace(trackToken_, tracks_[index]);
       ev->emplace(vertexToken_, vertices_[index]);
     }
