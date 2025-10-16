@@ -48,6 +48,29 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::Product<Queue, PixelTrackAlpaka> const& tracksWrapped = iEvent.get(tokenTrack_);
     cms::alpakatools::ScopedContextProduce<Queue> ctx{tracksWrapped};
     auto const& tracks = ctx.get(tracksWrapped);
+
+    // for(uint32_t i = 0; i < tracks.data()->partIndices.nbins(); ++i){
+    //   if(tracks.data()->nHits(i) < 4) continue;
+    //   if(tracks.data()->chi2(i) > 30) continue;
+    //   if(tracks.data()->pt(i) < 0.3) continue;
+    //   std::cout << "track index: " << i << std::endl;
+    //   std::cout << "tracks.data()->nHits(" << i << "): " << tracks.data()->nHits(i) << std::endl;
+    //   std::cout << "tracks.data()->chi2(" << i << "): " << tracks.data()->chi2(i) << std::endl;
+    //   std::cout << "tracks.data()->pt(" << i << "): " << tracks.data()->pt(i) << std::endl;
+    //   std::cout << "tracks.data()->eta(" << i << "): " << tracks.data()->eta(i) << std::endl;
+    //   std::cout << "tracks.data()->phi(" << i << "): " << tracks.data()->phi(i) << std::endl;
+    //   std::cout << "tracks.data()->charge(" << i << "): " << tracks.data()->charge(i) << std::endl;
+    //   std::cout << "tracks.data()->tip(" << i << "): " << tracks.data()->tip(i) << std::endl;
+    //   std::cout << "tracks.data()->zip(" << i << "): " << tracks.data()->zip(i) << std::endl;
+    //   std::cout << "tracks.data()->detIndices->bins[" << i << "]: ";
+    //   for(auto j = tracks.data()->detIndices.begin(i); j < tracks.data()->detIndices.end(i); ++j) std::cout << tracks.data()->detIndices.begin(i)[*j] << ", ";
+    //   std::cout << std::endl;
+    //   std::cout << "tracks.data()->partIndices->bins[" << i << "]: ";
+    //   for(auto j = tracks.data()->partIndices.begin(i); j < tracks.data()->partIndices.end(i); ++j) std::cout << tracks.data()->partIndices.begin(i)[*j] << ", ";
+    //   std::cout << std::endl;
+    //   std::cout << "====================================" << std::endl;
+    // }
+
     ctx.emplace(iEvent, tokenVertex_, m_gpuAlgo.makeAsync(tracks.data(), m_ptMin, ctx.stream()));
   }
 
