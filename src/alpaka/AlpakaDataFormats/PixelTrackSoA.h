@@ -53,6 +53,7 @@ namespace pixelTrack {
 
     HitContainer hitIndices;
     HitContainer detIndices;
+    HitContainer partIndices;
 
     // total number of tracks (including those not fitted)
     uint32_t m_nTracks;

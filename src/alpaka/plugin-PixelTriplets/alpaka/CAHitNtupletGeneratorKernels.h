@@ -221,6 +221,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     void fillHitDetIndices(HitsView const* hv, TkSoA* tuples_d, Queue& queue);
 
+    void fillHitPartIndices(HitsView const* hv, TkSoA* tuples_d, Queue& queue);
+
     void buildDoublets(HitsOnCPU const& hh, caGeometry::CAGeometrySoA const* geometry, Queue& queue);
 
     void prepareHits(TrackingRecHit2DAlpaka const& hits_d, caGeometry::CAGeometrySoA const* geometry, Queue& queue);

@@ -70,6 +70,10 @@ public:
   ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t& detectorIndex(int i) { return m_detInd[i]; }
   ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE int16_t detectorIndex(int i) const { return m_detInd[i]; }
 
+  // used for fromHits tracks validation
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t& particleIndex(int i) { return m_partInd[i]; }
+  ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t particleIndex(int i) const { return m_partInd[i]; }
+
   ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t const* hitsModuleStarts() const { return m_hitsModuleStart; }
   ALPAKA_FN_ACC ALPAKA_FN_HOST ALPAKA_FN_INLINE uint32_t hitsModuleStart(int i) const { return m_hitsModuleStart[i]; }
 private:
@@ -93,6 +97,9 @@ private:
   int16_t* __restrict__ m_xsize;
   int16_t* __restrict__ m_ysize;
   int16_t* __restrict__ m_detInd;
+
+  // particle ID for validation
+  uint32_t* __restrict__ m_partInd;
 
   // supporting objects
   uint32_t const* m_hitsModuleStart;               // forwarded from clusters

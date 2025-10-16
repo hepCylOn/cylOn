@@ -55,11 +55,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         int16_t xsize[] = {4, 5, 6};
         int16_t ysize[] = {7, 8, 9};
         int16_t detInd[] = {100, 200, 300};
+        uint32_t partInd[] = {100, 200, 300};
         uint32_t modStart[] = {0,1,3};
 
         TrackingRecHitSimpleSoA soa(
             nh, xl, yl, xerr, yerr, xg, yg, zg, rg,
-            iphi, charge, xsize, ysize, detInd, modStart);
+            iphi, charge, xsize, ysize, detInd, partInd, modStart);
 
         TrackingRecHit2DAlpaka hits_test(soa, queue);
       }

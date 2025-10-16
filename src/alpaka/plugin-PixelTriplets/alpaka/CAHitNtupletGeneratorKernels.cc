@@ -23,8 +23,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         alpaka::createTaskKernel<Acc1D>(
             oneBlockWorkDiv, setHitsLayerStart(), hits_d.view(), geometry, this->device_layerStarts_.data()));
 
-    // Lines below are used to write input files to be used with fromHits;
-    // Remember to also uncomment lines 45-50 in CAHitNtupletAlpaka.cc
+    // // Lines below are used to write input files to be used with fromHits;
+    // // Remember to also uncomment lines 45-50 in CAHitNtupletAlpaka.cc
     // for(uint32_t i = 0; i < 11; ++i){
     //   if(i < 10) std::cout << this->device_layerStarts_.data()[i] << ",";
     //   else std::cout << this->device_layerStarts_.data()[i] << std::endl;
@@ -49,6 +49,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         queue,
         alpaka::createTaskKernel<Acc1D>(
             fillHitDetWorkDiv, kernel_fillHitDetIndices(), &tracks_d->hitIndices, hv, &tracks_d->detIndices));
+#ifdef GPU_DEBUG
+    alpaka::wait(queue);
+#endif
+  }
+
+  void CAHitNtupletGeneratorKernels::fillHitPartIndices(HitsView const *hv, TkSoA *tracks_d, Queue &queue) {
+    // NB: MPORTANT: This could be tuned to benefit from innermost loop.
+    const auto blockSize = 128;
+    const auto numberOfBlocks = cms::alpakatools::divide_up_by(HitContainer::capacity(), blockSize);
+    const auto fillHitPartWorkDiv = cms::alpakatools::make_workdiv<Acc1D>(numberOfBlocks, blockSize);
+    alpaka::enqueue(
+        queue,
+        alpaka::createTaskKernel<Acc1D>(
+            fillHitPartWorkDiv, kernel_fillHitPartIndices(), &tracks_d->hitIndices, hv, &tracks_d->partIndices));
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
 #endif

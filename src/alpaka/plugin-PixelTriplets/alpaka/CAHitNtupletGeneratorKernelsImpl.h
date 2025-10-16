@@ -603,6 +603,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
+  struct kernel_fillHitPartIndices {
+    template <typename TAcc>
+    ALPAKA_FN_ACC void operator()(const TAcc &acc,
+                                  HitContainer const *__restrict__ tuples,
+                                  TrackingRecHit2DSoAView const *__restrict__ hhp,
+                                  HitContainer *__restrict__ hitPartIndices) const {
+      // copy offsets
+      cms::alpakatools::for_each_element_in_grid_strided(
+          acc, tuples->totbins(), [&](uint32_t idx) { hitPartIndices->off[idx] = tuples->off[idx]; });
+      // fill hit indices
+      auto const &hh = *hhp;
+#ifndef NDEBUG
+      [[maybe_unused]] auto nhits = hh.nHits();
+#endif
+      cms::alpakatools::for_each_element_in_grid_strided(acc, tuples->size(), [&](uint32_t idx) {
+#ifndef NDEBUG
+        ALPAKA_ASSERT_ACC(tuples->bins[idx] < nhits);
+#endif
+        hitPartIndices->bins[idx] = hh.particleIndex(tuples->bins[idx]);
+        // printf("hitPartIndices: %u -- hh.particleIndex: %u -- idx: %u\n",hitPartIndices->bins[idx],hh.particleIndex(tuples->bins[idx]),idx);
+      });
+    }
+  };
+
   struct kernel_doStatsForHitInTracks {
     template <typename TAcc>
     ALPAKA_FN_ACC void operator()(const TAcc &acc,

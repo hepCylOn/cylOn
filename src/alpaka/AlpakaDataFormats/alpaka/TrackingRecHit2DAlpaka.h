@@ -41,6 +41,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       field16ToDeviceAsync(Fields16::xsize, simpleHits.xsizeVector().data(), m_nHits, queue);
       field16ToDeviceAsync(Fields16::ysize, simpleHits.ysizeVector().data(), m_nHits, queue);
       field16ToDeviceAsync(Fields16::detInd, simpleHits.detIndVector().data(), m_nHits, queue);
+      field32ToDeviceAsync(Fields32::partInd, simpleHits.partIndVector().data(), m_nHits, queue);
       
       m_nHits = (*m_view_h)->m_nHits = uint32_t(m_nHits);
       m_hitsModuleStart =  (*m_view_h)->m_hitsModuleStart = endOf32();
@@ -59,6 +60,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       (*m_view_h)->m_xsize  = const_cast<short int*>(simpleHits.xsizeVector().data());
       (*m_view_h)->m_ysize  = const_cast<short int*>(simpleHits.ysizeVector().data());
       (*m_view_h)->m_detInd = const_cast<short int*>(simpleHits.detIndVector().data());
+      (*m_view_h)->m_partInd = const_cast<uint32_t*>(simpleHits.partIndVector().data());
       (*m_view_h)->m_hitsModuleStart = const_cast<uint32_t*>(simpleHits.moduleStartVec().data());
 
       // copy the SoA view to the device
@@ -259,6 +261,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     int16_t* iphi() { return getField16<int16_t>(Fields16::iphi); }
     int16_t* detInd() { return getField16<int16_t>(Fields16::detInd); }
 
+    uint32_t* partInd() { return getField32<uint32_t>(Fields32::partInd); }
+
     // const accessors
     float const* xl() const { return getField32<float>(Fields32::xl); }
     float const* yl() const { return getField32<float>(Fields32::yl); }
@@ -279,6 +283,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     int16_t const* iphi() const { return getField16<int16_t>(Fields16::iphi); }
     int16_t const* detInd() const { return getField16<int16_t>(Fields16::detInd); }
 
+    uint32_t const* partInd() const { return getField32<uint32_t>(Fields32::partInd); }
+
     // explicitly const accessors
     int16_t const* c_iphi() const { return getField16<int16_t>(Fields16::iphi); }
 
@@ -292,7 +298,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // TODO replace with Eric's SoA
     static_assert(sizeof(uint32_t) == sizeof(float));  // just stating the obvious
     // 32-bit SoA data members (float, int32_t or uint32_t) packed in a single buffer
-    enum class Fields32 : uint32_t { xl, yl, xerr, yerr, xg, yg, zg, rg, charge, size_ };
+    enum class Fields32 : uint32_t { xl, yl, xerr, yerr, xg, yg, zg, rg, charge, partInd, size_ };
     // 16-bit SoA data members (int16_t or uint16_t) packed in a single buffer
     enum class Fields16 : uint32_t { iphi, detInd, xsize, ysize, size_ };
 

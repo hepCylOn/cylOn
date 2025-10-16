@@ -49,15 +49,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
       : m_params(true,               // onGPU
                  3,                  // minHitsPerNtuplet,
-                 4*458752,             // maxNumberOfDoublets
+                 8*458752,             // maxNumberOfDoublets
                  false,              //useRiemannFit
                  true,               // fit5as4,
                  true,               //includeJumpingForwardDoublets
                  true,               // earlyFishbone
                  false,              // lateFishbone
                  true,               // idealConditions
-                 true,              //fillStatistics
+                 false,              // fillStatistics
                  true,               // doClusterCut
+                //  false,              // doClusterCut (deactivate for colliderML)
                  true,               // doZ0Cut
                  true,               // doPtCut
                  0.899999976158,     // ptmin
@@ -105,6 +106,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // std::cout << "launchKernels" << std::endl;
     kernels.launchKernels(hits_d, tracks.data(), geometry, queue);
     kernels.fillHitDetIndices(hits_d.view(), tracks.data(), queue);  // in principle needed only if Hits not "available"
+    kernels.fillHitPartIndices(hits_d.view(), tracks.data(), queue);  // needed only for fromHits validation
 
     HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
     fitter.allocateOnGPU(&tracks->hitIndices, kernels.tupleMultiplicity(), tracks.data());

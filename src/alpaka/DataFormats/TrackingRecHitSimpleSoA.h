@@ -26,6 +26,8 @@ public:
     m_xsize.resize(nHits);
     m_ysize.resize(nHits);
     m_detInd.resize(nHits);
+
+    m_partInd.resize(nHits);
   }
 
   explicit TrackingRecHitSimpleSoA(
@@ -33,7 +35,7 @@ public:
       const float* xl, const float* yl, const float* xerr, const float* yerr,
       const float* xg, const float* yg, const float* zg, const float* rg, const int16_t* iphi,
       const int32_t* charge, const int16_t* xsize, const int16_t* ysize, const int16_t* detInd,
-      const uint32_t* modStart)
+      const uint32_t* partInd, const uint32_t* modStart)
       : m_xl(xl, xl + nHits),
         m_yl(yl, yl + nHits),
         m_xerr(xerr, xerr + nHits),
@@ -47,6 +49,7 @@ public:
         m_xsize(xsize, xsize + nHits),
         m_ysize(ysize, ysize + nHits),
         m_detInd(detInd, detInd + nHits),
+        m_partInd(partInd, partInd + nHits),
         m_moduleStart(modStart, modStart + nHits)
   {
     assert(m_xl.size() == nHits);
@@ -71,6 +74,8 @@ public:
   int16_t xsize(size_t i) const { return m_xsize[i]; }
   int16_t ysize(size_t i) const { return m_ysize[i]; }
   int16_t detInd(size_t i) const { return m_detInd[i]; }
+
+  uint32_t partInd(size_t i) const { return m_partInd[i]; }
 
   std::vector<float>& xlVector() { return m_xl; }
   const std::vector<float>& xlVector() const { return m_xl; }
@@ -111,6 +116,9 @@ public:
   std::vector<int16_t>& detIndVector() { return m_detInd; }
   const std::vector<int16_t>& detIndVector() const { return m_detInd; }
 
+  std::vector<uint32_t>& partIndVector() { return m_partInd; }
+  const std::vector<uint32_t>& partIndVector() const { return m_partInd; }
+
   std::vector<uint32_t>& moduleStartVec() { return m_moduleStart; }
   const std::vector<uint32_t>& moduleStartVec() const { return m_moduleStart; }
 
@@ -131,6 +139,8 @@ public:
     m_xsize.resize(nHits);
     m_ysize.resize(nHits);
     m_detInd.resize(nHits);
+
+    m_partInd.resize(nHits);
   }
 
   void readBinary(std::istream& is) {
@@ -158,6 +168,8 @@ public:
     readVector(m_xsize);
     readVector(m_ysize);
     readVector(m_detInd);
+
+    readVector(m_partInd);
   }
 
   // Split a line by delimiter (default = comma)
@@ -202,6 +214,7 @@ public:
     m_xsize.reserve(nHits);
     m_ysize.reserve(nHits);
     m_detInd.reserve(nHits);
+    m_partInd.reserve(nHits);
 
     for (size_t i = 0; i < nHits; ++i) {
         if (!std::getline(file, line)) {
@@ -209,9 +222,9 @@ public:
             return false;
         }
         auto tokens = split(line);
-        if (tokens.size() != 13) {
+        if (tokens.size() != 14) {
             std::cerr << "Hit row " << i << " has " << tokens.size()
-                      << " columns, expected 13.\n";
+                      << " columns, expected 14.\n";
             return false;
         }
 
@@ -228,6 +241,7 @@ public:
         m_xsize.push_back(static_cast<int16_t>(std::stoi(tokens[10])));
         m_ysize.push_back(static_cast<int16_t>(std::stoi(tokens[11])));
         m_detInd.push_back(static_cast<int16_t>(std::stoi(tokens[12])));
+        m_partInd.push_back(static_cast<uint32_t>(std::stoi(tokens[13])));
     }
 
     // --- read module header ---
@@ -281,6 +295,9 @@ private:
   std::vector<int16_t> m_xsize;
   std::vector<int16_t> m_ysize;
   std::vector<int16_t> m_detInd;
+
+  // particle ID for validation
+  std::vector<uint32_t> m_partInd;
 
   std::vector<uint32_t> m_moduleStart;
 
