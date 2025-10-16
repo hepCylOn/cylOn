@@ -40,11 +40,12 @@ namespace {
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits)
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2)
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
-        fromHits_(fromHits) {
+        fromHits_(fromHits),
+        isPhase2_(isPhase2) {
     
     std::ifstream in_raw;
     std::ifstream in_hits;
@@ -52,7 +53,8 @@ namespace edm {
     in_raw.open(datadir / "raw.bin", std::ios::binary);
     rawToken_ = reg.produces<FEDRawDataCollection>();
 
-    in_hits.open(datadir / "hits.txt");
+    if (not isPhase2_) in_hits.open(datadir / "hitsCMSPhase1Test.txt");
+    else in_hits.open(datadir / "hits.txt");
     // TODO: remember to set this back to something more general
     // in_raw.open(datadir / "hitsTest.txt", std::ios::binary);
     hitToken_ = reg.produces<TrackingRecHitSimpleSoA>();

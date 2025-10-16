@@ -19,8 +19,9 @@ namespace edm {
                                  std::vector<std::string> const& esproducers,
                                  std::filesystem::path const& datadir,
                                  bool validation,
-                                 bool fromHits)
-      : source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits),
+                                 bool fromHits,
+                                 bool isPhase2)
+      : source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {

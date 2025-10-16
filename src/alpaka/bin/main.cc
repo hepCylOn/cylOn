@@ -313,7 +313,8 @@ int main(int argc, char** argv) {
                                 std::move(esmodules),
                                 datadir,
                                 validation,
-                                fromHits);
+                                fromHits,
+                                isPhase2);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

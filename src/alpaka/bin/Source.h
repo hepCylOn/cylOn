@@ -19,7 +19,7 @@ namespace edm {
   class Source {
   public:
     explicit Source(
-        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits);
+        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2);
 
     void reconfigure(int maxEvents, int runForMinutes);
     void startProcessing();
@@ -59,6 +59,7 @@ namespace edm {
     bool const validation_;
     // boostrapping
     bool const fromHits_;
+    bool const isPhase2_;
 
   };
 }  // namespace edm
