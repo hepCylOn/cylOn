@@ -33,6 +33,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   void CAHitNtupletAlpaka::produce(edm::Event& iEvent, const edm::EventSetup& es) {
     auto bf = 0.0114256972711507;  // 1/fieldInGeV
+    // auto bf = 0.0166990960116818;  // 1/fieldInGeV
 
     auto const& geo = es.get<CAGeometry>();
 
@@ -40,12 +41,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::ScopedContextProduce<Queue> ctx{phits};
     auto const& hits = ctx.get(phits);
 
-    // Lines below are used to write input files to be used with fromHits;
-    // Remember to also uncomment lines 28-31 in CAHitNtupletGeneratorKernels.cc
+    // // Lines below are used to write input files to be used with fromHits;
+    // // Remember to also uncomment lines 28-31 in CAHitNtupletGeneratorKernels.cc
     // auto const& hits_h = hits.view_h();
     // std::cout << "hits:" << hits_h->nHits() << std::endl;
     // for(uint32_t i = 0; i < hits_h->nHits(); ++i){
-    //   std::cout << hits_h->xLocal(i) << "," << hits_h->yLocal(i) << "," << hits_h->xerrLocal(i) << "," << hits_h->yerrLocal(i) << "," << hits_h->xGlobal(i) << "," << hits_h->yGlobal(i) << "," << hits_h->zGlobal(i) << "," << hits_h->rGlobal(i) << "," << hits_h->iphi(i) << "," << hits_h->charge(i) << "," << hits_h->clusterSizeX(i) << "," << hits_h->clusterSizeY(i) << "," << hits_h->detectorIndex(i) << std::endl;
+    //   // std::cout << hits_h->xLocal(i) << "," << hits_h->yLocal(i) << "," << hits_h->xerrLocal(i) << "," << hits_h->yerrLocal(i) << "," << hits_h->xGlobal(i) << "," << hits_h->yGlobal(i) << "," << hits_h->zGlobal(i) << "," << hits_h->rGlobal(i) << "," << hits_h->iphi(i) << "," << hits_h->charge(i) << "," << hits_h->clusterSizeX(i) << "," << hits_h->clusterSizeY(i) << "," << hits_h->detectorIndex(i) << "," << hits_h->particleIndex(i) << std::endl;
+    //   std::cout << hits_h->xLocal(i) << "," << hits_h->yLocal(i) << "," << hits_h->xerrLocal(i) << "," << hits_h->yerrLocal(i) << "," << hits_h->xGlobal(i) << "," << hits_h->yGlobal(i) << "," << hits_h->zGlobal(i) << "," << hits_h->rGlobal(i) << "," << hits_h->iphi(i) << "," << hits_h->charge(i) << "," << hits_h->clusterSizeX(i) << "," << hits_h->clusterSizeY(i) << "," << hits_h->detectorIndex(i) << "," << i << std::endl;
     // }
     // std::cout << "module:10" << std::endl;
 

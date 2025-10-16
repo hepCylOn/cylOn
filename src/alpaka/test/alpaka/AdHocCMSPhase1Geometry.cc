@@ -84,9 +84,9 @@ constexpr uint16_t nLayers  = 10;
 constexpr uint16_t nPairs   = 19;
 
 // phi cut constants
-constexpr int16_t phi0p05 = 10*522;
-constexpr int16_t phi0p06 = 10*626;
-constexpr int16_t phi0p07 = 10*730;
+constexpr int16_t phi0p05 = 522;
+constexpr int16_t phi0p06 = 626;
+constexpr int16_t phi0p07 = 730;
 
 constexpr int16_t phicuts[nPairs]{
     phi0p05, phi0p07, phi0p07, phi0p05, phi0p06, phi0p06, phi0p05, phi0p05, phi0p06, phi0p06,
@@ -94,10 +94,10 @@ constexpr int16_t phicuts[nPairs]{
 };
 
 constexpr float minz_vals[nPairs]{
-    10.*-20., 10.*0., 10.*-30., 10.*-22., 10.*10., 10.*-30., 10.*-70., 10.*-70., 10.*-22., 10.*15., 10.*-30., 10.*-70., 10.*-70., 10.*-20., 10.*-22., 10.*0, 10.*-30., 10.*-70., 10.*-70.
+    100.*-20., 100.*0., 100.*-30., 100.*-22., 0.01*10., 100.*-30., 100.*-70., 100.*-70., 100.*-22., 0.01*15., 100.*-30., 100.*-70., 100.*-70., 100.*-20., 100.*-22., 100.*0, 100.*-30., 100.*-70., 100.*-70.
 };
 constexpr float maxz_vals[nPairs]{
-    10.*20., 10.*30., 10.*0., 10.*22., 10.*30., 10.*-10., 10.*70., 10.*70., 10.*22., 10.*30., 10.*-15., 10.*70., 10.*70., 10.*20., 10.*22., 10.*30., 10.*0., 10.*70., 10.*70.
+    100.*20., 100.*30., 100.*0., 100.*22., 100.*30., 0.01*-10., 100.*70., 100.*70., 100.*22., 100.*30., 0.01*-15., 100.*70., 100.*70., 100.*20., 100.*22., 100.*30., 100.*0., 100.*70., 100.*70.
 };
 constexpr float maxr_vals[nPairs]{
     // 20., 9., 9., 20., 7., 7., 5., 5., 20., 6., 6., 5., 5., 20., 20., 9., 9., 9., 9.
@@ -137,8 +137,8 @@ constexpr uint32_t layerStart[nLayers + 1] = {
 
 // caThetaCuts and caDCACuts
 constexpr float caDCACuts_vals[nLayers] = {
-    10*0.15, 10*0.25, 10*0.25, 10*0.25, 10*0.25,
-    10*0.25, 10*0.25, 10*0.25, 10*0.25, 10*0.25
+    100*0.15, 100*0.25, 100*0.25, 100*0.25, 100*0.25,
+    100*0.25, 100*0.25, 100*0.25, 100*0.25, 100*0.25
 };
 constexpr float caThetaCuts_vals[nLayers] = {
     1.2*0.002, 1.2*0.002, 1.2*0.002, 1.2*0.002, 1.2*0.003,
@@ -261,7 +261,7 @@ int verify(std::string dataDir) {
 int main(int argc, char* argv[]) {
     fs::path exePath = fs::absolute(argv[0]);
     fs::path exeDir = exePath.parent_path();
-    fs::path dataDir = exeDir / "../../data/";
+    fs::path dataDir = exeDir / "../../../../data/";
     dataDir = fs::canonical(dataDir);
     writeModules(dataDir.string());
     write(dataDir.string());

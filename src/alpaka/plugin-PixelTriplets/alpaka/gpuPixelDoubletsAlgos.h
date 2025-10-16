@@ -166,9 +166,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         // all cuts: true if fails
         constexpr float z0cut = 12.f;      // cm
+        // constexpr float z0cut = 5.0*12.f;      // cm (for colliderMLs)
         constexpr float hardPtCut = 0.5f;  // GeV
-        constexpr float minRadius =
-            hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
+        constexpr float minRadius = hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
+        // constexpr float minRadius = hardPtCut * 128.29f;  // cm (1 GeV track has 1 GeV/c / (e * 2.6T) ~ 128 cm radius in a 2.6T field for colliderML)
         constexpr float minRadius2T4 = 4.f * minRadius * minRadius;
         auto ptcut = [&](int j, int16_t idphi) {
           auto r2t4 = minRadius2T4;
@@ -209,7 +210,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         int nmin = 0;
         int tooMany = 0;
 #endif
-
         auto khh = kh;
         incr(khh);
         for (auto kk = kl; kk != khh; incr(kk)) {
@@ -239,7 +239,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             auto mo = hh.detectorIndex(oi);
             if (mo > geometry->m_nModules)
               continue;  //    invalid
-
+            
             if (doZ0Cut && z0cutoff(oi))
               continue;
 
@@ -261,8 +261,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             }  // move to SimpleVector??
             // int layerPairId, int doubletId, int innerHitId, int outerHitId)
             cells[ind].init(*cellNeighbors, *cellTracks, hh, pairLayerId, ind, inner, outer, i, oi);
-
-            // printf("cell %d pairLayerId = %d i = %d oi = %d inner = %d outer = %d \n", ind, pairLayerId, i, oi, inner, outer);
+            // printf("cell %d pairLayerId = %d i = %d oi = %d inner = %d outer = %d inhitr = %f inhitz = %f ouhitr = %f ouhitz = %f \n", ind, pairLayerId, i, oi, inner, outer, hh.rGlobal(i),hh.zGlobal(i), hh.rGlobal(oi), hh.zGlobal(oi));
             
             isOuterHitOfCell[oi].push_back(acc, ind);
 #ifdef GPU_DEBUG
