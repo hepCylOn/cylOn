@@ -14,6 +14,7 @@ The information saved for hits is:
 - cluster size y (dummy)
 - layer ID
 - particle ID
+
 The information saved for particles is:
 - vx
 - vy
