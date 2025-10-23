@@ -33,7 +33,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   void CAHitNtupletAlpaka::produce(edm::Event& iEvent, const edm::EventSetup& es) {
     auto bf = 0.0114256972711507;  // 1/fieldInGeV
-    // auto bf = 0.0166990960116818;  // 1/fieldInGeV
+    // auto bf = 0.0166990960116818;  // 1/fieldInGeV (2.6T field for colliderML)
 
     auto const& geo = es.get<CAGeometry>();
 
