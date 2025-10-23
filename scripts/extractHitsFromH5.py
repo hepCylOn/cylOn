@@ -33,14 +33,18 @@ colliderMLPixelBarrelThreshold = 15.0
 colliderMLPixelEndcapThreshold = 50.0
 
 counter = {"n": 0}
-debug = True
+debug = False
 
 def showContent(name):
+    print("=============================================")
+    print("Started function!!")
     if debug:
         if counter["n"] >= 2: return True
+    global f
     obj = f[name]
     saveModules = [0]
     if isinstance(obj, h5py.Dataset):
+        time3 = time.time()
         saveXstr = ''
         saveYstr = ''
         saveZstr = ''
@@ -60,6 +64,7 @@ def showContent(name):
                     saveIDstr = field
                 if field.lower() == "particle_id":
                     saveParticleIDstr = field
+        time4 = time.time()
         mXY = ~((np.abs(obj[()][saveZstr]) > (950*np.ones(len(obj[()][saveZstr])))))
         dsetXY = obj[()][mXY]
         mXY = ~((np.abs(np.sqrt((dsetXY[saveXstr]*dsetXY[saveXstr]) + (dsetXY[saveYstr]*dsetXY[saveYstr]))) > (200.0*np.ones(len(dsetXY[saveXstr])))))
@@ -145,52 +150,45 @@ def showContent(name):
         for i in range(1,len(saveModules)):
             saveModules[i] = saveModules[i] + saveModules[i-1]
 
-        saveX.extend([(dsetXY[saveXstr]).tolist()])
-        saveY.extend([(dsetXY[saveYstr]).tolist()])
-        saveZ.extend([(dsetXY[saveZstr]).tolist()])
-        saveR.extend([(np.sqrt((dsetXY[saveXstr]*dsetXY[saveXstr]) + (dsetXY[saveYstr]*dsetXY[saveYstr]))).tolist()])
-        saveP.extend([(np.arctan2(dsetXY[saveYstr],dsetXY[saveXstr])).tolist()])
-        saveM.extend([saveModules])
-        saveID.extend([(dsetXY[saveIDstr]).tolist()])
-        saveParticleID.extend([(dsetXY[saveParticleIDstr]).tolist()])
-        saveLayersIDarray = saveLayersIDarray.astype('i')
-        # plt.hist((dsetXY[saveParticleIDstr]),bins=500)
-        # plt.show()
-        saveLayersID.extend([saveLayersIDarray.tolist()])
+        time5 = time.time()
+
+        tuples = list(zip((dsetXY[saveXstr]).tolist(),(dsetXY[saveYstr]).tolist(),(dsetXY[saveZstr]).tolist(),(np.sqrt((dsetXY[saveXstr]*dsetXY[saveXstr]) + (dsetXY[saveYstr]*dsetXY[saveYstr]))).tolist(),(np.arctan2(dsetXY[saveYstr],dsetXY[saveXstr])).tolist(),(saveLayersIDarray.astype('i')).tolist(),(dsetXY[saveParticleIDstr]).tolist()))
+        tuples_sorted = sorted(tuples, key = lambda x : x[5])
+        saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID = zip(*tuples_sorted)
+
+        time6 = time.time()
+
+        saveX = list(saveX)
+        saveY = list(saveY)
+        saveZ = list(saveZ)
+        saveR = list(saveR)
+        saveP = list(saveP)
+        saveLayersID = list(saveLayersID)
+        saveParticleID = list(saveParticleID)
+
+        time7 = time.time()
+
+        with open('hits.txt', 'a') as fout:
+            fout.write(f"hits:{len(saveX)}\n")
+            for j in range(len(saveX)):
+                fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]},{saveY[j]},{saveZ[j]},{saveR[j]},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveParticleID[j]}\n")
+            fout.write(f"module:{len(saveModules)-1}\n")
+            writeHelper = ""
+            for m in saveModules: writeHelper = writeHelper + str(m) + ","
+            writeHelper = writeHelper[:-1]
+            fout.write(f"{writeHelper}\n")
+
+        time8 = time.time()
+
+        print(f"Checking times: to get object names {time4 - time3} -- to get layers {time5 - time4} -- to sort by layer ID {time6 - time5} -- to convert to lists {time7 - time6} -- to write to file {time8 - time7}")
+
         counter["n"] += 1
+        print(counter["n"])
     
     return None
 
-f = h5py.File('data/full_pileup_pilot/ttbar/v2/reco/tracker_hits/events0-999.h5', 'r')
+f = h5py.File('/data/user/borzari/cmssw/pixeltrack-standalone/data/hits.h5', 'r')
 
 fKeys = list(f.keys())
 
 print(f.visit(showContent))
-
-plt.scatter(saveZ[0],saveR[0])
-plt.show()
-
-# Sorting hits by layerID
-for i in range(len(saveX)):
-    tuples = list(zip(saveX[i],saveY[i],saveZ[i],saveR[i],saveP[i],saveLayersID[i],saveParticleID[i]))
-    tuples_sorted = sorted(tuples, key = lambda x : x[5])
-    saveX[i],saveY[i],saveZ[i],saveR[i],saveP[i],saveLayersID[i],saveParticleID[i] = zip(*tuples_sorted)
-
-begtime = time.time()
-
-with open('hitsPixel.txt', 'w') as f:
-    for i in range(len(saveX)):
-        f.write(f"hits:{len(saveX[i])}\n")
-        for j in range(len(saveX[i])):
-            # f.write(f"1.0,1.0,0.01,0.01,{saveX[i][j]},{saveY[i][j]},{saveZ[i][j]},{saveR[i][j]},{phi2short(saveP[i][j])},2,3,4,{saveID[i][j]}\n")
-            f.write(f"1.0,1.0,0.01,0.01,{saveX[i][j]},{saveY[i][j]},{saveZ[i][j]},{saveR[i][j]},{phi2short(saveP[i][j])},2,3,4,{saveLayersID[i][j]},{saveParticleID[i][j]}\n")
-        f.write(f"module:{len(saveM[0])-1}\n")
-        writeHelper = ""
-        for m in saveM[i]: writeHelper = writeHelper + str(m) + ","
-        writeHelper = writeHelper[:-1]
-        f.write(f"{writeHelper}\n")
-
-endtime = time.time()
-
-tottime = endtime - begtime
-print(tottime)
