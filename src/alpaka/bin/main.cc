@@ -297,7 +297,10 @@ int main(int argc, char** argv) {
       }
       if (validation) {
         if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
-        else edmodules.emplace_back(prefix + "CountValidatorFromHits");
+        else {
+          if (not isPhase2) edmodules.emplace_back("CountValidatorFromHits");
+          else edmodules.emplace_back("ParticleFromSimple");
+        }
       }
       if (histogram) {
         edmodules.emplace_back(prefix + "HistoValidator");

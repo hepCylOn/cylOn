@@ -49,6 +49,7 @@ namespace edm {
     
     std::ifstream in_raw;
     std::ifstream in_hits;
+    std::ifstream in_particles;
       
     in_raw.open(datadir / "raw.bin", std::ios::binary);
     rawToken_ = reg.produces<FEDRawDataCollection>();
@@ -58,7 +59,7 @@ namespace edm {
     // TODO: remember to set this back to something more general
     // in_raw.open(datadir / "hitsTest.txt", std::ios::binary);
     hitToken_ = reg.produces<TrackingRecHitSimpleSoA>();
-    
+
     std::ifstream in_digiclusters;
     std::ifstream in_tracks;
     std::ifstream in_vertices;
@@ -67,10 +68,12 @@ namespace edm {
       if (not fromHits_) digiClusterToken_ = reg.produces<DigiClusterCount>();
       trackToken_ = reg.produces<TrackCount>();
       vertexToken_ = reg.produces<VertexCount>();
+      if (fromHits_) partToken_ = reg.produces<ParticleSimpleSoA>();
 
       if (not fromHits_) in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
       in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
       in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+      if (fromHits_) in_particles.open(datadir / "particles.txt");
       if (not fromHits_) in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
@@ -103,10 +106,20 @@ namespace edm {
 
     if (fromHits_)
     {
+      int eventCounter = 0;
       while (true) {
-        TrackingRecHitSimpleSoA soa;
-        if (!soa.readText(in_hits)) break;
-        hits_.push_back(std::move(soa));
+        TrackingRecHitSimpleSoA soaHits;
+        if (!soaHits.readText(in_hits)) break;
+        hits_.push_back(std::move(soaHits));
+
+        if (validation_){
+          ParticleSimpleSoA soaParticles;
+          if (!soaParticles.readText(in_particles)) break;
+          particles_.push_back(std::move(soaParticles));
+        }
+
+        eventCounter = eventCounter + 1;
+        if (eventCounter == maxEvents_) break;
       }
     }
 
@@ -181,6 +194,7 @@ namespace edm {
       if (not fromHits_) ev->emplace(digiClusterToken_, digiclusters_[index]);
       ev->emplace(trackToken_, tracks_[index]);
       ev->emplace(vertexToken_, vertices_[index]);
+      if (fromHits_) ev->emplace(partToken_, particles_[index]);
     }
 
     return ev;

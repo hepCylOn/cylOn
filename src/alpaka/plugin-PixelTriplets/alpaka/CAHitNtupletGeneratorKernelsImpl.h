@@ -6,7 +6,7 @@
 //
 
 // #define NTUPLE_DEBUG
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 #include <algorithm>
 #include <cmath>
@@ -599,6 +599,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         ALPAKA_ASSERT_ACC(tuples->bins[idx] < nhits);
 #endif
         hitDetIndices->bins[idx] = hh.detectorIndex(tuples->bins[idx]);
+        // printf("hitDetIndices: %u -- hh.detectorIndex: %u -- idx: %u\n",hitDetIndices->bins[idx],hh.detectorIndex(tuples->bins[idx]),idx);
       });
     }
   };

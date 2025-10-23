@@ -50,7 +50,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto const& tracks = ctx.get(tracksWrapped);
 
     // for(uint32_t i = 0; i < tracks.data()->partIndices.nbins(); ++i){
-    //   if(tracks.data()->nHits(i) < 4) continue;
+    //   if(tracks.data()->nHits(i) < 5) continue;
     //   if(tracks.data()->chi2(i) > 30) continue;
     //   if(tracks.data()->pt(i) < 0.3) continue;
     //   std::cout << "track index: " << i << std::endl;

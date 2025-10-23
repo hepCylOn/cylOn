@@ -236,6 +236,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::memcpy(queue, host_buffer, device_view);
       return host_buffer;
     }
+    auto detindToHostAsync(Queue& queue) const {
+      auto device_view = cms::alpakatools::make_device_view(alpaka::getDev(queue), detInd(), nHits());
+      auto host_buffer = cms::alpakatools::make_host_buffer<int16_t[]>(queue, nHits());
+      alpaka::memcpy(queue, host_buffer, device_view);
+      return host_buffer;
+    }
+    auto partindToHostAsync(Queue& queue) const {
+      auto device_view = cms::alpakatools::make_device_view(alpaka::getDev(queue), partInd(), nHits());
+      auto host_buffer = cms::alpakatools::make_host_buffer<uint32_t[]>(queue, nHits());
+      alpaka::memcpy(queue, host_buffer, device_view);
+      return host_buffer;
+    }
 
 #ifdef TODO
     // only the local coord and detector index

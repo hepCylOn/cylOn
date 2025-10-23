@@ -11,6 +11,7 @@
 #include "Framework/Event.h"
 #include "DataFormats/FEDRawDataCollection.h"
 #include "DataFormats/TrackingRecHitSimpleSoA.h"
+#include "DataFormats/ParticleSimpleSoA.h"
 #include "DataFormats/DigiClusterCount.h"
 #include "DataFormats/TrackCount.h"
 #include "DataFormats/VertexCount.h"
@@ -44,6 +45,7 @@ namespace edm {
     
     EDPutTokenT<FEDRawDataCollection> rawToken_;
     EDPutTokenT<TrackingRecHitSimpleSoA> hitToken_;
+    EDPutTokenT<ParticleSimpleSoA> partToken_;
 
     EDPutTokenT<DigiClusterCount> digiClusterToken_;
     EDPutTokenT<TrackCount> trackToken_;
@@ -51,6 +53,7 @@ namespace edm {
 
     std::vector<FEDRawDataCollection> raw_;
     std::vector<TrackingRecHitSimpleSoA> hits_;
+    std::vector<ParticleSimpleSoA> particles_;
 
     std::vector<DigiClusterCount> digiclusters_;
     std::vector<TrackCount> tracks_;
