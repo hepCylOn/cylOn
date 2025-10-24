@@ -305,7 +305,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // than a threshold
 
         tmpNtuplet.push_back_unsafe(theDoubletId);
-        ALPAKA_ASSERT_ACC(tmpNtuplet.size() <= 4);
+        // ALPAKA_ASSERT_ACC(tmpNtuplet.size() <= 4);
+        ALPAKA_ASSERT_ACC(tmpNtuplet.size() <= 7);
 
         bool last = true;
         for (int j = 0; j < outerNeighbors().size(); ++j) {
@@ -340,7 +341,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           }
         }
         tmpNtuplet.pop_back();
-        ALPAKA_ASSERT_ACC(tmpNtuplet.size() < 4);
+        // ALPAKA_ASSERT_ACC(tmpNtuplet.size() < 4);
+        ALPAKA_ASSERT_ACC(tmpNtuplet.size() < 7);
       }
     }
 

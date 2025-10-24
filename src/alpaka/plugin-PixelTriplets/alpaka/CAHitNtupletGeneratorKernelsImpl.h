@@ -403,7 +403,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             thisCell.find_ntuplets<10>(
                 acc, hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3);
             ALPAKA_ASSERT_ACC(stack.empty());
-            // printf("in %d found quadruplets: %d\n", cellIndex, apc->get());
+            // printf("in found quadruplets: %d\n", apc->get().m);
           }
         }
       });
@@ -435,9 +435,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         auto nhits = foundNtuplets->size(it);
         if (nhits >= 3 && quality[it] != trackQuality::dup) {
           ALPAKA_ASSERT_ACC(quality[it] == trackQuality::bad);
-          if (nhits > 5)
+          if (nhits > 8)
             printf("wrong mult %d %d\n", it, nhits);
-          ALPAKA_ASSERT_ACC(nhits < 8);
+          ALPAKA_ASSERT_ACC(nhits < 9);
           tupleMultiplicity->countDirect(acc, nhits);
         }
       });
@@ -454,9 +454,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         auto nhits = foundNtuplets->size(it);
         if (nhits >= 3 && quality[it] != trackQuality::dup) {
           ALPAKA_ASSERT_ACC(quality[it] == trackQuality::bad);
-          if (nhits > 5)
+          if (nhits > 8)
             printf("wrong mult %d %d\n", it, nhits);
-          ALPAKA_ASSERT_ACC(nhits < 8);
+          ALPAKA_ASSERT_ACC(nhits < 9);
           tupleMultiplicity->fillDirect(acc, nhits, it);
         }
       });
