@@ -77,6 +77,9 @@ namespace cms::alpakatools {
 
   template <typename T>
   using host_buffer = typename detail::buffer_type<DevHost, T>::type;
+  
+  template <typename T>
+  using const_host_buffer = alpaka::ViewConst<host_buffer<T>>;
 
   // non-cached, non-pinned, scalar and 1-dimensional host buffers
 
@@ -184,6 +187,10 @@ namespace cms::alpakatools {
 
   template <typename TDev, typename T>
   using device_buffer = typename detail::buffer_type<TDev, T>::type;
+
+  template <typename TDev, typename T, typename = std::enable_if_t<alpaka::isDevice<TDev>>>
+  using const_device_buffer = alpaka::ViewConst<device_buffer<TDev, T>>;
+
 
   template <typename T, typename TQueue>
   std::enable_if_t<not std::is_array_v<T>, device_buffer<alpaka::Dev<TQueue>, T>> make_device_buffer(

@@ -1,4 +1,15 @@
+
 TARGET_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+CATCH_DIR := $(BASE_DIR)/external/alpaka/thirdParty/catch2/build/install
+CATCH_INC := $(CATCH_DIR)/include
+CATCH_LIB := $(CATCH_DIR)/lib64
+
+BOOST_DIR := $(BASE_DIR)/external/boost/
+BOOST_INC := $(BOOST_DIR)/include
+BOOST_LIB := $(BOOST_DIR)/lib
+# all:
+# 	@echo "TARGET_DIR = $(TARGET_DIR)"
+# 	@echo "CATCH_DIR = $(CATCH_DIR)"
 TARGET_NAME := $(notdir $(TARGET_DIR))
 TARGET := $(BASE_DIR)/$(TARGET_NAME)
 include Makefile.deps
@@ -32,6 +43,9 @@ EXE_DEP := $(EXE_OBJ:$.o=$.d)
 LIBNAMES := $(filter-out plugin-% bin test Makefile% plugins.txt%,$(wildcard *))
 PLUGINNAMES := $(patsubst plugin-%,%,$(filter plugin-%,$(wildcard *)))
 MY_CXXFLAGS := -I$(TARGET_DIR) -DLIB_DIR=$(LIB_DIR)/$(TARGET_NAME) -DALPAKA_HOST_ONLY -DALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT -DALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
+MY_CXXFLAGS += -I$(CATCH_INC)
+MY_CXXFLAGS += -I$(BOOST_INC)
+# MY_CXXFLAGS += -std=c++20 
 ifdef CUDA_BASE
 MY_CXXFLAGS += -DALPAKA_ACC_GPU_CUDA_PRESENT -DALPAKA_ACC_GPU_CUDA_ONLY_MODE
 endif
@@ -40,6 +54,9 @@ MY_CXXFLAGS += -DALPAKA_ACC_GPU_HIP_PRESENT -DALPAKA_ACC_GPU_HIP_ONLY_MODE
 endif
 MY_LDFLAGS := -Wl,-rpath,$(LIB_DIR)/$(TARGET_NAME) -L$(LIB_DIR)/$(TARGET_NAME)
 
+MY_LDFLAGS += $(CATCH_LIB)/libCatch2Main.a
+MY_LDFLAGS += $(CATCH_LIB)/libCatch2.a
+MY_LDFLAGS += -L$(BOOST_LIB) -lboost_system -lboost_filesystem -lboost_thread
 ALL_DEPENDS := $(EXE_DEP)
 # Files for libraries
 LIBS :=

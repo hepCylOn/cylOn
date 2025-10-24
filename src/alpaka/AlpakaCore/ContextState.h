@@ -1,5 +1,5 @@
-#ifndef HeterogeneousCore_AlpakaCore_ContextState_h
-#define HeterogeneousCore_AlpakaCore_ContextState_h
+#ifndef AlpakaCore_ContextState_h
+#define AlpakaCore_ContextState_h
 
 #include <memory>
 #include <stdexcept>
@@ -88,4 +88,4 @@ namespace cms::alpakatools {
 
 }  // namespace cms::alpakatools
 
-#endif  // HeterogeneousCore_AlpakaCore_ContextState_h
+#endif  // AlpakaCore_ContextState_h

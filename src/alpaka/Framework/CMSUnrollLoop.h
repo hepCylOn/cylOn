@@ -2,6 +2,7 @@
 #define Framework_CMSUnrollLoop_h
 
 // convert the macro argument to a null-terminated quoted string
+// TODO SPLIT STRINGIFY
 #define STRINGIFY_(ARG) #ARG
 #define STRINGIFY(ARG) STRINGIFY_(ARG)
 

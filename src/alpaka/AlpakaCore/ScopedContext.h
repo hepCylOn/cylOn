@@ -1,5 +1,5 @@
-#ifndef HeterogeneousCore_AlpakaCore_ScopedContext_h
-#define HeterogeneousCore_AlpakaCore_ScopedContext_h
+#ifndef AlpakaCore_ScopedContext_h
+#define AlpakaCore_ScopedContext_h
 
 #include <memory>
 #include <stdexcept>
@@ -79,7 +79,8 @@ namespace cms::alpakatools {
 
     protected:
       template <typename... Args>
-      ScopedContextGetterBase<TQueue>(Args&&... args) : ScopedContextBase<Queue>(std::forward<Args>(args)...) {}
+      ScopedContextGetterBase(Args&&... args) 
+          : ScopedContextBase<Queue>(std::forward<Args>(args)...) {}
 
       void synchronizeStreams(ProductBase<Queue> const& data) {
         // If the product has been enqueued to a different queue, make sure that it is available before accessing it
@@ -306,4 +307,4 @@ namespace cms::alpakatools {
 
 }  // namespace cms::alpakatools
 
-#endif  // HeterogeneousCore_AlpakaCore_ScopedContext_h
+#endif  // AlpakaCore_ScopedContext_h

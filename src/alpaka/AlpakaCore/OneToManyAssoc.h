@@ -6,13 +6,13 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "AlpakaCore/AtomicPairCounter.h"
+#include "AlpakaCore/AtomicPairCounterAdvanced.h"
 #include "AlpakaCore/FlexiStorage.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivision.h"
+#include "AlpakaCore/workdivisionAdvanced.h"
 #include "AlpakaCore/alpakastdAlgorithm.h"
-#include "AlpakaCore/prefixScan.h"
+#include "AlpakaCore/prefixScanAdvanced.h"
 
 namespace cms {
     namespace alpakatools {

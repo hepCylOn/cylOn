@@ -17,7 +17,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         WorkSpace* pws,
         float chi2Max  // for outlier rejection
     ) {
-      constexpr bool verbose = true;  // in principle the compiler should optmize out if false
+      constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
       auto& __restrict__ data = *pdata;
       auto& __restrict__ ws = *pws;
@@ -39,8 +39,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_ASSERT_ACC(nvFinal <= nvIntermediate);
       nvFinal = nvIntermediate;
       auto foundClusters = nvFinal;
-      printf("%d -- %d -- %d\n",nvIntermediate,nvFinal,foundClusters);
-
+#ifdef GPU_DEBUG
+      if (verbose)
+        printf("%d -- %d -- %d\n",nvIntermediate,nvFinal,foundClusters);
+#endif
       // zero
       cms::alpakatools::for_each_element_in_block_strided(acc, foundClusters, [&](uint32_t i) {
         zv[i] = 0;

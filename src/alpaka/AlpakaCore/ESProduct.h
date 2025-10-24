@@ -1,5 +1,5 @@
-#ifndef HeterogeneousCore_AlpakaCore_ESProduct_h
-#define HeterogeneousCore_AlpakaCore_ESProduct_h
+#ifndef AlpakaCore_ESProduct_h
+#define AlpakaCore_ESProduct_h
 
 #include <atomic>
 #include <cassert>
@@ -107,4 +107,4 @@ namespace cms::alpakatools {
 
 }  // namespace cms::alpakatools
 
-#endif  // HeterogeneousCore_AlpakaCore_ESProduct_h
+#endif  // AlpakaCore_ESProduct_h

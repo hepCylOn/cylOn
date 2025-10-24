@@ -6,7 +6,7 @@
 //
 
 // #define NTUPLE_DEBUG
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 #include <algorithm>
 #include <cmath>
