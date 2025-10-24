@@ -63,6 +63,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         queue,
         alpaka::createTaskKernel<Acc1D>(
             fillHitPartWorkDiv, kernel_fillHitPartIndices(), &tracks_d->hitIndices, hv, &tracks_d->partIndices));
+        // for(uint32_t i = 0; i < tracks_d->m_nTracks; ++i){
+        //   for(auto j = tracks_d->partIndices.begin(i); j < tracks_d->partIndices.end(i); ++j) {
+        //     std::cout << tracks_d->partIndices.begin(i)[*j] << ",";
+        //   }
+        //   std::cout << std::endl;
+        // }
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
 #endif
@@ -162,6 +168,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
 #endif
+
+    // Including number of ntuples into trackSoA
+    tracks_d->m_nTracks = device_hitTuple_apc_->get().m;
 
     blockSize = 128;
     numberOfBlocks = cms::alpakatools::divide_up_by(HitContainer::totbins(), blockSize);
