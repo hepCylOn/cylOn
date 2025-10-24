@@ -20,7 +20,7 @@ public:
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
   void endJob() override;
-  std::pair<int,uint32_t> getAmountMostRepeatingPart(std::vector<uint32_t> vec);
+  std::pair<int,uint32_t> getMostRepeatingPart(std::vector<uint32_t> vec);
   double deltaPhi(double phi1, double phi2);
   void logSpace (const unsigned, const double, const double, std::vector<double> &) const;
   void linSpace (const unsigned, const double, const double, std::vector<double> &) const;
@@ -103,7 +103,7 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
   }
 
-  for(uint32_t i = 0; i < tracks->partIndices.nbins(); ++i){
+  for(uint32_t i = 0; i < tracks->m_nTracks; ++i){
     if(tracks->chi2(i) > 30) continue;
     if(tracks->pt(i) < 1.0) continue;
     if(tracks->nHits(i) < 5) continue;
@@ -115,8 +115,15 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
 
     std::vector<uint32_t> partIndices;
-    for(auto j = tracks->partIndices.begin(i); j < tracks->partIndices.end(i); ++j) partIndices.push_back(tracks->partIndices.begin(i)[*j]);
-    std::pair<int,uint32_t> repeatingPart = getAmountMostRepeatingPart(partIndices);
+    for(auto j = tracks->partIndices.begin(i); j < tracks->partIndices.end(i); ++j) {
+      // if (tracks->partIndices.begin(i)[*j] > 1000000) std::cout << tracks->partIndices.begin(i)[*j] << std::endl;
+      partIndices.push_back(tracks->partIndices.begin(i)[*j]);
+    }
+    for(auto j = tracks->hitIndices.begin(i); j < tracks->hitIndices.end(i); ++j) {
+      std::cout << tracks->hitIndices.begin(i)[*j] << ",";
+    }
+    std::cout << std::endl;
+    std::pair<int,uint32_t> repeatingPart = getMostRepeatingPart(partIndices);
     if (repeatingPart.first/tracks->nHits(i) > 0.75){
       passedTracks = passedTracks + 1;
       auto it = std::find(simpleParticles.partIndVector().begin(), simpleParticles.partIndVector().end(), repeatingPart.second);
@@ -288,7 +295,7 @@ void ParticleFromSimple::endJob() {
   file.close();  // fecha o arquivo
 }
 
-std::pair<int,uint32_t> ParticleFromSimple::getAmountMostRepeatingPart( std::vector<uint32_t> vec) {
+std::pair<int,uint32_t> ParticleFromSimple::getMostRepeatingPart( std::vector<uint32_t> vec) {
 
   std::unordered_map<int, int> freq;
   int mostFrequent = vec[0];
