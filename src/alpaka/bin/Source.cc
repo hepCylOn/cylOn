@@ -73,7 +73,7 @@ namespace edm {
       if (not fromHits_) in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
       in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
       in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
-      if (fromHits_) in_particles.open(datadir / "particles.txt");
+      if (fromHits_) in_particles.open(datadir / "particlesFilter.txt");
       if (not fromHits_) in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
