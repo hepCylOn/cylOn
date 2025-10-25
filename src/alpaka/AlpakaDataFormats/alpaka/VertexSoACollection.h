@@ -14,7 +14,7 @@
 #include "AlpakaCore/AssertDeviceMatchesHostCollection.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-
+  
   using VertexSoACollection =
       std::conditional_t<std::is_same_v<Device, alpaka::DevCpu>, VertexHost, VertexDevice<Device>>;
 

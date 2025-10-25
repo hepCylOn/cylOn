@@ -19,7 +19,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     struct loadTracks {
       template <typename TAcc>
       ALPAKA_FN_ACC void operator()(
-          const TAcc& acc, TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin) const {
+          const TAcc& acc, TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin, float ptMax) const {
         ALPAKA_ASSERT_ACC(ptracks);
         ALPAKA_ASSERT_ACC(soa);
         auto const& tracks = *ptracks;
@@ -106,7 +106,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     };
 #endif
 
-    ZVertexAlpaka Producer::makeAsync(TkSoA const* tksoa, float ptMin, Queue& queue) const {
+    ZVertexAlpaka Producer::makeAsync(TkSoA const* tksoa, float ptMin, float ptMax, int maxVertices, Queue& queue) const {
       // std::cout << "producing Vertices on GPU" << std::endl;
       ALPAKA_ASSERT_ACC(tksoa);
 
@@ -128,7 +128,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const uint32_t blockSize = 128;
       const uint32_t numberOfBlocks = cms::alpakatools::divide_up_by(TkSoA::stride(), blockSize);
       const auto loadTracksWorkDiv = cms::alpakatools::make_workdiv<Acc1D>(numberOfBlocks, blockSize);
-      alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(loadTracksWorkDiv, loadTracks(), tksoa, soa, ws_d, ptMin));
+      alpaka::enqueue(queue, alpaka::createTaskKernel<Acc1D>(loadTracksWorkDiv, loadTracks(), tksoa, soa, ws_d, ptMin, ptMax));
 
       const auto finderSorterWorkDiv = cms::alpakatools::make_workdiv<Acc1D>(1, 1024 - 256);
       const auto splitterFitterWorkDiv = cms::alpakatools::make_workdiv<Acc1D>(1024, 128);

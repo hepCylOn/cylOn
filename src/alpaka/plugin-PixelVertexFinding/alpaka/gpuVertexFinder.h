@@ -53,7 +53,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       ~Producer() = default;
 
-      ZVertexAlpaka makeAsync(TkSoA const* tksoa, float ptMin, Queue& queue) const;
+      ZVertexAlpaka makeAsync(TkSoA const* tksoa, float ptMin, float ptMax, int maxVertices, Queue& queue) const;
 
     private:
       const bool oneKernel_;

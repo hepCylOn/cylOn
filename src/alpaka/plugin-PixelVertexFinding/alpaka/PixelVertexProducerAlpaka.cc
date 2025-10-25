@@ -26,7 +26,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const gpuVertexFinder::Producer m_gpuAlgo;
 
     // Tracking cuts before sending tracks to vertex algo
-    const float m_ptMin;
+    const int maxVertices_;
+    const float ptMin_;
+    const float ptMax_;
   };
 
   PixelVertexProducerAlpaka::PixelVertexProducerAlpaka(edm::ProductRegistry& reg)
@@ -41,14 +43,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   0.01,   // errmax
                   9       // chi2max
                   ),
-        m_ptMin(0.5)  // 0.5 GeV
+        maxVertices_(256),
+        ptMin_(0.5),  // 0.5 GeV
+        ptMax_(75.0)  // 75.0 GeV
+        
   {}
 
   void PixelVertexProducerAlpaka::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     cms::alpakatools::Product<Queue, PixelTrackAlpaka> const& tracksWrapped = iEvent.get(tokenTrack_);
     cms::alpakatools::ScopedContextProduce<Queue> ctx{tracksWrapped};
     auto const& tracks = ctx.get(tracksWrapped);
-    ctx.emplace(iEvent, tokenVertex_, m_gpuAlgo.makeAsync(tracks.data(), m_ptMin, ctx.stream()));
+    ctx.emplace(iEvent, tokenVertex_, m_gpuAlgo.makeAsync(tracks.data(), ptMin_, ptMin_, maxVertices_,ctx.stream()));
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

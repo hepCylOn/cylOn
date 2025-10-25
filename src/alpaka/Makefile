@@ -20,7 +20,7 @@ test_cpu: $(TARGET)
 	@echo
 	@echo "Testing $(TARGET)"
 	$(TARGET) --maxEvents 2 --serial
-	$(TARGET) --maxEvents 2 --tbb
+	$(TARGET) --maxEvents 2 -tbb
 	@echo "Succeeded"
 test_nvidiagpu: $(TARGET)
 	@echo
@@ -45,6 +45,8 @@ PLUGINNAMES := $(patsubst plugin-%,%,$(filter plugin-%,$(wildcard *)))
 MY_CXXFLAGS := -I$(TARGET_DIR) -DLIB_DIR=$(LIB_DIR)/$(TARGET_NAME) -DALPAKA_HOST_ONLY -DALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT -DALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
 MY_CXXFLAGS += -I$(CATCH_INC)
 MY_CXXFLAGS += -I$(BOOST_INC)
+# Set default host memory alignment to 128 bytes for soa layouts
+MY_CXXFLAGS += -DALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
 # MY_CXXFLAGS += -std=c++20 
 ifdef CUDA_BASE
 MY_CXXFLAGS += -DALPAKA_ACC_GPU_CUDA_PRESENT -DALPAKA_ACC_GPU_CUDA_ONLY_MODE
@@ -155,6 +157,7 @@ $(foreach lib,$(PLUGINNAMES),$(eval $(call PLUGIN_template,$(lib))))
 
 # Files for unit tests
 TESTS_PORTABLE_SRC := $(wildcard $(TARGET_DIR)/test/alpaka/*.cc)
+# TESTS_PORTABLE_SRC += $(wildcard $(TARGET_DIR)/test/alpaka/kernels/*dev.cc)
 # serial backend
 TESTS_SERIAL_OBJ := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(TESTS_PORTABLE_SRC:%=%.serial.o))
 TESTS_SERIAL_DEP := $(TESTS_SERIAL_OBJ:$.o=$.d)
