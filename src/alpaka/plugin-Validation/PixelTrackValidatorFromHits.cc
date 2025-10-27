@@ -24,6 +24,8 @@ private:
   double deltaPhi(double phi1, double phi2);
   void logSpace (const unsigned, const double, const double, std::vector<double> &) const;
   void linSpace (const unsigned, const double, const double, std::vector<double> &) const;
+  void writeEffAndFake(std::vector<double>&, std::vector<double>&, std::ofstream &, std::vector<double>&);
+  void writeResolution(std::map<int,std::vector<double>>&, std::ofstream&, std::vector<double>&, std::vector<double>&);
   double stdDev(const std::vector<double>&) const;
     
   edm::EDGetTokenT<ParticleSimpleSoA> tSimpleParticles_;
@@ -103,9 +105,10 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
   }
 
+  int trackHitIncr = 0;
   for(uint32_t i = 0; i < tracks->m_nTracks; ++i){
     if(tracks->chi2(i) > 30) continue;
-    if(tracks->pt(i) < 1.0) continue;
+    if(tracks->pt(i) < 0.9) continue;
     if(tracks->nHits(i) < 5) continue;
 
     for(int j = 0; j < int(binsPt.size()); ++j){
@@ -115,14 +118,14 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
 
     std::vector<uint32_t> partIndices;
-    for(auto j = tracks->partIndices.begin(i); j < tracks->partIndices.end(i); ++j) {
-      // if (tracks->partIndices.begin(i)[*j] > 1000000) std::cout << tracks->partIndices.begin(i)[*j] << std::endl;
-      partIndices.push_back(tracks->partIndices.begin(i)[*j]);
+    auto start = (i == 0) ? 0 : tracks->partIndices.off[i - 1];
+    auto end = tracks->partIndices.off[i];
+    for (auto iHit = start; iHit < end; ++iHit){
+      partIndices.push_back(tracks->partIndices.bins[trackHitIncr]);
+      ++trackHitIncr;
     }
-    for(auto j = tracks->hitIndices.begin(i); j < tracks->hitIndices.end(i); ++j) {
-      std::cout << tracks->hitIndices.begin(i)[*j] << ",";
-    }
-    std::cout << std::endl;
+
+    if (partIndices.size() <= 0) continue;
     std::pair<int,uint32_t> repeatingPart = getMostRepeatingPart(partIndices);
     if (repeatingPart.first/tracks->nHits(i) > 0.75){
       passedTracks = passedTracks + 1;
@@ -162,7 +165,6 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
         if (tracks->phi(i) > binsEtaPhi[j] and tracks->phi(i) < binsEtaPhi[j+1]) fakePhiNum[j] = fakePhiNum[j] + 1.0;
       }
     }
-    
   }
 
 }
@@ -171,122 +173,18 @@ void ParticleFromSimple::endJob() {
   file.open("/data/user/borzari/cmssw/pixeltrack-standalone/output.txt");
   if (file.is_open()) {
 
-    // Write pT eff
-    for (int i = 0; i < int(effPtNum.size()); ++i){
-      if (effPtDen[i] == 0) file << effPtDen[i] << ",";
-      else{
-        double x = effPtNum[i]/effPtDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsPt.size()) - 1; ++i) file << (binsPt[i+1] + binsPt[i])/2.0 << ",";
-    file << std::endl;
+    writeEffAndFake(effPtNum, effPtDen, file, binsPt);
+    writeEffAndFake(effEtaNum, effEtaDen, file, binsEtaPhi);
+    writeEffAndFake(effPhiNum, effPhiDen, file, binsEtaPhi);
+    writeEffAndFake(fakePtNum, fakePtDen, file, binsPt);
+    writeEffAndFake(fakeEtaNum, fakeEtaDen, file, binsEtaPhi);
+    writeEffAndFake(fakePhiNum, fakePhiDen, file, binsEtaPhi);
 
-    // Write eta eff
-    for (int i = 0; i < int(effEtaNum.size()); ++i){
-      if (effEtaDen[i] == 0) file << effEtaDen[i] << ",";
-      else{
-        double x = effEtaNum[i]/effEtaDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write phi eff
-    for (int i = 0; i < int(effPhiNum.size()); ++i){
-      if (effPhiDen[i] == 0) file << effPhiDen[i] << ",";
-      else{
-        double x = effPhiNum[i]/effPhiDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write pT fake
-    for (int i = 0; i < int(fakePtNum.size()); ++i){
-      if (fakePtDen[i] == 0) file << fakePtDen[i] << ",";
-      else{
-        double x = fakePtNum[i]/fakePtDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsPt.size()) - 1; ++i) file << (binsPt[i+1] + binsPt[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write eta fake
-    for (int i = 0; i < int(fakeEtaNum.size()); ++i){
-      if (fakeEtaDen[i] == 0) file << fakeEtaDen[i] << ",";
-      else{
-        double x = fakeEtaNum[i]/fakeEtaDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write phi fake
-    for (int i = 0; i < int(fakePhiNum.size()); ++i){
-      if (fakePhiDen[i] == 0) file << fakePhiDen[i] << ",";
-      else{
-        double x = fakePhiNum[i]/fakePhiDen[i];
-        file << x << ",";
-      }
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write pT resolution
-    for(int j = 0; j < int(binsPt.size()) - 1; ++j){
-      double stdDevRes = stdDev(resPt[j]);
-      file << stdDevRes << ",";
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write eta resolution
-    for(int j = 0; j < int(binsPt.size()) - 1; ++j){
-      double stdDevRes = stdDev(resEta[j]);
-      file << stdDevRes << ",";
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write phi resolution
-    for(int j = 0; j < int(binsPt.size()) - 1; ++j){
-      double stdDevRes = stdDev(resPhi[j]);
-      file << stdDevRes << ",";
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write d0 resolution
-    for(int j = 0; j < int(binsPt.size()) - 1; ++j){
-      double stdDevRes = stdDev(resD0[j]);
-      file << stdDevRes << ",";
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
-
-    // Write dz resolution
-    for(int j = 0; j < int(binsPt.size()) - 1; ++j){
-      double stdDevRes = stdDev(resDZ[j]);
-      file << stdDevRes << ",";
-    }
-    file << std::endl;
-    for (int i = 0; i < int(binsEtaPhi.size()) - 1; ++i) file << (binsEtaPhi[i+1] + binsEtaPhi[i])/2.0 << ",";
-    file << std::endl;
+    writeResolution(resPt, file, binsPt, binsEtaPhi);
+    writeResolution(resEta, file, binsEtaPhi, binsEtaPhi);
+    writeResolution(resPhi, file, binsEtaPhi, binsEtaPhi);
+    writeResolution(resD0, file, binsEtaPhi, binsEtaPhi);
+    writeResolution(resDZ, file, binsEtaPhi, binsEtaPhi);
 
   }
   std::cout << "The number of matched tracks is: " << passedTracks << std::endl;
@@ -338,6 +236,31 @@ void ParticleFromSimple::linSpace (const unsigned n, const double a, const doubl
     bins.push_back (i);
 }
 
+void ParticleFromSimple::writeEffAndFake(std::vector<double>& num, std::vector<double>& den, std::ofstream& file, std::vector<double>& bins)
+{
+  for (int i = 0; i < int(num.size()); ++i){
+    if (den[i] == 0) file << den[i] << ",";
+    else{
+      double x = num[i]/den[i];
+      file << x << ",";
+    }
+  }
+  file << std::endl;
+  for (int i = 0; i < int(bins.size()) - 1; ++i) file << (bins[i+1] + bins[i])/2.0 << ",";
+  file << std::endl;
+}
+
+void ParticleFromSimple::writeResolution(std::map<int,std::vector<double>>& res, std::ofstream& file, std::vector<double>& binsVar, std::vector<double>& binsEta)
+{
+  for(int j = 0; j < int(binsVar.size()) - 1; ++j){
+        double stdDevRes = stdDev(res[j]);
+        file << stdDevRes << ",";
+      }
+      file << std::endl;
+      for (int i = 0; i < int(binsEta.size()) - 1; ++i) file << (binsEta[i+1] + binsEta[i])/2.0 << ",";
+      file << std::endl;
+}
+
 double ParticleFromSimple::stdDev(const std::vector<double>& vec) const
 {
     int n = vec.size();
@@ -356,5 +279,7 @@ double ParticleFromSimple::stdDev(const std::vector<double>& vec) const
 
     return std::sqrt(var);
 }
+
+
 
 DEFINE_FWK_MODULE(ParticleFromSimple);
