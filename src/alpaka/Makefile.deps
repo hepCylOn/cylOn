@@ -8,7 +8,7 @@ endif
 AlpakaCore_DEPENDS := Framework
 BeamSpotProducer_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats
 PixelTrackFitting_DEPENDS := Framework AlpakaCore AlpakaDataFormats
-PixelTriplets_DEPENDS := Framework AlpakaCore AlpakaDataFormats
+PixelSeeding_DEPENDS := Framework AlpakaCore AlpakaDataFormats
 PixelVertexFinding_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats
 SiPixelClusterizer_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats SiPixelRawToDigi
 SiPixelRawToDigi_DEPENDS := DataFormats

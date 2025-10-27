@@ -18,25 +18,21 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "AlpakaDataFormats/VertexHost.h"
-#include "AlpakaDataFormats/alpaka/VertexSoACollection.h"
 #include "Framework/stringize.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/alpaka/devices.h"
 #include "AlpakaCore/memory.h"
 #include "AlpakaCore/workdivisionAdvanced.h"
 
-#include "Portable/PortableCollection.h"
-// #include "VertexSoA_test.h"
 
-
-#include <alpaka/alpaka.hpp>
 
 #include "AlpakaDataFormats/VertexDevice.h"
 #include "AlpakaDataFormats/VertexHost.h"
 #include "AlpakaDataFormats/alpaka/VertexSoACollection.h"
-#include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// TODO: This used to be a separte dev.cc + header  
+// #include "VertexSoA_test.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {
 
@@ -96,6 +92,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace ALPAKA_ACCELERATOR_NAMESPACE;
 
