@@ -38,6 +38,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             return;  // no triplets
           if (quality[idx] != trackQuality::loose)
             return;
+          if (fit.covariance(idx)(14) < 0.0) // This is also a guard
+            return;
 
           auto pt = tracks.pt(idx);
 
@@ -48,6 +50,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           auto it = alpaka::atomicAdd(acc, &data.ntrks, 1u, alpaka::hierarchy::Blocks{});
           data.itrk[it] = idx;
           data.zt[it] = tracks.zip(idx);
+          if (fit.covariance(idx)(14) <= 0)
+          printf("fit.covariance(%u)(14): %f -- pt: %f -- tracks.zip(%u): %f\n",idx,fit.covariance(idx)(14),pt,idx,tracks.zip(idx));
           data.ezt2[it] = fit.covariance(idx)(14);
           data.ptt2[it] = pt * pt;
         });
