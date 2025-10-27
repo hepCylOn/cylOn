@@ -20,7 +20,7 @@ namespace CAConstants {
   constexpr uint32_t maxNumberOfTuples() { return 96 * 1024; }
 #endif
 #else
-  constexpr uint32_t maxNumberOfTuples() { return 128 * 1024; }
+  constexpr uint32_t maxNumberOfTuples() { return 256 * 1024; }
 #endif
   constexpr uint32_t maxNumberOfQuadruplets() { return maxNumberOfTuples(); }
 #ifndef ONLY_PHICUT
@@ -28,7 +28,7 @@ namespace CAConstants {
   constexpr uint32_t maxNumberOfDoublets() { return 512 * 1024; }
   constexpr uint32_t maxCellsPerHit() { return 128; }
 #else
-  constexpr uint32_t maxNumberOfDoublets() { return 128 * 1024; }
+  constexpr uint32_t maxNumberOfDoublets() { return 256 * 1024; }
   constexpr uint32_t maxCellsPerHit() { return 128 / 2; }
 #endif
 #else
