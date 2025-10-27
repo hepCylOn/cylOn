@@ -60,6 +60,8 @@
 #include "CondFormats/alpaka/SiPixelGainCalibrationForHLTSoACollection.h"
 #include "CondFormats/SiPixelGainCalibrationForHLTHost.h"
 #include "CondFormats/SiPixelGainCalibrationForHLTDevice.h"
+
+#include "plugin-PixelSeeding/alpaka/CACell.h"
 //Dummy test just to compile
 
 int main() {
