@@ -102,7 +102,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                    hhp->zGlobal(hit));
             printf("Error: %d: %d  hits_ge.col(%d) << %e,%e,%e,%e,%e,%e\n",
                    tkid,
-                   hhp->detetectorIndex(hit),
+                   hhp->detectorIndex(hit),
                    i,
                    ge[0],
                    ge[1],
@@ -111,6 +111,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                    ge[4],
                    ge[5]);
           }
+
 #endif
           hits.col(i) << hhp->xGlobal(hit), hhp->yGlobal(hit), hhp->zGlobal(hit);
           hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
@@ -177,7 +178,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
         results->eta(tkid) = asinhf(line.par(0));
         results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
-
 #ifdef BROKENLINE_DEBUG
         if (!(circle.chi2 >= 0) || !(line.chi2 >= 0))
           printf("kernelBLFit failed! %f/%f\n", circle.chi2, line.chi2);

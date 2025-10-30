@@ -33,12 +33,14 @@ namespace {
                                                   0.3f,  //tripletMaxTip
                                                   0.5f,  // tripletMinPt
                                                   12.f   // tripletMaxZip
+                                                  // 1.7*12.f   // tripletMaxZip (for colliderML)
                                               },
                                               // regional cuts for quadruplets
                                               {
                                                   0.5f,  // quadrupletMaxTip
                                                   0.3f,  // quadrupletMinPt
                                                   12.f   // quadrupletMaxZip
+                                                  // 1.7*12.f   // quadrupletMaxZip (for colliderML)
                                               }};
   }
 }  // namespace
@@ -49,7 +51,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
       : m_params(true,               // onGPU
                  3,                  // minHitsPerNtuplet,
-                 8*458752,             // maxNumberOfDoublets
+                 32*458752,             // maxNumberOfDoublets
                  false,              //useRiemannFit
                  true,               // fit5as4,
                  true,               //includeJumpingForwardDoublets

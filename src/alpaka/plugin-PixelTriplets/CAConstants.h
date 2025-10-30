@@ -20,7 +20,7 @@ namespace CAConstants {
   constexpr uint32_t maxNumberOfTuples() { return 96 * 1024; }
 #endif
 #else
-  constexpr uint32_t maxNumberOfTuples() { return 256 * 1024; }
+  constexpr uint32_t maxNumberOfTuples() { return 1024 * 1024; }
 #endif
   constexpr uint32_t maxNumberOfQuadruplets() { return maxNumberOfTuples(); }
 #ifndef ONLY_PHICUT
@@ -28,14 +28,14 @@ namespace CAConstants {
   constexpr uint32_t maxNumberOfDoublets() { return 512 * 1024; }
   constexpr uint32_t maxCellsPerHit() { return 128; }
 #else
-  constexpr uint32_t maxNumberOfDoublets() { return 256 * 1024; }
+  constexpr uint32_t maxNumberOfDoublets() { return 512 * 1024; }
   constexpr uint32_t maxCellsPerHit() { return 128 / 2; }
 #endif
 #else
   constexpr uint32_t maxNumberOfDoublets() { return 2 * 1024 * 1024; }
   constexpr uint32_t maxCellsPerHit() { return 8 * 128; }
 #endif
-  constexpr uint32_t maxNumOfActiveDoublets() { return maxNumberOfDoublets() / 8; }
+  constexpr uint32_t maxNumOfActiveDoublets() { return maxNumberOfDoublets() / 2; }
 
   constexpr uint32_t maxNumberOfLayerPairs() { return 50; }
   constexpr uint32_t maxNumberOfLayers() { return 10; }
@@ -49,8 +49,8 @@ namespace CAConstants {
   using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 36>;
   using CellTracks = cms::alpakatools::VecArray<tindex_type, 48>;
 #else
-  using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 128>;
-  using CellTracks = cms::alpakatools::VecArray<tindex_type, 128>;
+  using CellNeighbors = cms::alpakatools::VecArray<uint32_t, 256>;
+  using CellTracks = cms::alpakatools::VecArray<tindex_type, 256>;
 #endif
 
   using PhiHist =
@@ -61,10 +61,10 @@ namespace CAConstants {
 
   using OuterHitOfCell = cms::alpakatools::VecArray<uint32_t, maxCellsPerHit()>;
 
-  using TuplesContainer = cms::alpakatools::OneToManyAssoc<hindex_type, maxTuples(), 5 * maxTuples()>;
+  using TuplesContainer = cms::alpakatools::OneToManyAssoc<hindex_type, maxTuples(), 8 * maxTuples()>;
   using HitToTuple = cms::alpakatools::
-      OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples()>;  // 3.5 should be enough
-  using TupleMultiplicity = cms::alpakatools::OneToManyAssoc<tindex_type, 8, maxTuples()>;
+      OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 8 * maxTuples()>;  // 3.5 should be enough
+  using TupleMultiplicity = cms::alpakatools::OneToManyAssoc<tindex_type, 10, maxTuples()>;
 
 }  // namespace CAConstants
 

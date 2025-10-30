@@ -612,7 +612,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   HitContainer *__restrict__ hitPartIndices) const {
       // copy offsets
       cms::alpakatools::for_each_element_in_grid_strided(
-          acc, tuples->totbins(), [&](uint32_t idx) { hitPartIndices->off[idx] = tuples->off[idx]; });
+          acc, tuples->totbins(), [&](uint32_t idx) { hitPartIndices->off[idx] = tuples->off[idx];});
       // fill hit indices
       auto const &hh = *hhp;
 #ifndef NDEBUG

@@ -169,9 +169,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::wait(queue);
 #endif
 
-    // Including number of ntuples into trackSoA
-    tracks_d->m_nTracks = device_hitTuple_apc_->get().m;
-
     blockSize = 128;
     numberOfBlocks = cms::alpakatools::divide_up_by(HitContainer::totbins(), blockSize);
     workDiv1D = cms::alpakatools::make_workdiv<Acc1D>(numberOfBlocks, blockSize);
@@ -245,6 +242,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
 #endif
+
+    // Including number of ntuples into trackSoA
+    tracks_d->m_nTracks = device_hitTuple_apc_->get().m;
 
     // free space asap
     // device_isOuterHitOfCell_.reset();

@@ -141,6 +141,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         auto mez = hh.zGlobal(i);
 
+        // printf("layerPairs[%u].minz: %f -- layerPairs[%u].maxz: %f -- mez: %f -- inner: %d -- outer: %d\n",pairLayerId,layerPairs[pairLayerId].minz,pairLayerId,layerPairs[pairLayerId].maxz,mez,inner,outer);
+
         if (mez < layerPairs[pairLayerId].minz || mez > layerPairs[pairLayerId].maxz)
           continue;
 
@@ -166,10 +168,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         // all cuts: true if fails
         constexpr float z0cut = 12.f;      // cm
-        // constexpr float z0cut = 5.0*12.f;      // cm (for colliderMLs)
+        // constexpr float z0cut = 1.7*12.f;      // cm (for colliderML)
         constexpr float hardPtCut = 0.5f;  // GeV
         constexpr float minRadius = hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
-        // constexpr float minRadius = hardPtCut * 128.29f;  // cm (1 GeV track has 1 GeV/c / (e * 2.6T) ~ 128 cm radius in a 2.6T field for colliderML)
+        // constexpr float minRadius = hardPtCut * 128.3f;  // cm (1 GeV track has 1 GeV/c / (e * 2.6T) ~ 128 cm radius in a 2.6T field for colliderML)
         constexpr float minRadius2T4 = 4.f * minRadius * minRadius;
         auto ptcut = [&](int j, int16_t idphi) {
           auto r2t4 = minRadius2T4;
@@ -182,6 +184,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           auto zo = hh.zGlobal(j);
           auto ro = hh.rGlobal(j);
           auto dr = ro - mer;
+          // printf("dr: %f -- layerPairs[%u].maxr: %f -- std::abs((mez * ro - mer * zo)): %f -- z0cut * dr: %f\n",dr,pairLayerId,layerPairs[pairLayerId].maxr,std::abs((mez * ro - mer * zo)),z0cut * dr);
           return dr > layerPairs[pairLayerId].maxr || dr < 0 || std::abs((mez * ro - mer * zo)) > z0cut * dr;
         };
 
@@ -239,7 +242,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             auto mo = hh.detectorIndex(oi);
             if (mo > geometry->m_nModules)
               continue;  //    invalid
-            
+
             if (doZ0Cut && z0cutoff(oi))
               continue;
 

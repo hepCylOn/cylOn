@@ -105,6 +105,58 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                         fast_fit_resultsGPU_.data(),
                                                         5,
                                                         offset));
+                  
+        // fit hexa (only first 4)
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFastFit<4>(),
+                                                        tuples_d,
+                                                        tupleMultiplicity_d,
+                                                        hv,
+                                                        geometry,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        6,
+                                                        offset));
+
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFit<4>(),
+                                                        tupleMultiplicity_d,
+                                                        bField_,
+                                                        outputSoa_d,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        6,
+                                                        offset));
+
+        // fit hepta (only first 4)
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFastFit<4>(),
+                                                        tuples_d,
+                                                        tupleMultiplicity_d,
+                                                        hv,
+                                                        geometry,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        7,
+                                                        offset));
+
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFit<4>(),
+                                                        tupleMultiplicity_d,
+                                                        bField_,
+                                                        outputSoa_d,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        7,
+                                                        offset));
       } else {
         // fit penta (all 5)
         alpaka::enqueue(queue,
@@ -130,6 +182,58 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                         hits_geGPU_.data(),
                                                         fast_fit_resultsGPU_.data(),
                                                         5,
+                                                        offset));
+
+        // fit hexa (only first 5)
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFastFit<5>(),
+                                                        tuples_d,
+                                                        tupleMultiplicity_d,
+                                                        hv,
+                                                        geometry,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        6,
+                                                        offset));
+
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFit<5>(),
+                                                        tupleMultiplicity_d,
+                                                        bField_,
+                                                        outputSoa_d,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        6,
+                                                        offset));
+
+        // fit hepta (only first 5)
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFastFit<5>(),
+                                                        tuples_d,
+                                                        tupleMultiplicity_d,
+                                                        hv,
+                                                        geometry,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        7,
+                                                        offset));
+
+        alpaka::enqueue(queue,
+                        alpaka::createTaskKernel<Acc1D>(workDivQuadsPenta,
+                                                        kernelBLFit<5>(),
+                                                        tupleMultiplicity_d,
+                                                        bField_,
+                                                        outputSoa_d,
+                                                        hitsGPU_.data(),
+                                                        hits_geGPU_.data(),
+                                                        fast_fit_resultsGPU_.data(),
+                                                        7,
                                                         offset));
       }
 
