@@ -9,14 +9,14 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "DataFormats/Math/interface/approx_atan2.h"
-#include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
+#include "DataFormats/approx_atan2.h"
+#include "AlpakaDataFormats/ClusteringConstants.h"
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
 #include "Geometry/SimplePixelTopology.h"
 #include "AlpakaCore/VecArray.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivision.h"
-#include "plugin-PixelSeeding/CAGeometrySoA.h"
+#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaDataFormats/CAGeometrySoA.h"
 
 #include "CACell.h"
 #include "CAStructures.h"

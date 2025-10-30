@@ -5,15 +5,15 @@
 #include <optional>
 #include <utility>
 
-#include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
+#include "AlpakaCore/config.h"
+#include "AlpakaCore/memory.h"
 
 #include "DataFormats/SiPixelClusterSoA/interface/alpaka/SiPixelClustersSoACollection.h"
 #include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersDevice.h"
-#include "DataFormats/SiPixelDigiSoA/interface/SiPixelDigisDevice.h"
-#include "DataFormats/SiPixelDigiSoA/interface/alpaka/SiPixelDigisSoACollection.h"
-#include "DataFormats/SiPixelDigiSoA/interface/alpaka/SiPixelDigiErrorsSoACollection.h"
-#include "DataFormats/SiPixelDigiSoA/interface/SiPixelDigiErrorsDevice.h"
+#include "AlpakaDataFormats/SiPixelDigisDevice.h"
+#include "AlpakaDataFormats/alpaka/SiPixelDigisSoACollection.h"
+#include "AlpakaDataFormats/alpaka/SiPixelDigiErrorsSoACollection.h"
+#include "AlpakaDataFormats/SiPixelDigiErrorsDevice.h"
 #include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
 
 #include "CondFormats/SiPixelObjects/interface/SiPixelGainCalibrationForHLTLayout.h"

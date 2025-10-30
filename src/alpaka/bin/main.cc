@@ -16,7 +16,7 @@
 #include <tbb/info.h>
 #include <tbb/task_arena.h>
 
-#include "AlpakaCore/backend.h"
+#include "AlpakaCore/backendAdvanced.h"
 #include "AlpakaCore/initialise.h"
 #include "EventProcessor.h"
 #include "PosixClockGettime.h"
@@ -118,6 +118,8 @@ void getArgument(std::vector<std::string> const& args, std::vector<std::string>:
 }
 
 int main(int argc, char** argv) {
+
+  using namespace cms::alpakatools;
   // Parse command line arguments
   std::vector<std::string> args(argv, argv + argc);
   std::unordered_map<Backend, float> backends;
@@ -140,25 +142,25 @@ int main(int argc, char** argv) {
     } else if (*i == "--serial") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::SERIAL, weight);
+      backends.insert_or_assign(Backend::SerialSync, weight);
 #endif
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
     } else if (*i == "--tbb") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::TBB, weight);
+      backends.insert_or_assign(Backend::TbbAsync, weight);
 #endif
 #ifdef ALPAKA_ACC_GPU_CUDA_PRESENT
     } else if (*i == "--cuda") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::CUDA, weight);
+      backends.insert_or_assign(Backend::CudaAsync, weight);
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
     } else if (*i == "--hip") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::HIP, weight);
+      backends.insert_or_assign(Backend::ROCmAsync, weight);
 #endif
     } else if (*i == "--numberOfThreads") {
       getArgument(args, i, numberOfThreads);
@@ -241,22 +243,22 @@ int main(int argc, char** argv) {
 
   // Initialiase the selected backends
 #ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
-  if (backends.find(Backend::SERIAL) != backends.end()) {
+  if (backends.find(Backend::SerialSync) != backends.end()) {
     alpaka_serial_sync::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
-  if (backends.find(Backend::TBB) != backends.end()) {
+  if (backends.find(Backend::TbbAsync) != backends.end()) {
     alpaka_serial_sync::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_GPU_CUDA_PRESENT
-  if (backends.find(Backend::CUDA) != backends.end()) {
+  if (backends.find(Backend::CudaAsync) != backends.end()) {
     alpaka_cuda_async::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
-  if (backends.find(Backend::HIP) != backends.end()) {
+  if (backends.find(Backend::ROCmAsync) != backends.end()) {
     alpaka_rocm_async::initialise();
   }
 #endif
@@ -269,7 +271,7 @@ int main(int argc, char** argv) {
     esmodules = {"BeamSpotESProducer"};
     if (not fromHits) esmodules.emplace_back("SiPixelFedIdsESProducer");
     for (auto const& [backend, weight] : backends) {
-      std::string prefix = "alpaka_" + name(backend) + "::";
+      std::string prefix = "alpaka_" + backendName(backend) + "::";
       // "portable" ESModules
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelFedCablingMapESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTESProducer");

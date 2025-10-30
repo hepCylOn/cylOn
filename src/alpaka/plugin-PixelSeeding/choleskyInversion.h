@@ -5,7 +5,78 @@
 
 #include <Eigen/Core>
 
-/**
+namespace math {
+  namespace cholesky {
+
+    template <typename M1, typename M2, int N = M2::ColsAtCompileTime>
+// without this: either does not compile or compiles and then fails silently at runtime
+#ifdef __CUDACC__
+    __host__ __device__
+#endif
+        inline constexpr void
+        invertNN(M1 const& src, M2& dst) {
+
+      // origin: CERNLIB
+
+      using T = typename M2::Scalar;
+
+      T a[N][N];
+      for (int i = 0; i < N; ++i) {
+        a[i][i] = src(i, i);
+        for (int j = i + 1; j < N; ++j)
+          a[j][i] = src(i, j);
+      }
+
+      for (int j = 0; j < N; ++j) {
+        a[j][j] = T(1.) / a[j][j];
+        int jp1 = j + 1;
+        for (int l = jp1; l < N; ++l) {
+          a[j][l] = a[j][j] * a[l][j];
+          T s1 = -a[l][jp1];
+          for (int i = 0; i < jp1; ++i)
+            s1 += a[l][i] * a[i][jp1];
+          a[l][jp1] = -s1;
+        }
+      }
+
+      if constexpr (N == 1) {
+        dst(0, 0) = a[0][0];
+        return;
+      }
+      a[0][1] = -a[0][1];
+      a[1][0] = a[0][1] * a[1][1];
+      for (int j = 2; j < N; ++j) {
+        int jm1 = j - 1;
+        for (int k = 0; k < jm1; ++k) {
+          T s31 = a[k][j];
+          for (int i = k; i < jm1; ++i)
+            s31 += a[k][i + 1] * a[i + 1][j];
+          a[k][j] = -s31;
+          a[j][k] = -s31 * a[j][j];
+        }
+        a[jm1][j] = -a[jm1][j];
+        a[j][jm1] = a[jm1][j] * a[j][j];
+      }
+
+      int j = 0;
+      while (j < N - 1) {
+        T s33 = a[j][j];
+        for (int i = j + 1; i < N; ++i)
+          s33 += a[j][i] * a[i][j];
+        dst(j, j) = s33;
+
+        ++j;
+        for (int k = 0; k < j; ++k) {
+          T s32 = 0;
+          for (int i = j; i < N; ++i)
+            s32 += a[k][i] * a[i][j];
+          dst(k, j) = dst(j, k) = s32;
+        }
+      }
+      dst(j, j) = a[j][j];
+    }
+
+    /**
  * fully inlined specialized code to perform the inversion of a
  * positive defined matrix of rank up to 6.
  *
@@ -16,17 +87,15 @@
  *
  *
  */
-namespace math {
-  namespace cholesky {
 
     template <typename M1, typename M2>
-    inline constexpr void invert11(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert11(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       dst(0, 0) = F(1.0) / src(0, 0);
     }
 
     template <typename M1, typename M2>
-    inline constexpr void invert22(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert22(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       auto luc0 = F(1.0) / src(0, 0);
       auto luc1 = src(1, 0) * src(1, 0) * luc0;
@@ -40,7 +109,7 @@ namespace math {
     }
 
     template <typename M1, typename M2>
-    inline constexpr void invert33(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert33(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       auto luc0 = F(1.0) / src(0, 0);
       auto luc1 = src(1, 0);
@@ -64,7 +133,7 @@ namespace math {
     }
 
     template <typename M1, typename M2>
-    inline constexpr void invert44(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert44(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       auto luc0 = F(1.0) / src(0, 0);
       auto luc1 = src(1, 0);
@@ -100,7 +169,7 @@ namespace math {
     }
 
     template <typename M1, typename M2>
-    inline constexpr void invert55(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert55(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       auto luc0 = F(1.0) / src(0, 0);
       auto luc1 = src(1, 0);
@@ -155,7 +224,7 @@ namespace math {
     }
 
     template <typename M1, typename M2>
-    inline __attribute__((always_inline)) constexpr void invert66(M1 const& src, M2& dst) {
+    inline constexpr void __attribute__((always_inline)) invert66(M1 const& src, M2& dst) {
       using F = decltype(src(0, 0));
       auto luc0 = F(1.0) / src(0, 0);
       auto luc1 = src(1, 0);
@@ -297,7 +366,7 @@ namespace math {
 
     template <typename M1, typename M2>
     struct Inverter<M1, M2, 2> {
-      static constexpr void eval(M1 const& src, M2& dst) {
+      static constexpr void __attribute__((always_inline)) eval(M1 const& src, M2& dst) {
         invert22(src, dst);
         symmetrize22(dst);
       }
@@ -305,7 +374,7 @@ namespace math {
 
     template <typename M1, typename M2>
     struct Inverter<M1, M2, 3> {
-      static constexpr void eval(M1 const& src, M2& dst) {
+      static constexpr void __attribute__((always_inline)) eval(M1 const& src, M2& dst) {
         invert33(src, dst);
         symmetrize33(dst);
       }
@@ -313,7 +382,7 @@ namespace math {
 
     template <typename M1, typename M2>
     struct Inverter<M1, M2, 4> {
-      static constexpr void eval(M1 const& src, M2& dst) {
+      static constexpr void __attribute__((always_inline)) eval(M1 const& src, M2& dst) {
         invert44(src, dst);
         symmetrize44(dst);
       }
@@ -321,7 +390,7 @@ namespace math {
 
     template <typename M1, typename M2>
     struct Inverter<M1, M2, 5> {
-      static constexpr void eval(M1 const& src, M2& dst) {
+      static constexpr void __attribute__((always_inline)) eval(M1 const& src, M2& dst) {
         invert55(src, dst);
         symmetrize55(dst);
       }
@@ -329,18 +398,19 @@ namespace math {
 
     template <typename M1, typename M2>
     struct Inverter<M1, M2, 6> {
-      static constexpr void eval(M1 const& src, M2& dst) {
+      static constexpr void __attribute__((always_inline)) eval(M1 const& src, M2& dst) {
         invert66(src, dst);
         symmetrize66(dst);
       }
     };
 
     // Eigen interface
-    template <typename D1, typename D2>
-    inline constexpr void invert(Eigen::DenseBase<D1> const& src, Eigen::DenseBase<D2>& dst) {
-      using M1 = Eigen::DenseBase<D1>;
-      using M2 = Eigen::DenseBase<D2>;
-      Inverter<M1, M2, M2::ColsAtCompileTime>::eval(src, dst);
+    template <typename M1, typename M2>
+    inline constexpr void __attribute__((always_inline)) invert(M1 const& src, M2& dst) {
+      if constexpr (M2::ColsAtCompileTime < 7)
+        Inverter<M1, M2, M2::ColsAtCompileTime>::eval(src, dst);
+      else
+        invertNN(src, dst);
     }
 
   }  // namespace cholesky

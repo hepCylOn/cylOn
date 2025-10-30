@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 #include <alpaka/alpaka.hpp>
-#include "AlpakaCore/memoryAdvanced.h"
+#include "AlpakaCore/memory.h"
 
 #include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
 #include "AlpakaDataFormats/TrackingRecHitsDevice.h"

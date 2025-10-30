@@ -118,12 +118,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     {
       auto const& count = iEvent.get(vertexCountToken_);
       auto const& vertices = iEvent.get(vertexToken_);
-      auto diff = std::abs(int(vertices->nvFinal) - int(count.nVertices()));
+      auto diff = std::abs(int(vertices.view().nvFinal()) - int(count.nVertices()));
       if (diff != 0) {
         sumVertexDifference += diff;
       }
       if (diff > vertexTolerance) {
-        ss << "\n N(vertices) is " << vertices->nvFinal << " expected " << count.nVertices() << ", difference " << diff
+        ss << "\n N(vertices) is " << vertices.view().nvFinal() << " expected " << count.nVertices() << ", difference " << diff
            << " is outside tolerance " << vertexTolerance;
         ok = false;
       }

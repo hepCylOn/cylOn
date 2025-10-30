@@ -1,7 +1,7 @@
 #ifndef DataFormats_VertexSoA_test_alpaka_VertexSoA_test_h
 #define DataFormats_VertexSoA_test_alpaka_VertexSoA_test_h
 
-#include "AlpakaDataFormats/VertexSoA.h"
+#include "AlpakaDataFormats/ZVertexSoA.h"
 #include "AlpakaCore/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {

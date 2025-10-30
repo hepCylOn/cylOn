@@ -10,7 +10,7 @@
 // #include "Portable/PortableCollection.h"
 // #include "AlpakaCore/config.h"
 // #include "AlpakaCore/memory.h"
-// #include "AlpakaCore/workdivision.h"
+// #include "AlpakaCore/workdivisionAdvanced.h"
 
 // using namespace ALPAKA_ACCELERATOR_NAMESPACE;
 

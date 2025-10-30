@@ -8,9 +8,9 @@
 
 #include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
 #include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersSoA.h"
-#include "DataFormats/SiPixelDigiSoA/interface/SiPixelDigisSoA.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/prefixScan.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/warpsize.h"
+#include "AlpakaDataFormats/SiPixelDigisSoA.h"
+#include "AlpakaCore/prefixScanAdvanced.h"
+#include "AlpakaCore/warpsize.h"
 #include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
 
 //#define GPU_DEBUG

@@ -9,10 +9,10 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "DataFormats/Math/interface/approx_atan2.h"
+#include "DataFormats/approx_atan2.h"
 #include "AlpakaCore/VecArray.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivision.h"
+#include "AlpakaCore/workdivisionAdvanced.h"
 
 #include "CACell.h"
 #include "CAStructures.h"

@@ -6,9 +6,9 @@
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "plugin-PixelSeeding/CAGeometrySoA.h"
-#include "RecoTracker/PixelTrackFitting/interface/alpaka/RiemannFit.h"
+#include "AlpakaDataFormats/CAGeometrySoA.h"
 
+#include "RiemannFit.h"
 #include "HelixFit.h"
 #include "CAStructures.h"
 

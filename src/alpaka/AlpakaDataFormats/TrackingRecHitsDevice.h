@@ -5,6 +5,7 @@
 
 #include <alpaka/alpaka.hpp>
 
+#include "AlpakaCore/memory.h"
 #include "Framework/Uninitialized.h"
 #include "Portable/PortableDeviceCollection.h"
 #include "AlpakaDataFormats/TrackingRecHitsHost.h"

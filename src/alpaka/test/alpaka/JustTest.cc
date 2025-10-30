@@ -15,10 +15,10 @@
 #include "AlpakaCore/CopyToHost.h"
 #include "AlpakaCore/CopyToDevice.h"
  
-#include "AlpakaDataFormats/VertexSoA.h"
-#include "AlpakaDataFormats/VertexHost.h"
-#include "AlpakaDataFormats/VertexDevice.h"
-#include "AlpakaDataFormats/alpaka/VertexSoACollection.h"
+#include "AlpakaDataFormats/ZVertexSoA.h"
+#include "AlpakaDataFormats/ZVertexHost.h"
+#include "AlpakaDataFormats/ZVertexDevice.h"
+#include "AlpakaDataFormats/alpaka/ZVertexSoACollection.h"
 
 #include "Geometry/SimplePixelTopology.h"
 
@@ -47,7 +47,7 @@
 #include "AlpakaDataFormats/SiPixelClustersDevice.h"
 #include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
 
-#include "plugin-PixelSeeding/CAStructures.h"
+#include "plugin-PixelSeeding/alpaka/CAStructures.h"
 
 #include "CondFormats/SiPixelMappingSoA.h"
 #include "CondFormats/alpaka/SiPixelMappingSoACollection.h"

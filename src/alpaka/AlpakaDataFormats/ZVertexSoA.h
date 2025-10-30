@@ -1,27 +1,40 @@
-#ifndef AlpakaDataFormats_ZVertexSoA_h
-#define AlpakaDataFormats_ZVertexSoA_h
+#ifndef AlpakaDataFormats_VertexSoA_h
+#define AlpakaDataFormats_VertexSoA_h
 
-#include <cstdint>
+#include <alpaka/alpaka.hpp>
 
-#include "AlpakaCore/config.h"
+#include <Eigen/Core>
 
-// SOA for vertices
-// These vertices are clusterized and fitted only along the beam line (z)
-// to obtain their global coordinate the beam spot position shall be added (eventually correcting for the beam angle as well)
-struct ZVertexSoA {
-  static constexpr uint32_t MAXTRACKS = 32 * 1024;
-  static constexpr uint32_t MAXVTX = 1024;
+#include "SoATemplate/SoALayout.h"
 
-  int16_t idv[MAXTRACKS];    // vertex index for each associated (original) track  (-1 == not associate)
-  float zv[MAXVTX];          // output z-posistion of found vertices
-  float wv[MAXVTX];          // output weight (1/error^2) on the above
-  float chi2[MAXVTX];        // vertices chi2
-  float ptv2[MAXVTX];        // vertices pt^2
-  int32_t ndof[MAXTRACKS];   // vertices number of dof (reused as workspace for the number of nearest neighbours FIXME)
-  uint16_t sortInd[MAXVTX];  // sorted index (by pt2)  ascending
-  uint32_t nvFinal;          // the number of vertices
+namespace reco {
 
-  ALPAKA_FN_HOST_ACC void init() { nvFinal = 0; }
-};
+  GENERATE_SOA_LAYOUT(ZVertexLayout,
+                      SOA_COLUMN(float, zv),          // output z-posistion of found vertices
+                      SOA_COLUMN(float, wv),          // output weight (1/error^2) on the above
+                      SOA_COLUMN(float, chi2),        // vertices chi2
+                      SOA_COLUMN(float, ptv2),        // vertices pt^2
+                      SOA_COLUMN(uint16_t, sortInd),  // sorted index (by pt2)  ascending
+                      SOA_SCALAR(uint32_t, nvFinal))  // the number of vertices
 
-#endif  // AlpakaDataFormats_ZVertexSoA_h
+  GENERATE_SOA_LAYOUT(ZVertexTracksLayout,
+                      SOA_COLUMN(int16_t, idv),   // vertex index for each associated (original) track
+                                                  // (-1 == not associate)
+                      SOA_COLUMN(int32_t, ndof))  // vertices number of dof
+                                                  // FIXME: reused as workspace for the number of nearest neighbours
+
+  // Common types for both Host and Device code
+  using ZVertexSoA = ZVertexLayout<>;
+  using ZVertexSoAView = ZVertexSoA::View;
+  using ZVertexSoAConstView = ZVertexSoA::ConstView;
+
+  // Common types for both Host and Device code
+  using ZVertexTracksSoA = ZVertexTracksLayout<>;
+  using ZVertexTracksSoAView = ZVertexTracksSoA::View;
+  using ZVertexTracksSoAConstView = ZVertexTracksSoA::ConstView;
+
+  ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE void init(ZVertexSoAView &vertices) { vertices.nvFinal() = 0; }
+
+}  // namespace reco
+
+#endif  // DataFormats_VertexSoA_interface_VertexSoA_h

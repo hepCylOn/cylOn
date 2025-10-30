@@ -205,12 +205,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     {
       auto const& vertices = iEvent.get(vertexToken_);
-      histos["vertex_n"].fill(vertices->nvFinal);
-      for (uint32_t i = 0; i < vertices->nvFinal; ++i) {
-        histos["vertex_z"].fill(vertices->zv[i]);
-        histos["vertex_chi2"].fill(vertices->chi2[i]);
-        histos["vertex_ndof"].fill(vertices->ndof[i]);
-        histos["vertex_pt2"].fill(vertices->ptv2[i]);
+      histos["vertex_n"].fill(vertices.view().nvFinal());
+      for (uint32_t i = 0; i < vertices.view().nvFinal(); ++i) {
+        histos["vertex_z"].fill(vertices.view()[i].zv());
+        histos["vertex_chi2"].fill(vertices.view()[i].chi2());
+        histos["vertex_ndof"].fill(vertices.view<reco::ZVertexTracksSoA>()[i].ndof());
+        histos["vertex_pt2"].fill(vertices.view()[i].ptv2());
       }
     }
   }

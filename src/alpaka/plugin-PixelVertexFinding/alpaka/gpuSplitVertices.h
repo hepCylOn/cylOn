@@ -1,165 +1,165 @@
-#ifndef plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h
-#define plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h
+// #ifndef plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h
+// #define plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h
 
-#include "AlpakaCore/HistoContainer.h"
-#include "AlpakaCore/config.h"
+// #include "AlpakaCore/HistoContainerAdvanced.h"
+// #include "AlpakaCore/config.h"
 
-#include "gpuVertexFinder.h"
+// #include "gpuVertexFinder.h"
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE {
+// namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-  namespace gpuVertexFinder {
+//   namespace gpuVertexFinder {
 
-    template <typename TAcc>
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE __attribute__((always_inline)) void splitVertices(const TAcc& acc,
-                                                                                     ZVertices* pdata,
-                                                                                     WorkSpace* pws,
-                                                                                     float maxChi2) {
-      constexpr bool verbose = false;  // in principle the compiler should optmize out if false
+//     template <typename TAcc>
+//     ALPAKA_FN_ACC ALPAKA_FN_INLINE __attribute__((always_inline)) void splitVertices(const TAcc& acc,
+//                                                                                      ZVertices* pdata,
+//                                                                                      WorkSpace* pws,
+//                                                                                      float maxChi2) {
+//       constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
-      const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
+//       const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
 
-      auto& __restrict__ data = *pdata;
-      auto& __restrict__ ws = *pws;
-      auto nt = ws.ntrks;
-      float const* __restrict__ zt = ws.zt;
-      float const* __restrict__ ezt2 = ws.ezt2;
-      float* __restrict__ zv = data.zv;
-      float* __restrict__ wv = data.wv;
-      float const* __restrict__ chi2 = data.chi2;
-      uint32_t& nvFinal = data.nvFinal;
+//       auto& __restrict__ data = *pdata;
+//       auto& __restrict__ ws = *pws;
+//       auto nt = ws.ntrks;
+//       float const* __restrict__ zt = ws.zt;
+//       float const* __restrict__ ezt2 = ws.ezt2;
+//       float* __restrict__ zv = data.zv;
+//       float* __restrict__ wv = data.wv;
+//       float const* __restrict__ chi2 = data.chi2;
+//       uint32_t& nvFinal = data.nvFinal;
 
-      int32_t const* __restrict__ nn = data.ndof;
-      int32_t* __restrict__ iv = ws.iv;
+//       int32_t const* __restrict__ nn = data.ndof;
+//       int32_t* __restrict__ iv = ws.iv;
 
-      ALPAKA_ASSERT_ACC(pdata);
-      ALPAKA_ASSERT_ACC(zt);
+//       ALPAKA_ASSERT_ACC(pdata);
+//       ALPAKA_ASSERT_ACC(zt);
 
-      // NB: Shared memory size? Is it enough?
-      constexpr uint32_t MAXTK = 512;
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
-      auto& it = alpaka::declareSharedVar<uint32_t[MAXTK], __COUNTER__>(acc);   // track index
-      auto& zz = alpaka::declareSharedVar<float[MAXTK], __COUNTER__>(acc);      // z pos
-      auto& newV = alpaka::declareSharedVar<uint8_t[MAXTK], __COUNTER__>(acc);  // 0 or 1
-      auto& ww = alpaka::declareSharedVar<float[MAXTK], __COUNTER__>(acc);      // z weight
-#else
-      uint32_t it[MAXTK];
-      float zz[MAXTK];
-      uint8_t newV[MAXTK];
-      float ww[MAXTK];
-#endif
-      auto& nq = alpaka::declareSharedVar<uint32_t, __COUNTER__>(acc);  // number of track for this vertex
+//       // NB: Shared memory size? Is it enough?
+//       constexpr uint32_t MAXTK = 512;
+// #if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+//       auto& it = alpaka::declareSharedVar<uint32_t[MAXTK], __COUNTER__>(acc);   // track index
+//       auto& zz = alpaka::declareSharedVar<float[MAXTK], __COUNTER__>(acc);      // z pos
+//       auto& newV = alpaka::declareSharedVar<uint8_t[MAXTK], __COUNTER__>(acc);  // 0 or 1
+//       auto& ww = alpaka::declareSharedVar<float[MAXTK], __COUNTER__>(acc);      // z weight
+// #else
+//       uint32_t it[MAXTK];
+//       float zz[MAXTK];
+//       uint8_t newV[MAXTK];
+//       float ww[MAXTK];
+// #endif
+//       auto& nq = alpaka::declareSharedVar<uint32_t, __COUNTER__>(acc);  // number of track for this vertex
 
-      const uint32_t blockIdx(alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-      const uint32_t gridDimension(alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
+//       const uint32_t blockIdx(alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
+//       const uint32_t gridDimension(alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
 
-      for (auto kv = blockIdx; kv < nvFinal; kv += gridDimension) {
-        if (nn[kv] < 4)
-          continue;
-        if (chi2[kv] < maxChi2 * float(nn[kv]))
-          continue;
+//       for (auto kv = blockIdx; kv < nvFinal; kv += gridDimension) {
+//         if (nn[kv] < 4)
+//           continue;
+//         if (chi2[kv] < maxChi2 * float(nn[kv]))
+//           continue;
 
-        ALPAKA_ASSERT_ACC((uint32_t)nn[kv] < MAXTK);
+//         ALPAKA_ASSERT_ACC((uint32_t)nn[kv] < MAXTK);
 
-        if ((uint32_t)nn[kv] >= MAXTK)
-          continue;
-        // too bad FIXME
+//         if ((uint32_t)nn[kv] >= MAXTK)
+//           continue;
+//         // too bad FIXME
 
-        nq = 0u;
-        alpaka::syncBlockThreads(acc);
+//         nq = 0u;
+//         alpaka::syncBlockThreads(acc);
 
-        // copy to local
-        cms::alpakatools::for_each_element_in_block_strided(acc, nt, [&](uint32_t k) {
-          if (iv[k] == int(kv)) {
-            auto old = alpaka::atomicInc(acc, &nq, MAXTK, alpaka::hierarchy::Threads{});
-            zz[old] = zt[k] - zv[kv];
-            newV[old] = zz[old] < 0 ? 0 : 1;
-            ww[old] = 1.f / ezt2[k];
-            it[old] = k;
-          }
-        });
+//         // copy to local
+//         cms::alpakatools::for_each_element_in_block_strided(acc, nt, [&](uint32_t k) {
+//           if (iv[k] == int(kv)) {
+//             auto old = alpaka::atomicInc(acc, &nq, MAXTK, alpaka::hierarchy::Threads{});
+//             zz[old] = zt[k] - zv[kv];
+//             newV[old] = zz[old] < 0 ? 0 : 1;
+//             ww[old] = 1.f / ezt2[k];
+//             it[old] = k;
+//           }
+//         });
 
-        // the new vertices
-        auto& znew = alpaka::declareSharedVar<float[2], __COUNTER__>(acc);
-        auto& wnew = alpaka::declareSharedVar<float[2], __COUNTER__>(acc);
-        alpaka::syncBlockThreads(acc);
+//         // the new vertices
+//         auto& znew = alpaka::declareSharedVar<float[2], __COUNTER__>(acc);
+//         auto& wnew = alpaka::declareSharedVar<float[2], __COUNTER__>(acc);
+//         alpaka::syncBlockThreads(acc);
 
-        ALPAKA_ASSERT_ACC(int(nq) == nn[kv] + 1);
+//         ALPAKA_ASSERT_ACC(int(nq) == nn[kv] + 1);
 
-        int maxiter = 20;
-        // kt-min....
-        bool more = true;
-        while (alpaka::syncBlockThreadsPredicate<alpaka::BlockOr>(acc, more)) {
-          more = false;
-          if (0 == threadIdxLocal) {
-            znew[0] = 0;
-            znew[1] = 0;
-            wnew[0] = 0;
-            wnew[1] = 0;
-          }
-          alpaka::syncBlockThreads(acc);
+//         int maxiter = 20;
+//         // kt-min....
+//         bool more = true;
+//         while (alpaka::syncBlockThreadsPredicate<alpaka::BlockOr>(acc, more)) {
+//           more = false;
+//           if (0 == threadIdxLocal) {
+//             znew[0] = 0;
+//             znew[1] = 0;
+//             wnew[0] = 0;
+//             wnew[1] = 0;
+//           }
+//           alpaka::syncBlockThreads(acc);
 
-          cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
-            auto i = newV[k];
-            alpaka::atomicAdd(acc, &znew[i], zz[k] * ww[k], alpaka::hierarchy::Threads{});
-            alpaka::atomicAdd(acc, &wnew[i], ww[k], alpaka::hierarchy::Threads{});
-          });
-          alpaka::syncBlockThreads(acc);
+//           cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
+//             auto i = newV[k];
+//             alpaka::atomicAdd(acc, &znew[i], zz[k] * ww[k], alpaka::hierarchy::Threads{});
+//             alpaka::atomicAdd(acc, &wnew[i], ww[k], alpaka::hierarchy::Threads{});
+//           });
+//           alpaka::syncBlockThreads(acc);
 
-          if (0 == threadIdxLocal) {
-            znew[0] /= wnew[0];
-            znew[1] /= wnew[1];
-          }
-          alpaka::syncBlockThreads(acc);
+//           if (0 == threadIdxLocal) {
+//             znew[0] /= wnew[0];
+//             znew[1] /= wnew[1];
+//           }
+//           alpaka::syncBlockThreads(acc);
 
-          cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
-            auto d0 = fabs(zz[k] - znew[0]);
-            auto d1 = fabs(zz[k] - znew[1]);
-            auto newer = d0 < d1 ? 0 : 1;
-            more |= newer != newV[k];
-            newV[k] = newer;
-          });
-          --maxiter;
-          if (maxiter <= 0)
-            more = false;
-        }
+//           cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
+//             auto d0 = fabs(zz[k] - znew[0]);
+//             auto d1 = fabs(zz[k] - znew[1]);
+//             auto newer = d0 < d1 ? 0 : 1;
+//             more |= newer != newV[k];
+//             newV[k] = newer;
+//           });
+//           --maxiter;
+//           if (maxiter <= 0)
+//             more = false;
+//         }
 
-        // avoid empty vertices
-        if (0 == wnew[0] || 0 == wnew[1])
-          continue;
+//         // avoid empty vertices
+//         if (0 == wnew[0] || 0 == wnew[1])
+//           continue;
 
-        // quality cut
-        auto dist2 = (znew[0] - znew[1]) * (znew[0] - znew[1]);
-        auto chi2Dist = dist2 / (1.f / wnew[0] + 1.f / wnew[1]);
+//         // quality cut
+//         auto dist2 = (znew[0] - znew[1]) * (znew[0] - znew[1]);
+//         auto chi2Dist = dist2 / (1.f / wnew[0] + 1.f / wnew[1]);
 
-        if (verbose && 0 == threadIdxLocal)
-          printf("inter %d %f %f\n", 20 - maxiter, chi2Dist, dist2 * wv[kv]);
+//         if (verbose && 0 == threadIdxLocal)
+//           printf("inter %d %f %f\n", 20 - maxiter, chi2Dist, dist2 * wv[kv]);
 
-        if (chi2Dist < 4)
-          continue;
+//         if (chi2Dist < 4)
+//           continue;
 
-        // get a new global vertex
-        auto& igv = alpaka::declareSharedVar<uint32_t, __COUNTER__>(acc);
-        if (0 == threadIdxLocal)
-          igv = alpaka::atomicAdd(acc, &ws.nvIntermediate, 1u, alpaka::hierarchy::Blocks{});
-        alpaka::syncBlockThreads(acc);
-        cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
-          if (1 == newV[k])
-            iv[it[k]] = igv;
-        });
+//         // get a new global vertex
+//         auto& igv = alpaka::declareSharedVar<uint32_t, __COUNTER__>(acc);
+//         if (0 == threadIdxLocal)
+//           igv = alpaka::atomicAdd(acc, &ws.nvIntermediate, 1u, alpaka::hierarchy::Blocks{});
+//         alpaka::syncBlockThreads(acc);
+//         cms::alpakatools::for_each_element_in_block_strided(acc, nq, [&](uint32_t k) {
+//           if (1 == newV[k])
+//             iv[it[k]] = igv;
+//         });
 
-      }  // loop on vertices
-    }
+//       }  // loop on vertices
+//     }
 
-    struct splitVerticesKernel {
-      template <typename TAcc>
-      ALPAKA_FN_ACC void operator()(const TAcc& acc, ZVertices* pdata, WorkSpace* pws, float maxChi2) const {
-        splitVertices(acc, pdata, pws, maxChi2);
-      }
-    };
+//     struct splitVerticesKernel {
+//       template <typename TAcc>
+//       ALPAKA_FN_ACC void operator()(const TAcc& acc, ZVertices* pdata, WorkSpace* pws, float maxChi2) const {
+//         splitVertices(acc, pdata, pws, maxChi2);
+//       }
+//     };
 
-  }  // namespace gpuVertexFinder
+//   }  // namespace gpuVertexFinder
 
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE
+// }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-#endif  // plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h
+// #endif  // plugin_PixelVertexFinding_alpaka_gpuSplitVertices_h

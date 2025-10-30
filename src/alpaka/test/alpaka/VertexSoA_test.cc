@@ -1,5 +1,5 @@
 /**
-   Simple test for the reco::VertexSoA data structure
+   Simple test for the reco::ZVertexSoA data structure
    which inherits from Portable{Host}Collection.
 
    Creates an instance of the class (automatically allocates
@@ -26,9 +26,9 @@
 
 
 
-#include "AlpakaDataFormats/VertexDevice.h"
-#include "AlpakaDataFormats/VertexHost.h"
-#include "AlpakaDataFormats/alpaka/VertexSoACollection.h"
+#include "AlpakaDataFormats/ZVertexDevice.h"
+#include "AlpakaDataFormats/ZVertexHost.h"
+#include "AlpakaDataFormats/alpaka/ZVertexSoACollection.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TODO: This used to be a separte dev.cc + header  
@@ -39,8 +39,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {
   class TestFillKernel {
   public:
     ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                  reco::VertexSoAView vertex_view,
-                                  reco::VertexTracksSoAView ztracks_view) const {
+                                  reco::ZVertexSoAView vertex_view,
+                                  reco::ZVertexTracksSoAView ztracks_view) const {
       if (cms::alpakatools::once_per_grid(acc)) {
         vertex_view.nvFinal() = 420;
       }
@@ -62,8 +62,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {
   class TestVerifyKernel {
   public:
     ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                  reco::VertexSoAView vertex_view,
-                                  reco::VertexTracksSoAView ztracks_view) const {
+                                  reco::ZVertexSoAView vertex_view,
+                                  reco::ZVertexTracksSoAView ztracks_view) const {
       if (cms::alpakatools::once_per_grid(acc)) {
         ALPAKA_ASSERT_ACC(vertex_view.nvFinal() == 420);
       }
@@ -82,7 +82,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testVertexSoAT {
     }
   };
 
-  void runKernels(reco::VertexSoAView vertex_view, reco::VertexTracksSoAView ztracks_view, Queue& queue) {
+  void runKernels(reco::ZVertexSoAView vertex_view, reco::ZVertexTracksSoAView ztracks_view, Queue& queue) {
     uint32_t items = 64;
     uint32_t groups = cms::alpakatools::divide_up_by(vertex_view.metadata().size(), items);
     auto workDiv = cms::alpakatools::make_workdiv<Acc1D>(groups, items);
@@ -118,15 +118,15 @@ int main() {
     {
       // Instantiate vertices on device. PortableCollection allocates
       // SoA on device automatically.
-      VertexSoACollection Vertex_d({{maxTracks, maxVertices}}, queue);
-      testVertexSoAT::runKernels(Vertex_d.view(), Vertex_d.view<reco::VertexTracksSoA>(), queue);
+      ZVertexSoACollection Vertex_d({{maxTracks, maxVertices}}, queue);
+      testVertexSoAT::runKernels(Vertex_d.view(), Vertex_d.view<reco::ZVertexTracksSoA>(), queue);
 
       // If the device is actually the host, use the collection as-is.
       // Otherwise, copy the data from the device to the host.
 #if defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED) || defined(ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED)  || defined(ALPAKA_ACC_CPU_B_OMP2_T_SEQ_ENABLED) 
-      VertexHost Vertex_h = std::move(Vertex_d);
+      ZVertexHost Vertex_h = std::move(Vertex_d);
 #else
-      VertexHost Vertex_h = cms::alpakatools::CopyToHost<VertexSoACollection>::copyAsync(queue, Vertex_d);
+      ZVertexHost Vertex_h = cms::alpakatools::CopyToHost<ZVertexSoACollection>::copyAsync(queue, Vertex_d);
 #endif
       alpaka::wait(queue);
       std::cout << Vertex_h.view().metadata().size() << std::endl;
@@ -141,8 +141,8 @@ int main() {
                 << "sortInd\t"
                 << "nvFinal\n";
 
-      auto vtx_v = Vertex_h.view<reco::VertexSoA>();
-      auto trk_v = Vertex_h.view<reco::VertexTracksSoA>();
+      auto vtx_v = Vertex_h.view<reco::ZVertexSoA>();
+      auto trk_v = Vertex_h.view<reco::ZVertexTracksSoA>();
       for (int i = 0; i < 10; ++i) {
         auto vi = vtx_v[i];
         auto ti = trk_v[i];

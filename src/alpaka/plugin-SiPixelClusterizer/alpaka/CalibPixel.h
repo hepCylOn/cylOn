@@ -12,9 +12,9 @@
 #include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelGainCalibrationForHLTUtilities.h"
 #include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
 #include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersSoA.h"
-#include "DataFormats/SiPixelDigiSoA/interface/SiPixelDigisSoA.h"
+#include "AlpakaDataFormats/SiPixelDigisSoA.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
+#include "AlpakaCore/workdivisionAdvanced.h"
 #include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
 
 //#define GPU_DEBUG

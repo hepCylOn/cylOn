@@ -12,10 +12,10 @@
 #include "FWCore/Utilities/interface/DeviceGlobal.h"
 #include "FWCore/Utilities/interface/HostDeviceConstant.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/HistoContainer.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/SimpleVector.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/warpsize.h"
+#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/SimpleVector.h"
+#include "AlpakaCore/config.h"
+#include "AlpakaCore/warpsize.h"
 
 //#define GPU_DEBUG
 

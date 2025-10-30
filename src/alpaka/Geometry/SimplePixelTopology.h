@@ -427,6 +427,7 @@ namespace pixelTopology {
     static constexpr int16_t xOffset = -1e4;  // not used actually, to suppress static analyzer warnings
 
     static constexpr char const *nameModifier = "Phase2";
+    static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
 
     static constexpr uint32_t const *layerStart = phase2PixelTopology::layerStart;
     static constexpr float const *minz = phase2PixelTopology::minz;
@@ -529,6 +530,7 @@ namespace pixelTopology {
     static constexpr int16_t xOffset = -81;
 
     static constexpr char const *nameModifier = "";
+    static constexpr char const *cpeModules = "PixelCPEFastParams";
 
     static constexpr uint32_t const *layerStart = phase1PixelTopology::layerStart;
     static constexpr float const *minz = phase1PixelTopology::minz;

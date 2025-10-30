@@ -3,7 +3,8 @@
 
 #include <cmath>
 
-#include "AlpakaCore/HistoContainer.h"
+#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/OneToManyAssoc.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
 #include "AlpakaDataFormats/TrajectoryStateSoA.h"
@@ -21,7 +22,7 @@ namespace pixelTrack {
 
     using Quality = trackQuality::Quality;
     using hindex_type = uint32_t;
-    using HitContainer = cms::alpakatools::OneToManyAssoc<hindex_type, S, 5 * S>;
+    using HitContainer = cms::alpakatools::OneToManyAssocBase<hindex_type, S, 5 * S>;
 
     // Always check quality is at least loose!
     // CUDA does not support enums  in __lgc ...

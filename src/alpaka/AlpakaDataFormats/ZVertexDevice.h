@@ -5,11 +5,11 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "AlpakaDataFormats/VertexSoA.h"
-#include "AlpakaDataFormats/VertexHost.h"
+#include "AlpakaDataFormats/ZVertexSoA.h"
+#include "AlpakaDataFormats/ZVertexHost.h"
 #include "Portable/PortableDeviceCollection.h"
 
 template <typename TDev>
-using VertexDevice = PortableDeviceMultiCollection<TDev, reco::VertexSoA, reco::VertexTracksSoA>;
+using ZVertexDevice = PortableDeviceMultiCollection<TDev, reco::ZVertexSoA, reco::ZVertexTracksSoA>;
 
 #endif  // DataFormats_VertexSoA_interface_ZVertexDevice_h

@@ -3,25 +3,27 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
+// #include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
 #include "AlpakaDataFormats/TrackDefinitions.h"
 #include "AlpakaDataFormats/alpaka/TracksSoACollection.h"
 #include "AlpakaDataFormats/TracksHost.h"
 #include "AlpakaDataFormats/TracksDevice.h"
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
 #include "AlpakaDataFormats/alpaka/TrackingRecHitsSoACollection.h"
-#include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+// #include "FWCore/Framework/interface/EventSetup.h"
+// #include "FWCore/ParameterSet/interface/ParameterSet.h"
+// #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "AlpakaCore/config.h"
-#include "plugin-PixelSeeding/alpaka/CAGeometrySoACollection.h"
+#include "AlpakaDataFormats/alpaka/CAGeometrySoACollection.h"
 
 #include "CACell.h"
 #include "CAHitNtupletGeneratorKernels.h"
 #include "HelixFit.h"
 
 namespace edm {
-  class ParameterSetDescription;
+  class Event;
+  class EventSetup;
+  class ProductRegistry;
 }  // namespace edm
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -44,9 +46,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using CAGeometryOnDevice = reco::CAGeometrySoACollection;
 
   public:
-    CAHitNtupletGenerator(const edm::ParameterSet& cfg);
+    CAHitNtupletGenerator(Params const& params);
 
-    static void fillPSetDescription(edm::ParameterSetDescription& desc);
+    // static void fillPSetDescription(edm::ParameterSetDescription& desc);
 
     // NOTE: beginJob and endJob were meant to be used
     // to fill the statistics. This is still not implemented in Alpaka

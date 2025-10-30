@@ -1,277 +1,341 @@
-#ifndef plugin_PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h
-#define plugin_PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h
+#ifndef PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h
+#define PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h
 
-#include <algorithm>
-
-#include "AlpakaCore/memory.h"
-#include "AlpakaCore/HistoContainer.h"
-#include "AlpakaDataFormats/alpaka/PixelTrackAlpaka.h"
-#include "AlpakaDataFormats/TrackingRecHit2DSoAView.h"
-#include "CondFormats/alpaka/CAGeometry.h"
-
-#include "GPUCACell.h"
-
+// #define GPU_DEBUG
 // #define DUMP_GPU_TK_TUPLES
 
-namespace cAHitNtupletGenerator {
+#include <cstdint>
 
-  // counters
-  struct Counters {
-    unsigned long long nEvents;
-    unsigned long long nHits;
-    unsigned long long nCells;
-    unsigned long long nTuples;
-    unsigned long long nFitTracks;
-    unsigned long long nGoodTracks;
-    unsigned long long nUsedHits;
-    unsigned long long nDupHits;
-    unsigned long long nKilledCells;
-    unsigned long long nEmptyCells;
-    unsigned long long nZeroTrackCells;
-  };
+#include <alpaka/alpaka.hpp>
 
-  using HitsView = TrackingRecHit2DSoAView;
-  using HitsOnGPU = TrackingRecHit2DSoAView;
+#include "AlpakaDataFormats/TrackDefinitions.h"
+#include "AlpakaDataFormats/TracksHost.h"
+#include "AlpakaDataFormats/alpaka/TrackUtilities.h"
+#include "AlpakaDataFormats/TrackingRecHitsSoA.h"
+#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/config.h"
+#include "AlpakaCore/memory.h"
+#include "AlpakaDataFormats/CAGeometrySoA.h"
+#include "AlpakaDataFormats/alpaka/CAPairSoACollection.h"
 
-  using HitToTuple = CAConstants::HitToTuple;
-  using TupleMultiplicity = CAConstants::TupleMultiplicity;
-
-  using Quality = pixelTrack::Quality;
-  using TkSoA = pixelTrack::TrackSoA;
-  using HitContainer = pixelTrack::HitContainer;
-  
-  struct QualityCuts {
-    // chi2 cut = chi2Scale * (chi2Coeff[0] + pT/GeV * (chi2Coeff[1] + pT/GeV * (chi2Coeff[2] + pT/GeV * chi2Coeff[3])))
-    float chi2Coeff[4];
-    float chi2MaxPt;  // GeV
-    float chi2Scale;
-
-    struct region {
-      float maxTip;  // cm
-      float minPt;   // GeV
-      float maxZip;  // cm
-    };
-
-    region triplet;
-    region quadruplet;
-  };
-
-  // params
-  struct Params {
-    Params(bool onGPU,
-           uint32_t minHitsPerNtuplet,
-           uint32_t maxNumberOfDoublets,
-           bool useRiemannFit,
-           bool fit5as4,
-           bool includeJumpingForwardDoublets,
-           bool earlyFishbone,
-           bool lateFishbone,
-           bool idealConditions,
-           bool doStats,
-           bool doClusterCut,
-           bool doZ0Cut,
-           bool doPtCut,
-           float ptmin,
-           float CAThetaCutBarrel,
-           float CAThetaCutForward,
-           float hardCurvCut,
-           float dcaCutInnerTriplet,
-           float dcaCutOuterTriplet,
-           QualityCuts const& cuts)
-        : onGPU_(onGPU),
-          minHitsPerNtuplet_(minHitsPerNtuplet),
-          maxNumberOfDoublets_(maxNumberOfDoublets),
-          useRiemannFit_(useRiemannFit),
-          fit5as4_(fit5as4),
-          includeJumpingForwardDoublets_(includeJumpingForwardDoublets),
-          earlyFishbone_(earlyFishbone),
-          lateFishbone_(lateFishbone),
-          idealConditions_(idealConditions),
-          doStats_(doStats),
-          doClusterCut_(doClusterCut),
-          doZ0Cut_(doZ0Cut),
-          doPtCut_(doPtCut),
-          ptmin_(ptmin),
-          CAThetaCutBarrel_(CAThetaCutBarrel),
-          CAThetaCutForward_(CAThetaCutForward),
-          hardCurvCut_(hardCurvCut),
-          dcaCutInnerTriplet_(dcaCutInnerTriplet),
-          dcaCutOuterTriplet_(dcaCutOuterTriplet),
-          cuts_(cuts) {}
-
-    const bool onGPU_;
-    const uint32_t minHitsPerNtuplet_;
-    const uint32_t maxNumberOfDoublets_;
-    const bool useRiemannFit_;
-    const bool fit5as4_;
-    const bool includeJumpingForwardDoublets_;
-    const bool earlyFishbone_;
-    const bool lateFishbone_;
-    const bool idealConditions_;
-    const bool doStats_;
-    const bool doClusterCut_;
-    const bool doZ0Cut_;
-    const bool doPtCut_;
-    const float ptmin_;
-    const float CAThetaCutBarrel_;
-    const float CAThetaCutForward_;
-    const float hardCurvCut_;
-    const float dcaCutInnerTriplet_;
-    const float dcaCutOuterTriplet_;
-
-    // quality cuts
-    QualityCuts cuts_{// polynomial coefficients for the pT-dependent chi2 cut
-                      {0.68177776, 0.74609577, -0.08035491, 0.00315399},
-                      // max pT used to determine the chi2 cut
-                      10.,
-                      // chi2 scale factor: 30 for broken line fit, 45 for Riemann fit
-                      30.,
-                      // regional cuts for triplets
-                      {
-                          0.3,  // |Tip| < 0.3 cm
-                          0.5,  // pT > 0.5 GeV
-                          12.0  // |Zip| < 12.0 cm
-                      },
-                      // regional cuts for quadruplets
-                      {
-                          0.5,  // |Tip| < 0.5 cm
-                          0.3,  // pT > 0.3 GeV
-                          12.0  // |Zip| < 12.0 cm
-                      }};
-
-  };  // Params
-
-}  // namespace cAHitNtupletGenerator
+#include "CACell.h"
+#include "CAPixelDoublets.h"
+#include "CAStructures.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-  class CAHitNtupletGeneratorKernels {
-  public:
-    using QualityCuts = cAHitNtupletGenerator::QualityCuts;
-    using Params = cAHitNtupletGenerator::Params;
-    using Counters = cAHitNtupletGenerator::Counters;
+  using namespace ::caStructures;
 
-    using HitsView = TrackingRecHit2DSoAView;
-    using HitsOnGPU = TrackingRecHit2DSoAView;
-    using HitsOnCPU = TrackingRecHit2DAlpaka;
+  namespace caHitNtupletGenerator {
 
-    using HitToTuple = CAConstants::HitToTuple;
-    using TupleMultiplicity = CAConstants::TupleMultiplicity;
+    //Counters
+    struct Counters {
+      unsigned long long nEvents;
+      unsigned long long nHits;
+      unsigned long long nCells;
+      unsigned long long nTuples;
+      unsigned long long nFitTracks;
+      unsigned long long nLooseTracks;
+      unsigned long long nGoodTracks;
+      unsigned long long nUsedHits;
+      unsigned long long nDupHits;
+      unsigned long long nFishCells;
+      unsigned long long nKilledCells;
+      unsigned long long nEmptyCells;
+      unsigned long long nZeroTrackCells;
+    };
 
-    using Quality = pixelTrack::Quality;
-    using TkSoA = pixelTrack::TrackSoA;
-    using HitContainer = pixelTrack::HitContainer;
+    //Full list of params = algo params + quality cuts
+    //Generic template
+    template <typename TrackerTraits, typename Enable = void>
+    struct ParamsT {};
 
-    using PhiHist = CAConstants::PhiHist;
+    template <typename TrackerTraits>
+    struct ParamsT<TrackerTraits, pixelTopology::isPhase1Topology<TrackerTraits>> {
+      using TT = TrackerTraits;
+      using QualityCuts = ::pixelTrack::QualityCutsT<TT>;  //track quality cuts
 
-    CAHitNtupletGeneratorKernels(Params const& params, uint32_t nhits, uint16_t nLayers, Queue& queue)
-        : m_Layers(nLayers),
-          m_params(params),
-          //////////////////////////////////////////////////////////
-          // ALLOCATIONS FOR THE INTERMEDIATE RESULTS (STAYS ON WORKER)
-          //////////////////////////////////////////////////////////
-          counters_{cms::alpakatools::make_device_buffer<Counters>(queue)},
+      static constexpr AlgoParams defaultAlgoParams() {
+      return {
+          // Container sizes
+          5.0f,   // avgHitsPerTrack_
+          25.0f,  // avgCellsPerHit_
+          2.0f,   // avgCellsPerCell_
+          1.0f,   // avgTracksPerCell_
 
-          // hits
-          device_hitHist_{cms::alpakatools::make_device_buffer<PhiHist>(queue)},
-          device_layerStarts_{cms::alpakatools::make_device_buffer<uint32_t[]>(queue, nLayers + 1)},
+          // Algorithm parameters
+          4,      // minHitsPerNtuplet_
+          10,     // minHitsForSharingCut_
+          0.9f,   // ptmin_
+          1.0f / (0.35f * 87.0f),  // hardCurvCut_
+          12.0f,  // cellZ0Cut_
+          0.5f,   // cellPtCut_
 
-          // workspace
-          device_hitToTuple_{cms::alpakatools::make_device_buffer<HitToTuple>(queue)},
-          device_tupleMultiplicity_{cms::alpakatools::make_device_buffer<TupleMultiplicity>(queue)},
+          // Pixel cluster cut params
+          8.0f * 0.0285f / 0.015f, // dzdrFact_
+          1,  // minYsizeB1_
+          1,  // minYsizeB2_
+          28, // maxDYsize12_
+          20, // maxDYsize_
+          20, // maxDYPred_
 
-          // NB: In legacy, device_theCells_ and device_isOuterHitOfCell_ were allocated inside buildDoublets
-          device_theCells_{cms::alpakatools::make_device_buffer<GPUCACell[]>(queue, params.maxNumberOfDoublets_)},
-          // in principle we can use "nhits" to heuristically dimension the workspace...
-          device_isOuterHitOfCell_{
-              cms::alpakatools::make_device_buffer<GPUCACell::OuterHitOfCell[]>(queue, std::max(1u, nhits))},
-
-          device_theCellNeighbors_{cms::alpakatools::make_device_buffer<CAConstants::CellNeighborsVector>(queue)},
-          device_theCellTracks_{cms::alpakatools::make_device_buffer<CAConstants::CellTracksVector>(queue)},
-          // NB: In legacy, cellStorage_ was allocated inside buildDoublets
-          cellStorage_{cms::alpakatools::make_device_buffer<unsigned char[]>(
-              queue,
-              CAConstants::maxNumOfActiveDoublets() * sizeof(GPUCACell::CellNeighbors) +
-                  CAConstants::maxNumOfActiveDoublets() * sizeof(GPUCACell::CellTracks))},
-          device_theCellNeighborsContainer_{reinterpret_cast<GPUCACell::CellNeighbors*>(cellStorage_.data())},
-          device_theCellTracksContainer_{reinterpret_cast<GPUCACell::CellTracks*>(
-              cellStorage_.data() + CAConstants::maxNumOfActiveDoublets() * sizeof(GPUCACell::CellNeighbors))},
-
-          // NB: In legacy, device_storage_ was allocated inside allocateOnGPU
-          device_storage_{
-              cms::alpakatools::make_device_buffer<cms::alpakatools::AtomicPairCounter::c_type[]>(queue, 3u)},
-          device_hitTuple_apc_{reinterpret_cast<cms::alpakatools::AtomicPairCounter*>(device_storage_.data())},
-          device_hitToTuple_apc_{reinterpret_cast<cms::alpakatools::AtomicPairCounter*>(device_storage_.data() + 1)},
-          device_nCells_{cms::alpakatools::make_device_view(alpaka::getDev(queue),
-                                                            *reinterpret_cast<uint32_t*>(device_storage_.data() + 2))} {
-      alpaka::memset(queue, counters_, 0);
-      alpaka::memset(queue, device_nCells_, 0);
-      cms::alpakatools::launchZero<Acc1D>(device_tupleMultiplicity_.data(), queue);
-      cms::alpakatools::launchZero<Acc1D>(device_hitToTuple_.data(), queue);
-      
+          // Flags
+          false, // useRiemannFit_
+          false, // fitNas4_
+          true,  // earlyFishbone_
+          false, // lateFishbone_
+          false, // doStats_ (fillStatistics)
+          true,  // doSharedHitCut_
+          false, // dupPassThrough_
+          true   // useSimpleTripletCleaner_
+      };
     }
 
+    static constexpr QualityCuts defaultQualityCuts() {
+    return {
+        // polynomial coefficients for pT-dependent chi2 cut
+        {0.68177776, 0.74609577, -0.08035491, 0.00315399},
+        // max pT used for chi2 cut
+        10.,
+        // chi2 scale factor
+        30.,
+        // triplet cuts
+        {0.3, 0.5, 12.0},
+        // quadruplet cuts
+        {0.5, 0.3, 12.0}};
+  }
+
+      ParamsT() : algoParams_(defaultAlgoParams()), qualityCuts_(defaultQualityCuts()) {}
+
+      ParamsT(AlgoParams const& commonCuts, QualityCuts const& qualityCuts)
+          : algoParams_(commonCuts), qualityCuts_(qualityCuts) {}
+
+      const AlgoParams algoParams_;
+      const QualityCuts qualityCuts_{// polynomial coefficients for the pT-dependent chi2 cut
+                                     {0.68177776, 0.74609577, -0.08035491, 0.00315399},
+                                     // max pT used to determine the chi2 cut
+                                     10.,
+                                     // chi2 scale factor: 30 for broken line fit, 45 for Riemann fit
+                                     30.,
+                                     // regional cuts for triplets
+                                     {
+                                         0.3,  // |Tip| < 0.3 cm
+                                         0.5,  // pT > 0.5 GeV
+                                         12.0  // |Zip| < 12.0 cm
+                                     },
+                                     // regional cuts for quadruplets
+                                     {
+                                         0.5,  // |Tip| < 0.5 cm
+                                         0.3,  // pT > 0.3 GeV
+                                         12.0  // |Zip| < 12.0 cm
+                                     }};
+
+    };  // Params Phase1
+
+    template <typename TrackerTraits>
+    struct ParamsT<TrackerTraits, pixelTopology::isPhase2Topology<TrackerTraits>> : public AlgoParams {
+      using TT = TrackerTraits;
+      using QualityCuts = ::pixelTrack::QualityCutsT<TT>;
+
+      static constexpr AlgoParams defaultAlgoParams() {
+      return {
+          // ---- Container sizes ----
+          7.0f,   // avgHitsPerTrack_
+          6.0f,   // avgCellsPerHit_
+          0.151f, // avgCellsPerCell_
+          0.040f, // avgTracksPerCell_
+
+          // ---- Algorithm Parameters ----
+          4,      // minHitsPerNtuplet_
+          10,     // minHitsForSharingCut_
+          0.9f,   // ptmin_  (kept same unless you want to change)
+          1.0f / (0.35f * 87.0f),  // hardCurvCut_
+          7.5f,   // cellZ0Cut_
+          0.85f,  // cellPtCut_
+
+          // ---- Pixel Cluster Cut Params ----
+          8.0f * 0.0285f / 0.015f, // dzdrFact_
+          25, // minYsizeB1_
+          15, // minYsizeB2_
+          12, // maxDYsize12_
+          10, // maxDYsize_
+          20, // maxDYPred_
+
+          // ---- Flags ----
+          false, // useRiemannFit_
+          false, // fitNas4_
+          true,  // earlyFishbone_
+          false, // lateFishbone_
+          false, // doStats_
+          true,  // doSharedHitCut_
+          false, // dupPassThrough_
+          true   // useSimpleTripletCleaner_
+      };
+    }
+
+      static constexpr QualityCuts defaultQualityCuts() {
+      return {5.0f, /*chi2*/ 0.9f, /* pT in Gev*/ 0.4f, /*zip in cm*/ 12.0f /*tip in cm*/};
+      }
+
+      ParamsT() : algoParams_(defaultAlgoParams()), qualityCuts_(defaultQualityCuts()) {}
+      
+      ParamsT(AlgoParams const& commonCuts, QualityCuts const& qualityCuts)
+          : algoParams_(commonCuts), qualityCuts_(qualityCuts) {}
+
+      // quality cuts
+      const AlgoParams algoParams_;
+      const QualityCuts qualityCuts_{5.0f, /*chi2*/ 0.9f, /* pT in Gev*/ 0.4f, /*zip in cm*/ 12.0f /*tip in cm*/};
+
+    };  // Params Phase2
+
+  }  // namespace caHitNtupletGenerator
+  template <typename TTTraits>
+  class CAHitNtupletGeneratorKernels {
+  public:
+    using TrackerTraits = TTTraits;
+
+    using SimpleCell = CACell<TrackerTraits>;
+    using Params = caHitNtupletGenerator::ParamsT<TrackerTraits>;
+    using Counters = caHitNtupletGenerator::Counters;
+    // Track qualities
+    using Quality = ::pixelTrack::Quality;
+    using QualityCuts = ::pixelTrack::QualityCutsT<TrackerTraits>;
+
+    // Histograms
+
+    using PhiBinner = caStructures::PhiBinnerT<TrackerTraits>;  //the traits here define the number of layer/histograms
+    using PhiBinnerStorageType = typename PhiBinner::index_type;
+    using PhiBinnerView = typename PhiBinner::View;
+
+    using HitToTuple = caStructures::GenericContainer;
+    using HitContainer = caStructures::SequentialContainer;
+    using TupleMultiplicity = caStructures::GenericContainer;
+    using HitToCell = caStructures::GenericContainer;
+    using CellToCell = caStructures::GenericContainer;
+    using CellToTrack = caStructures::GenericContainer;
+
+    using GenericContainer = caStructures::GenericContainer;
+    using GenericContainerStorage = typename GenericContainer::index_type;
+    using GenericContainerView = typename GenericContainer::View;
+    using DeviceGenericContainerBuffer = std::optional<cms::alpakatools::device_buffer<Device, GenericContainer>>;
+    using DeviceGenericStorageBuffer =
+        std::optional<cms::alpakatools::device_buffer<Device, GenericContainerStorage[]>>;
+    using DeviceGenericOffsetsBuffer =
+        std::optional<cms::alpakatools::device_buffer<Device, GenericContainerOffsets[]>>;
+
+    using SequentialContainer = caStructures::SequentialContainer;
+    using SequentialContainerStorage = typename SequentialContainer::index_type;
+    using SequentialContainerView = typename SequentialContainer::View;
+    using DeviceSequentialContainerBuffer = std::optional<cms::alpakatools::device_buffer<Device, SequentialContainer>>;
+    using DeviceSequentialStorageBuffer =
+        std::optional<cms::alpakatools::device_buffer<Device, SequentialContainerStorage[]>>;
+    using DeviceSequentialOffsetsBuffer =
+        std::optional<cms::alpakatools::device_buffer<Device, SequentialContainerOffsets[]>>;
+
+    CAHitNtupletGeneratorKernels(Params const& params,
+                                 uint32_t nHits,
+                                 uint32_t offsetBPIX2,
+                                 uint32_t nDoublets,
+                                 uint32_t nTracks,
+                                 uint16_t nLayers,
+                                 Queue& queue);
     ~CAHitNtupletGeneratorKernels() = default;
 
-    TupleMultiplicity const* tupleMultiplicity() const { return device_tupleMultiplicity_.data(); }
+    TupleMultiplicity const* tupleMultiplicity() const { return device_tupleMultiplicity_->data(); }
+    HitContainer const* hitContainer() const { return device_hitContainer_->data(); }
+    HitToCell const* hitToCell() const { return device_hitToCell_->data(); }
+    HitToTuple const* hitToTuple() const { return device_hitToTuple_->data(); }
+    CellToCell const* cellToCell() const { return device_cellToNeighbors_->data(); }
+    CellToTrack const* cellToTrack() const { return device_cellToTracks_->data(); }
 
-    void launchKernels(HitsOnCPU const& hh, TkSoA* tuples_d, caGeometry::CAGeometrySoA const* geometry, Queue& queue);
+    void prepareHits(const HitsConstView& hh,
+                     const HitModulesConstView& mm,
+                     const ::reco::CALayersSoAConstView& ll,
+                     Queue& queue);
 
-    void classifyTuples(HitsOnCPU const& hh, TkSoA* tuples_d, Queue& queue);
+    void launchKernels(const HitsConstView& hh,
+                       uint32_t offsetBPIX2,
+                       uint16_t nLayers,
+                       TkSoAView& track_view,
+                       TkHitsSoAView& track_hits_view,
+                       const ::reco::CALayersSoAConstView& ll,
+                       const ::reco::CAGraphSoAConstView& cc,
+                       Queue& queue);
 
-    void fillHitDetIndices(HitsView const* hv, TkSoA* tuples_d, Queue& queue);
+    void classifyTuples(const HitsConstView& hh, TkSoAView& track_view, Queue& queue);
 
-    void buildDoublets(HitsOnCPU const& hh, caGeometry::CAGeometrySoA const* geometry, Queue& queue);
+    void buildDoublets(const HitsConstView& hh,
+                       const ::reco::CAGraphSoAConstView& cc,
+                       const ::reco::CALayersSoAConstView& ll,
+                       uint32_t offsetBPIX2,
+                       Queue& queue);
 
-    void prepareHits(TrackingRecHit2DAlpaka const& hits_d, caGeometry::CAGeometrySoA const* geometry, Queue& queue);
-
-    void cleanup(Queue& queue);
-
-    void printCounters(Queue& queue);
-    //Counters* counters_ = nullptr;
+    static void printCounters();
 
   private:
-    // sizes
-    const uint16_t m_Layers;
-
     // params
     Params const& m_params;
-    // NB: Counters: In legacy, sum of the stats of all events.
-    // Here instead, these stats are per event.
-    // Does not matter much, as the stats are desactivated by default anyway, and are for debug only
-    // (stats are not stored eventually, no interference with any result).
-    // For debug, better to be able to see info per event that just a sum.
-    cms::alpakatools::device_buffer<Device, Counters> counters_;
-    
-    // // hit histograms
-    cms::alpakatools::device_buffer<Device, PhiHist> device_hitHist_;
-    cms::alpakatools::device_buffer<Device, uint32_t[]> device_layerStarts_;
+    std::optional<cms::alpakatools::device_buffer<Device, Counters>> counters_;
 
-    // workspace
-    cms::alpakatools::device_buffer<Device, HitToTuple> device_hitToTuple_;
-    cms::alpakatools::device_buffer<Device, TupleMultiplicity> device_tupleMultiplicity_;
+    // Hits->Track
+    DeviceGenericContainerBuffer device_hitToTuple_;
+    DeviceGenericStorageBuffer device_hitToTupleStorage_;
+    DeviceGenericOffsetsBuffer device_hitToTupleOffsets_;
+    GenericContainerView device_hitToTupleView_;
 
-    // NB: In legacy, device_theCells_ and device_isOuterHitOfCell_ were allocated inside buildDoublets
-    cms::alpakatools::device_buffer<Device, GPUCACell[]> device_theCells_;
-    cms::alpakatools::device_buffer<Device, GPUCACell::OuterHitOfCell[]> device_isOuterHitOfCell_;
+    // (Outer) Hits-> Cells
+    DeviceGenericContainerBuffer device_hitToCell_;
+    DeviceGenericStorageBuffer device_hitToCellStorage_;
+    DeviceGenericOffsetsBuffer device_hitToCellOffsets_;
+    GenericContainerView device_hitToCellView_;
 
-    cms::alpakatools::device_buffer<Device, CAConstants::CellNeighborsVector> device_theCellNeighbors_;
-    cms::alpakatools::device_buffer<Device, CAConstants::CellTracksVector> device_theCellTracks_;
+    // Hits Phi Binner
+    std::optional<cms::alpakatools::device_buffer<Device, PhiBinner>> device_hitPhiHist_;
+    std::optional<cms::alpakatools::device_buffer<Device, PhiBinnerStorageType[]>> device_phiBinnerStorage_;
+    PhiBinnerView device_hitPhiView_;
+    std::optional<cms::alpakatools::device_buffer<Device, hindex_type[]>> device_layerStarts_;
 
-    // NB: In legacy, cellStorage_ was allocated inside buildDoublets
-    cms::alpakatools::device_buffer<Device, unsigned char[]> cellStorage_;
-    CAConstants::CellNeighbors* device_theCellNeighborsContainer_;
-    CAConstants::CellTracks* device_theCellTracksContainer_;
+    // Cells-> Neighbor Cells
+    DeviceGenericContainerBuffer device_cellToNeighbors_;
+    DeviceGenericStorageBuffer device_cellToNeighborsStorage_;
+    DeviceGenericOffsetsBuffer device_cellToNeighborsOffsets_;
+    GenericContainerView device_cellToNeighborsView_;
 
-    // NB: In legacy, device_storage_ was allocated inside allocateOnGPU
-    cms::alpakatools::device_buffer<Device, cms::alpakatools::AtomicPairCounter::c_type[]> device_storage_;
+    // Cells-> Tracks
+    DeviceGenericContainerBuffer device_cellToTracks_;
+    DeviceGenericStorageBuffer device_cellToTracksStorage_;
+    DeviceGenericOffsetsBuffer device_cellToTracksOffsets_;
+    GenericContainerView device_cellToTracksView_;
+
+    // Tracks->Hits
+    DeviceSequentialContainerBuffer device_hitContainer_;
+    DeviceGenericStorageBuffer device_hitContainerStorage_;
+    DeviceSequentialOffsetsBuffer device_hitContainerOffsets_;
+    SequentialContainerView device_hitContainerView_;
+
+    // No.Hits -> Track (Multiplicity)
+    DeviceGenericContainerBuffer device_tupleMultiplicity_;
+    DeviceGenericStorageBuffer device_tupleMultiplicityStorage_;
+    DeviceGenericOffsetsBuffer device_tupleMultiplicityOffsets_;
+    GenericContainerView device_tupleMultiplicityView_;
+
+    std::optional<cms::alpakatools::device_buffer<Device, SimpleCell[]>> device_simpleCells_;
+
+    std::optional<cms::alpakatools::device_buffer<Device, cms::alpakatools::AtomicPairCounter::DoubleWord[]>>
+        device_extraStorage_;
     cms::alpakatools::AtomicPairCounter* device_hitTuple_apc_;
-    cms::alpakatools::AtomicPairCounter* device_hitToTuple_apc_;
-    cms::alpakatools::device_view<Device, uint32_t> device_nCells_;
+    std::optional<cms::alpakatools::device_buffer<Device, uint32_t[]>> device_nCells_;
+    std::optional<cms::alpakatools::device_buffer<Device, uint32_t[]>> device_nTriplets_;
+    std::optional<cms::alpakatools::device_buffer<Device, uint32_t[]>> device_nCellTracks_;
 
-  
+    std::optional<CAPairSoACollection> deviceTriplets_;
+    std::optional<CAPairSoACollection> deviceTracksCells_;
+
+    // this could be inferred from the above buffers
+    // but seems cleaner to have a dedicate variable
+    uint32_t maxNumberOfDoublets_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-#endif  // plugin_PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h
+#endif  // PixelSeeding_alpaka_CAHitNtupletGeneratorKernels_h

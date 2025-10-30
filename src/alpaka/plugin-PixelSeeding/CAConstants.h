@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "AlpakaCore/HistoContainer.h"
+#include "AlpakaCore/HistoContainerAdvanced.h"
 #include "AlpakaCore/SimpleVector.h"
 #include "AlpakaCore/VecArray.h"
 #include "AlpakaDataFormats/gpuClusteringConstants.h"
@@ -61,10 +61,10 @@ namespace CAConstants {
 
   using OuterHitOfCell = cms::alpakatools::VecArray<uint32_t, maxCellsPerHit()>;
 
-  using TuplesContainer = cms::alpakatools::OneToManyAssoc<hindex_type, maxTuples(), 5 * maxTuples()>;
+  using TuplesContainer = cms::alpakatools::OneToManyAssocBase<hindex_type, maxTuples(), 5 * maxTuples()>;
   using HitToTuple = cms::alpakatools::
-      OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples()>;  // 3.5 should be enough
-  using TupleMultiplicity = cms::alpakatools::OneToManyAssoc<tindex_type, 8, maxTuples()>;
+      OneToManyAssocBase<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples()>;  // 3.5 should be enough
+  using TupleMultiplicity = cms::alpakatools::OneToManyAssocBase<tindex_type, 8, maxTuples()>;
 
 }  // namespace CAConstants
 

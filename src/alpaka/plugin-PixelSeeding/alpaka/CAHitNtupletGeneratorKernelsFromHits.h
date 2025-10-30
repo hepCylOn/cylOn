@@ -20,11 +20,10 @@
 #include "AlpakaDataFormats/TrackDefinitions.h"
 #include "AlpakaDataFormats/TracksSoA.h"
 #include "AlpakaDataFormats/alpaka/TrackUtilities.h"
-#include "AlpakaCore/AtomicPairCounter.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivision.h"
-#include "FWCore/Utilities/interface/isFinite.h"
-#include "plugin-PixelSeeding/CAPairSoA.h"
+#include "AlpakaCore/workdivisionAdvanced.h"
+#include "Framework/isFinite.h"
+#include "AlpakaDataFormats/CAPairSoA.h"
 
 // local includes
 #include "CACell.h"
@@ -528,7 +527,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
                                                     nCellTracks,
                                                     ct,
                                                     *apc,
-                                                    tracks_view.quality(),
+                                                    tracks_view.quality().data(),
                                                     stack,
                                                     params.minHitsPerNtuplet_);
           ALPAKA_ASSERT_ACC(stack.empty());
