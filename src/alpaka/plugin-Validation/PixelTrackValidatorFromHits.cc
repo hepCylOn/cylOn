@@ -107,9 +107,8 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 
   int trackHitIncr = 0;
   for(uint32_t i = 0; i < tracks->m_nTracks; ++i){
-    if(tracks->chi2(i) > 30) continue;
-    if(tracks->pt(i) < 0.9) continue;
-    if(tracks->nHits(i) < 5) continue;
+    if(tracks->nHits(i) < 4) continue;
+    if(tracks->quality(i) == trackQuality::bad or tracks->quality(i) == trackQuality::dup) continue;
 
     for(int j = 0; j < int(binsPt.size()); ++j){
       if (tracks->pt(i) > binsPt[j] and tracks->pt(i) < binsPt[j+1]) fakePtDen[j] = fakePtDen[j] + 1.0;
@@ -118,8 +117,8 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
 
     std::vector<uint32_t> partIndices;
-    auto start = (i == 0) ? 0 : tracks->partIndices.off[i - 1];
-    auto end = tracks->partIndices.off[i];
+    auto start = (i == 0) ? 0 : tracks->partIndices.off[i];
+    auto end = tracks->partIndices.off[i + 1];
     for (auto iHit = start; iHit < end; ++iHit){
       partIndices.push_back(tracks->partIndices.bins[trackHitIncr]);
       ++trackHitIncr;
@@ -135,7 +134,6 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
         size_t index = std::distance(simpleParticles.partIndVector().begin(), it);
         particle = index;
       }
-      if (particle == 0) continue; // There are still particles with ID = 0 (this comes from the object index that is also 0 for a lot of tracks)
       for(int j = 0; j < int(binsPt.size()); ++j){
         if (simpleParticles.pt(particle) > binsPt[j] and simpleParticles.pt(particle) < binsPt[j+1]) effPtNum[j] = effPtNum[j] + 1.0;
         if (simpleParticles.eta(particle) > binsEtaPhi[j] and simpleParticles.eta(particle) < binsEtaPhi[j+1]) {
@@ -166,7 +164,6 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
       }
     }
   }
-
 }
 
 void ParticleFromSimple::endJob() {
@@ -187,6 +184,7 @@ void ParticleFromSimple::endJob() {
     writeResolution(resDZ, file, binsEtaPhi, binsEtaPhi);
 
   }
+  std::cout << "=====================================" << std::endl;
   std::cout << "The number of matched tracks is: " << passedTracks << std::endl;
   std::cout << "The total number of particles is: " << totalParticles << std::endl;
   std::cout << "Validation ended!!" << std::endl;
