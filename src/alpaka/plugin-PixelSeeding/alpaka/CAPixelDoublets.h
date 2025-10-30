@@ -6,7 +6,7 @@
 #include <alpaka/alpaka.hpp>
 
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 #include "CAPixelDoubletsAlgos.h"
 

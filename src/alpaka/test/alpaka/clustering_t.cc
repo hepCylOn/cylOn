@@ -12,7 +12,7 @@
 // #include "AlpakaCore/alpaka/devices.h"
 // #include "AlpakaCore/initialise.h"
 // #include "AlpakaCore/memory.h"
-// #include "AlpakaCore/workdivisionAdvanced.h"
+// #include "AlpakaCore/workdivision.h"
 
 // // dirty, but works
 // #include "plugin-SiPixelClusterizer/alpaka/gpuClustering.h"

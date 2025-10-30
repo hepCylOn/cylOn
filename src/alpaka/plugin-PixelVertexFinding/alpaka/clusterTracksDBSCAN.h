@@ -8,10 +8,10 @@
 #include <alpaka/alpaka.hpp>
 
 #include "AlpakaDataFormats/ZVertexSoA.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/debug.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "AlpakaDataFormats/PixelVertexWorkSpaceLayout.h"
 
 #include "vertexFinder.h"

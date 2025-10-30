@@ -6,11 +6,11 @@
 // #include <memory>
 // #include <random>
 
-// #include "AlpakaCore/HistoContainerAdvanced.h"
+// #include "AlpakaCore/HistoContainer.h"
 // #include "AlpakaCore/alpaka/devices.h"
 // #include "AlpakaCore/initialise.h"
 // #include "AlpakaCore/memory.h"
-// #include "AlpakaCore/workdivisionAdvanced.h"
+// #include "AlpakaCore/workdivision.h"
 
 // constexpr uint32_t MaxElem = 64000;
 // constexpr uint32_t MaxTk = 8000;

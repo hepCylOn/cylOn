@@ -9,7 +9,7 @@
 #include "AlpakaCore/host.h"
 #include "AlpakaCore/memory.h"
 #include "AlpakaCore/initialise.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 #include "AlpakaDataFormats/GeometrySoA.h"
 #include "AlpakaDataFormats/GeometryHost.h"

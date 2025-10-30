@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/SimpleVector.h"
 #include "AlpakaCore/VecArray.h"
 #include "AlpakaDataFormats/gpuClusteringConstants.h"

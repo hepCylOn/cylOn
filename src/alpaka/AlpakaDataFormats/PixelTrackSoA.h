@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/OneToManyAssoc.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"

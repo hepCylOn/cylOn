@@ -3,7 +3,7 @@
 
 #include "AlpakaCore/SimpleVector.h"
 #include "AlpakaCore/VecArray.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 
 namespace caStructures {
 

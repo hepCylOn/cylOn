@@ -13,9 +13,9 @@
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
 #include "AlpakaDataFormats/alpaka/TrackingRecHitsSoACollection.h"
 #include "Geometry/SimplePixelTopology.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "CondFormats/pixelCPEforDevice.h"
 
 // local headers

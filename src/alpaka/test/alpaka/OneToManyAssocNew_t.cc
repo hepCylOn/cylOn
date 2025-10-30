@@ -11,7 +11,7 @@
 #include "Framework/CMSUnrollLoop.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "AlpakaCore/OneToManyAssoc.h"
 
 constexpr uint32_t MaxElem = 64000;

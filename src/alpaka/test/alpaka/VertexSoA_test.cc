@@ -22,7 +22,7 @@
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/alpaka/devices.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 
 

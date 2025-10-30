@@ -1,11 +1,11 @@
-#ifndef AlpakaCore_prefixScan_h
-#define AlpakaCore_prefixScan_h
+#ifndef HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
+#define HeterogeneousCore_AlpakaInterface_interface_prefixScan_h
 
 #include <alpaka/alpaka.hpp>
 
 #include "Framework/CMSUnrollLoop.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 namespace cms::alpakatools {
   template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
   constexpr bool isPowerOf2(T v) {

@@ -7,15 +7,15 @@
 #include <alpaka/alpaka.hpp>
 
 // CMSSW headers
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 // local headers
 #include "CAFishbone.h"
 #include "CAHitNtupletGeneratorKernels.h"
-#include "CAHitNtupletGeneratorKernelsFromHits.h"
+#include "CAHitNtupletGeneratorKernelsImpl.h"
 
 // #define GPU_DEBUG
 // #define NTUPLE_DEBUG

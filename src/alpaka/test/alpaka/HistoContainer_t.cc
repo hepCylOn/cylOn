@@ -5,12 +5,12 @@
 // #include <limits>
 // #include <random>
 
-// #include "AlpakaCore/HistoContainerAdvanced.h"
+// #include "AlpakaCore/HistoContainer.h"
 // #include "AlpakaCore/alpaka/devices.h"
 // #include "AlpakaCore/host.h"
 // #include "AlpakaCore/memory.h"
 // #include "AlpakaCore/initialise.h"
-// #include "AlpakaCore/workdivisionAdvanced.h"
+// #include "AlpakaCore/workdivision.h"
 
 // using namespace cms::alpakatools;
 // using namespace ALPAKA_ACCELERATOR_NAMESPACE;

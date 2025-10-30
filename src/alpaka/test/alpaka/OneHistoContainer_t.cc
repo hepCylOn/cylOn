@@ -4,7 +4,7 @@
 // #include <limits>
 // #include <random>
 
-// #include "AlpakaCore/HistoContainerAdvanced.h"
+// #include "AlpakaCore/HistoContainer.h"
 // #include "AlpakaCore/alpaka/devices.h"
 // #include "AlpakaCore/host.h"
 // #include "AlpakaCore/initialise.h"

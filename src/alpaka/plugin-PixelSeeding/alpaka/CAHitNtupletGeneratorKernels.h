@@ -12,7 +12,7 @@
 #include "AlpakaDataFormats/TracksHost.h"
 #include "AlpakaDataFormats/alpaka/TrackUtilities.h"
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
 #include "AlpakaDataFormats/CAGeometrySoA.h"

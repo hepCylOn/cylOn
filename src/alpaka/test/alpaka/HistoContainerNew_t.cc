@@ -11,8 +11,8 @@
 #include "Framework/CMSUnrollLoop.h"
 #include "AlpakaCore/configAdvanced.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/workdivision.h"
+#include "AlpakaCore/HistoContainer.h"
 
 static constexpr auto s_tag = "[" ALPAKA_TYPE_ALIAS_NAME(alpakaTestHistoContainer) "]";
 

@@ -21,7 +21,7 @@
 #include "AlpakaDataFormats/TracksSoA.h"
 #include "AlpakaDataFormats/alpaka/TrackUtilities.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "Framework/isFinite.h"
 #include "AlpakaDataFormats/CAPairSoA.h"
 

@@ -12,8 +12,8 @@
 #include "AlpakaCore/OneToManyAssoc.h"
 #include "AlpakaCore/alpakastdAlgorithm.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/prefixScanAdvanced.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/prefixScan.h"
+#include "AlpakaCore/workdivision.h"
 
 namespace cms::alpakatools {
 

@@ -2,7 +2,7 @@
 
 #include "AlpakaDataFormats/alpaka/TrackUtilities.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "AlpakaDataFormats/PixelVertexWorkSpaceLayout.h"
 #include "AlpakaDataFormats/alpaka/PixelVertexWorkSpaceSoACollection.h"
 

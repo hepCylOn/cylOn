@@ -12,7 +12,7 @@
 #include "FWCore/Utilities/interface/DeviceGlobal.h"
 #include "FWCore/Utilities/interface/HostDeviceConstant.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/SimpleVector.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/warpsize.h"

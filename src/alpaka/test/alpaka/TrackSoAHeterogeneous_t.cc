@@ -26,7 +26,7 @@
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/alpaka/devices.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 /// TODO: move back to common header + dev.cc
 // #include "TrackSoAHeterogeneous_test.h"

@@ -7,9 +7,9 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaCore/config.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 
 #include "vertexFinder.h"
 

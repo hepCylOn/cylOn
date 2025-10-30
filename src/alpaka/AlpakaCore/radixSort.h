@@ -8,7 +8,7 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "AlpakaCore/config.h"
 
 namespace cms::alpakatools {

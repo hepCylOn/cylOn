@@ -9,7 +9,7 @@
 #include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
 #include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersSoA.h"
 #include "AlpakaDataFormats/SiPixelDigisSoA.h"
-#include "AlpakaCore/prefixScanAdvanced.h"
+#include "AlpakaCore/prefixScan.h"
 #include "AlpakaCore/warpsize.h"
 #include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
 

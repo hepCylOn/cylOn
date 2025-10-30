@@ -14,7 +14,7 @@
 #include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersSoA.h"
 #include "AlpakaDataFormats/SiPixelDigisSoA.h"
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
 
 //#define GPU_DEBUG

@@ -6,7 +6,7 @@
 #include "SoATemplate/SoALayout.h"
 #include "AlpakaDataFormats/TrackingRecHitsSoA.h"
 #include "Geometry/SimplePixelTopology.h"
-#include "AlpakaCore/HistoContainerAdvanced.h"
+#include "AlpakaCore/HistoContainer.h"
 #include "AlpakaDataFormats/SiPixelHitStatus.h" //move to dataformats
 
 namespace reco {

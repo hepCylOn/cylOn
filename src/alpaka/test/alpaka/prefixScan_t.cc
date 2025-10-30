@@ -10,8 +10,8 @@
 #include "Framework/stringize.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
-#include "AlpakaCore/prefixScanAdvanced.h"
+#include "AlpakaCore/workdivision.h"
+#include "AlpakaCore/prefixScan.h"
 #include "AlpakaCore/warpsize.h"
 
 using namespace cms::alpakatools;

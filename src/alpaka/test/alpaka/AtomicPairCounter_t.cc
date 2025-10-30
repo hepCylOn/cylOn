@@ -8,7 +8,7 @@
 #include "Framework/stringize.h"
 #include "AlpakaCore/configAdvanced.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaCore/workdivisionAdvanced.h"
+#include "AlpakaCore/workdivision.h"
 #include "AlpakaCore/AtomicPairCounterAdvanced.h"
 
 using namespace cms::alpakatools;
