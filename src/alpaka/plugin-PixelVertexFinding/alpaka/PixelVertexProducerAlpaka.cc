@@ -39,6 +39,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   2,      // minT
                   0.07,   // eps
                   0.01,   // errmax
+                  // 11.*0.01,   // errmax (for colliderML)
                   9       // chi2max
                   ),
         m_ptMin(0.5)  // 0.5 GeV
