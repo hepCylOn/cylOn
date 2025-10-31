@@ -105,6 +105,7 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     }
   }
 
+  uint32_t savePartInd = 999999999;
   int trackHitIncr = 0;
   for(uint32_t i = 0; i < tracks->m_nTracks; ++i){
     if(tracks->nHits(i) < 4) continue;
@@ -126,6 +127,8 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 
     if (partIndices.size() <= 0) continue;
     std::pair<int,uint32_t> repeatingPart = getMostRepeatingPart(partIndices);
+    if (savePartInd == repeatingPart.second) continue;
+    savePartInd = repeatingPart.second;
     if (repeatingPart.first/tracks->nHits(i) > 0.75){
       passedTracks = passedTracks + 1;
       auto it = std::find(simpleParticles.partIndVector().begin(), simpleParticles.partIndVector().end(), repeatingPart.second);
@@ -134,6 +137,7 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
         size_t index = std::distance(simpleParticles.partIndVector().begin(), it);
         particle = index;
       }
+      // std::cout << repeatingPart.second << std::endl;
       for(int j = 0; j < int(binsPt.size()); ++j){
         if (simpleParticles.pt(particle) > binsPt[j] and simpleParticles.pt(particle) < binsPt[j+1]) effPtNum[j] = effPtNum[j] + 1.0;
         if (simpleParticles.eta(particle) > binsEtaPhi[j] and simpleParticles.eta(particle) < binsEtaPhi[j+1]) {
@@ -143,7 +147,7 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
           // Calculating resolutions
           resPt[j].push_back(tracks->pt(i) - simpleParticles.pt(particle));
           resEta[j].push_back(tracks->eta(i) - simpleParticles.eta(particle));
-          resPhi[j].push_back(tracks->phi(i) - simpleParticles.phi(particle));
+          resPhi[j].push_back(deltaPhi(tracks->phi(i),simpleParticles.phi(particle)));
           // (-vx*py + vy*px)/pt for D0
           // (-(vx*px + vy*py)/pt) * (pz/pt) for DZ
           double partD0 = (-simpleParticles.vx(particle)*simpleParticles.py(particle) + simpleParticles.vy(particle)*simpleParticles.px(particle))/simpleParticles.pt(particle);
