@@ -105,3 +105,4 @@ def filterParticlesPerLayer(particlesFile, hitsFile, outputFile="particlesFilter
 if __name__ == "__main__":
     filterParticlesPerLayer("/data/user/borzari/cmssw/pixeltrack-standalone/data/particles.txt", "/data/user/borzari/cmssw/pixeltrack-standalone/data/hits.txt")
 
+
