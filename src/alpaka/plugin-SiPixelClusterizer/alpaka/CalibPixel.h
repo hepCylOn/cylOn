@@ -8,14 +8,14 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "CondFormats/SiPixelObjects/interface/SiPixelGainCalibrationForHLTLayout.h"
-#include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelGainCalibrationForHLTUtilities.h"
-#include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
-#include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersSoA.h"
+#include "CondFormats/SiPixelGainCalibrationForHLTSoA.h"
+#include "CondFormats/alpaka/SiPixelGainCalibrationForHLTUtilities.h"
+#include "AlpakaDataFormats/ClusteringConstants.h"
+#include "AlpakaDataFormats/SiPixelClustersSoA.h"
 #include "AlpakaDataFormats/SiPixelDigisSoA.h"
-#include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
+#include "Geometry/SimplePixelTopology.h"
 #include "AlpakaCore/workdivision.h"
-#include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
+#include "plugin-SiPixelClusterizer/SiPixelClusterThresholds.h"
 
 //#define GPU_DEBUG
 

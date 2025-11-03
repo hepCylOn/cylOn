@@ -529,7 +529,7 @@ namespace pixelTopology {
 
     static constexpr int16_t xOffset = -81;
 
-    static constexpr char const *nameModifier = "";
+    static constexpr char const *nameModifier = "Phase1";
     static constexpr char const *cpeModules = "PixelCPEFastParams";
 
     static constexpr uint32_t const *layerStart = phase1PixelTopology::layerStart;
@@ -539,6 +539,8 @@ namespace pixelTopology {
 
     static constexpr uint8_t const *layerPairs = phase1PixelTopology::layerPairs;
     static constexpr int16_t const *phicuts = phase1PixelTopology::phicuts;
+    static constexpr float const *thetaCuts = phase1PixelTopology::thetaCuts;
+    static constexpr float const *dcaCuts = phase1PixelTopology::dcaCuts;
 
     static constexpr inline bool isEdgeX(uint16_t px) { return (px == 0) | (px == lastRowInModule); }
 

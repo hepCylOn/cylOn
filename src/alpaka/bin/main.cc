@@ -273,22 +273,23 @@ int main(int argc, char** argv) {
     for (auto const& [backend, weight] : backends) {
       std::string prefix = "alpaka_" + backendName(backend) + "::";
       // "portable" ESModules
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelFedCablingMapESProducer");
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTESProducer");
-      if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducer");
-      if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryESProducer");
-      if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); // was SiPixelFedCablingMapESProducer
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer"); // was SiPixelGainCalibrationForHLTESProducer
+      // if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostFromGPUBinESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
+      // if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryESProducer");
+      // if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
       // "portable" EDModules
       std::vector<std::string> edmodules;
-      edmodules.emplace_back(prefix + "BeamSpotToAlpaka");
-      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToCluster");
-      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitAlpaka");
-      if (fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitFromSimple");
-      edmodules.emplace_back(prefix + "CAHitNtupletAlpaka");
-      edmodules.emplace_back(prefix + "PixelVertexProducerAlpaka");
+      // edmodules.emplace_back(prefix + "BeamSpotToAlpaka");
+      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToCluster");
+      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitAlpaka");
+      // if (fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitFromSimple");
+      // edmodules.emplace_back(prefix + "CAHitNtupletAlpaka");
+      // edmodules.emplace_back(prefix + "PixelVertexProducerAlpaka");
       if (transfer) {
-        edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-        edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+        // edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+        // edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
       }
       if (validation) {
         edmodules.emplace_back(prefix + "CountValidator");

@@ -4,12 +4,15 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <iostream>  // for debug output
 
 #include "AlpakaCore/config.h"
 #include "CondFormats/SiPixelMappingHost.h"
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ESPluginFactory.h"
+
+#define GPU_DEBUG
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -31,6 +34,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     in.read(reinterpret_cast<char*>(&size), sizeof(unsigned int));
     in.read(reinterpret_cast<char*>(&hasQuality), sizeof(bool));
 
+#ifdef GPU_DEBUG
+    std::cout << "[GPU_DEBUG] Reading SiPixelMappingHost.bin\n";
+    std::cout << "[GPU_DEBUG] Size: " << size << "\n";
+    std::cout << "[GPU_DEBUG] hasQuality: " << std::boolalpha << hasQuality << "\n";
+#endif
+
     // allocate host SoA
     auto mapping = std::make_unique<SiPixelMappingHost>(size, cms::alpakatools::host());
     auto view = mapping->view();
@@ -47,6 +56,23 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     in.close();
 
     view.hasQuality() = hasQuality;
+
+#ifdef GPU_DEBUG
+    // print a few sample entries (up to first 5)
+    unsigned int nPrint = std::min(size, 5u);
+    std::cout << "[GPU_DEBUG] First " << nPrint << " entries:\n";
+    for (unsigned int i = 0; i < nPrint; ++i) {
+      std::cout << "  [" << i << "] fed=" << view.fed()[i]
+                << " link=" << view.link()[i]
+                << " roc=" << view.roc()[i]
+                << " rawId=" << view.rawId()[i]
+                << " rocInDet=" << view.rocInDet()[i]
+                << " moduleId=" << view.moduleId()[i]
+                << " badRocs=" << static_cast<unsigned>(view.badRocs()[i])
+                << " modToUnpDefault=" << static_cast<unsigned>(view.modToUnpDefault()[i])
+                << "\n";
+    }
+#endif
 
     eventSetup.put(std::move(mapping));
   }

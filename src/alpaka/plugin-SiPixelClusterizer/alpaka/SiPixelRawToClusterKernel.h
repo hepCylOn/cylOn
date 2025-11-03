@@ -1,5 +1,5 @@
-#ifndef RecoLocalTracker_SiPixelClusterizer_SiPixelRawToClusterKernel_h
-#define RecoLocalTracker_SiPixelClusterizer_SiPixelRawToClusterKernel_h
+#ifndef SiPixelClusterizer_SiPixelRawToClusterKernel_h
+#define SiPixelClusterizer_SiPixelRawToClusterKernel_h
 
 #include <algorithm>
 #include <optional>
@@ -8,25 +8,25 @@
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
 
-#include "DataFormats/SiPixelClusterSoA/interface/alpaka/SiPixelClustersSoACollection.h"
-#include "DataFormats/SiPixelClusterSoA/interface/SiPixelClustersDevice.h"
+#include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
+#include "AlpakaDataFormats/SiPixelClustersDevice.h"
 #include "AlpakaDataFormats/SiPixelDigisDevice.h"
 #include "AlpakaDataFormats/alpaka/SiPixelDigisSoACollection.h"
 #include "AlpakaDataFormats/alpaka/SiPixelDigiErrorsSoACollection.h"
 #include "AlpakaDataFormats/SiPixelDigiErrorsDevice.h"
-#include "DataFormats/SiPixelClusterSoA/interface/ClusteringConstants.h"
+#include "AlpakaDataFormats/ClusteringConstants.h"
 
-#include "CondFormats/SiPixelObjects/interface/SiPixelGainCalibrationForHLTLayout.h"
-#include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelGainCalibrationForHLTDevice.h"
-#include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelMappingDevice.h"
+#include "CondFormats/SiPixelGainCalibrationForHLTSoA.h"
+#include "CondFormats/alpaka/SiPixelGainCalibrationForHLTSoACollection.h"
+#include "CondFormats/alpaka/SiPixelMappingSoACollection.h"
 
-#include "DataFormats/SiPixelRawData/interface/SiPixelErrorCompact.h"
-#include "DataFormats/SiPixelRawData/interface/SiPixelFormatterErrors.h"
-#include "DataFormats/SiPixelDetId/interface/PixelChannelIdentifier.h"
-#include "SiPixelMorphingConfig.h"
+#include "DataFormats/PixelErrors.h"
+
+#include "plugin-SiPixelClusterizer/SiPixelClusterThresholds.h"
 
 namespace pixelDetails {
 
+  /// TODO: move these under sipixelconstants namespace
   constexpr auto MAX_LINK = pixelgpudetails::MAX_LINK;
   constexpr auto MAX_SIZE = pixelgpudetails::MAX_SIZE;
   constexpr auto MAX_ROC = pixelgpudetails::MAX_ROC;
@@ -97,22 +97,67 @@ namespace pixelDetails {
     uint32_t col;
   };
 
-  ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE constexpr pixelchannelidentifierimpl::Packing packing() {
-    return PixelChannelIdentifier::thePacking;
+  class Packing {
+  public:
+    using PackedDigiType = uint32_t;
+
+    // Constructor: pre-computes masks and shifts from field widths
+    ALPAKA_FN_HOST_ACC inline constexpr Packing(unsigned int row_w,
+                                                unsigned int column_w,
+                                                unsigned int time_w,
+                                                unsigned int adc_w)
+        : row_width(row_w),
+          column_width(column_w),
+          adc_width(adc_w),
+          row_shift(0),
+          column_shift(row_shift + row_w),
+          time_shift(column_shift + column_w),
+          adc_shift(time_shift + time_w),
+          row_mask(~(~0U << row_w)),
+          column_mask(~(~0U << column_w)),
+          time_mask(~(~0U << time_w)),
+          adc_mask(~(~0U << adc_w)),
+          rowcol_mask(~(~0U << (column_w + row_w))),
+          max_row(row_mask),
+          max_column(column_mask),
+          max_adc(adc_mask) {}
+
+    uint32_t row_width;
+    uint32_t column_width;
+    uint32_t adc_width;
+
+    uint32_t row_shift;
+    uint32_t column_shift;
+    uint32_t time_shift;
+    uint32_t adc_shift;
+
+    PackedDigiType row_mask;
+    PackedDigiType column_mask;
+    PackedDigiType time_mask;
+    PackedDigiType adc_mask;
+    PackedDigiType rowcol_mask;
+
+    uint32_t max_row;
+    uint32_t max_column;
+    uint32_t max_adc;
+  };
+
+  ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE constexpr Packing packing() {
+    return Packing(11, 11, 0, 10);
   }
 
   ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE constexpr uint32_t pack(uint32_t row,
                                                               uint32_t col,
                                                               uint32_t adc,
                                                               uint32_t flag = 0) {
-    constexpr pixelchannelidentifierimpl::Packing thePacking = packing();
+    constexpr Packing thePacking = packing();
     adc = std::min(adc, uint32_t(thePacking.max_adc));
 
     return (row << thePacking.row_shift) | (col << thePacking.column_shift) | (adc << thePacking.adc_shift);
   }
 
   constexpr uint32_t pixelToChannel(int row, int col) {
-    constexpr pixelchannelidentifierimpl::Packing thePacking = packing();
+    constexpr Packing thePacking = packing();
     return (row << thePacking.column_width) | col;
   }
 
@@ -161,8 +206,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                    const uint32_t fedCounter,
                                    bool useQualityInfo,
                                    bool includeErrors,
-                                   SiPixelMorphingConfig digiMorphingConfig,
-                                   uint32_t* morphingModulesDevice,
                                    bool debug);
 
       void makePhase2ClustersAsync(Queue& queue,

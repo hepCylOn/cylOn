@@ -61,6 +61,9 @@ namespace pixelCPEforDevice {
   struct CommonParams {
     float theThicknessB;
     float theThicknessE;
+
+    uint16_t maxModuleStride;
+    uint8_t numberOfLaddersInBarrel;
   };
 
   struct DetParams {

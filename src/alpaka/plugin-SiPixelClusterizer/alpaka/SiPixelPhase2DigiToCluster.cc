@@ -8,9 +8,9 @@
 
 // #include <alpaka/alpaka.hpp>
 
-// #include "DataFormats/Common/interface/DetSetVector.h"
-// #include "DataFormats/SiPixelClusterSoA/interface/alpaka/SiPixelClustersSoACollection.h"
-// #include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
+// #include "AlpakaDataFormats/DetSetVector.h"
+// #include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
+// #include "AlpakaDataFormats/PixelDigi.h"
 // #include "AlpakaDataFormats/alpaka/SiPixelDigiErrorsSoACollection.h"
 // #include "AlpakaDataFormats/alpaka/SiPixelDigisSoACollection.h"
 // #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
