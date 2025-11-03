@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer"); // was SiPixelGainCalibrationForHLTESProducer
       // if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostFromGPUBinESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      // if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
       // if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
       // "portable" EDModules
       std::vector<std::string> edmodules;
