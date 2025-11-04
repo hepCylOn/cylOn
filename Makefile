@@ -96,6 +96,9 @@ export LIB_DIR := $(BASE_DIR)/lib
 # Directory where to put unit test executables
 export TEST_DIR := $(BASE_DIR)/test
 
+# Scripts 
+export SCRIPTS_DIR := $(BASE_DIR)/scripts
+
 # System external definitions
 # CUDA
 CUDA_BASE := /usr/local/cuda
@@ -122,20 +125,21 @@ CUDA_VERSION := $(shell $(CUDA_NVCC) --version | grep release | sed -e's/.*relea
 CUDA_CCBIN:=$(CXX)
 CUDA_GCC_VERSION := 11
 
-# Default el8_amd64_gcc if CMSSW_ARCH not set in environment
-CUDA_SCRAM_ARCH := $(if $(CMSSW_ARCH),$(CMSSW_ARCH),el8_amd64_gcc)
+### This was used when pulling gcc and others from cmssw (could be removed, keeping for testing for the moment)
+# # Default el8_amd64_gcc if CMSSW_ARCH not set in environment
+# CUDA_SCRAM_ARCH := $(if $(CMSSW_ARCH),$(CMSSW_ARCH),el8_amd64_gcc)
 
-CUDA_GCC_BASE := /cvmfs/cms.cern.ch/$(CUDA_SCRAM_ARCH)$(CUDA_GCC_VERSION)
-CUDA_GCC_BIN  := $(lastword $(wildcard $(CUDA_GCC_BASE)/external/gcc/$(CUDA_GCC_VERSION).*/bin))
+# CUDA_GCC_BASE := /cvmfs/cms.cern.ch/$(CUDA_SCRAM_ARCH)$(CUDA_GCC_VERSION)
+# CUDA_GCC_BIN  := $(lastword $(wildcard $(CUDA_GCC_BASE)/external/gcc/$(CUDA_GCC_VERSION).*/bin))
 
-ifneq ($(CUDA_GCC_BIN),)
-  CUDA_CCBIN := $(lastword $(wildcard $(CUDA_GCC_BIN)/g++))
-  ifneq ($(CUDA_CCBIN),)
-    $(info Using $(CUDA_CCBIN) as NVCC host compiler)
-  endif
-endif
+# ifneq ($(CUDA_GCC_BIN),)
+#   CUDA_CCBIN := $(lastword $(wildcard $(CUDA_GCC_BIN)/g++))
+#   ifneq ($(CUDA_CCBIN),)
+#     $(info Using $(CUDA_CCBIN) as NVCC host compiler)
+#   endif
+# endif
 
-$(info CUDA_CUFLAGS $(CUDA_CUFLAGS))
+$(info Using $(shell which $(CUDA_CCBIN)) as NVCC host compiler)
 
 # CUDA 12.8 and newer does not support non-ASCII characters in PTX, including in comments
 ifeq ($(shell test $(CUDA_VERSION) -ge 128 && echo 'buggy'),buggy)
@@ -649,7 +653,7 @@ ifneq ($(SYCL_BASE),)
 endif
 	@echo '$$LD_LIBRARY_PATH'                                               >> $@
 	@# set the PATH
-	@echo -n 'export PATH='                                                 >> $@
+	@echo -n 'export PATH=$(SCRIPTS_DIR):'                                                 >> $@
 ifdef CUDA_BASE
 	@echo -n '$(CUDA_BASE)/bin:'                                            >> $@
 endif
