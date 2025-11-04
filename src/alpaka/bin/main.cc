@@ -281,15 +281,16 @@ int main(int argc, char** argv) {
       // if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
       // "portable" EDModules
       std::vector<std::string> edmodules;
-      // edmodules.emplace_back(prefix + "BeamSpotToAlpaka");
-      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToCluster");
-      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitAlpaka");
+      edmodules.emplace_back(prefix + "BeamSpotToSoA");
+      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
+      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
+      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitProducerPhase1");
       // if (fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitFromSimple");
-      // edmodules.emplace_back(prefix + "CAHitNtupletAlpaka");
-      // edmodules.emplace_back(prefix + "PixelVertexProducerAlpaka");
+      edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+      edmodules.emplace_back(prefix + "PixelVertexPhase1");
       if (transfer) {
-        // edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-        // edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+        edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+        edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
       }
       if (validation) {
         edmodules.emplace_back(prefix + "CountValidator");

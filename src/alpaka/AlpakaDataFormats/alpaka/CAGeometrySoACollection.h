@@ -11,6 +11,7 @@
 #include "AlpakaDataFormats/CAGeometrySoA.h"
 #include "AlpakaCore/CopyToHost.h"
 #include "AlpakaCore/config.h"
+#include "AlpakaCore/AssertDeviceMatchesHostCollection.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 

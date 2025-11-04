@@ -1,8 +1,8 @@
 #ifndef PixelSeeding_alpaka_CAHitNtupletGeneratorKernelsImpl_h
 #define PixelSeeding_alpaka_CAHitNtupletGeneratorKernelsImpl_h
 
-// #define GPU_DEBUG
-// #define NTUPLE_DEBUG
+#define GPU_DEBUG
+#define NTUPLE_DEBUG
 // #define CA_DEBUG
 // #define CA_WARNINGS
 

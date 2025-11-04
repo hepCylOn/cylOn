@@ -41,10 +41,10 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
-  class SiPixelRecHitProducer : public edm::EDProducer {
+  class SiPixelRecHit : public edm::EDProducer {
   public:
-    explicit SiPixelRecHitProducer(edm::ProductRegistry& reg);
-    ~SiPixelRecHitProducer() override = default;
+    explicit SiPixelRecHit(edm::ProductRegistry& reg);
+    ~SiPixelRecHit() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -61,7 +61,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  SiPixelRecHitProducer<TrackerTraits>::SiPixelRecHitProducer(edm::ProductRegistry& reg)
+  SiPixelRecHit<TrackerTraits>::SiPixelRecHit(edm::ProductRegistry& reg)
       : tBeamSpot(reg.consumes<cms::alpakatools::Product<Queue, BeamSpotSoACollection>>()),
         tokenClusters_(reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()),
         tokenDigi_(reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()),
@@ -69,7 +69,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         {}
 
   // template <typename TrackerTraits>
-  // void SiPixelRecHitProducer<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  // void SiPixelRecHit<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //   edm::ParameterSetDescription desc;
 
   //   desc.add<edm::InputTag>("beamSpot", edm::InputTag("offlineBeamSpotSoACollection"));
@@ -83,7 +83,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   // }
 
   template <typename TrackerTraits>
-  void SiPixelRecHitProducer<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es){
+  void SiPixelRecHit<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es){
                                                     
     auto const& fcpe = es.get<PixelCPEFast<TrackerTraits>>();
 
@@ -94,16 +94,47 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto const& digis = ctx.get(iEvent, tokenDigi_);
     auto const& bs = ctx.get(iEvent, tBeamSpot);
 
+#ifdef GPU_DEBUG
+    std::cout << "[SiPixelRecHit::GPU_DEBUG<" << TrackerTraits::nameModifier
+              << ">] Producing rechits with "
+              << clusters.view().metadata().size() << " clusters and "
+              << digis.view().metadata().size() << " digis" << std::endl;
+#endif
+
+
     ctx.emplace(iEvent,
                 tokenHit_,
                 Algo_.makeHitsAsync(digis, clusters, bs.data(), fcpe.getGPUProductAsync(ctx.stream()), ctx.stream()));
 
+#ifdef GPU_DEBUG
+    std::cout << "[SiPixelRecHit::GPU_DEBUG<" << TrackerTraits::nameModifier
+              << ">] Rechit production complete" << std::endl;
+#endif
+
   }
-  using SiPixelRecHitProducerPhase1 = SiPixelRecHitProducer<pixelTopology::Phase1>;
-  using SiPixelRecHitProducerHIonPhase1 = SiPixelRecHitProducer<pixelTopology::HIonPhase1>;
-  using SiPixelRecHitProducerPhase2 = SiPixelRecHitProducer<pixelTopology::Phase2>;
+  // using SiPixelRecHitPhase1 = SiPixelRecHit<pixelTopology::Phase1>;
+  // using SiPixelRecHitHIonPhase1 = SiPixelRecHit<pixelTopology::HIonPhase1>;
+  // using SiPixelRecHitPhase2 = SiPixelRecHit<pixelTopology::Phase2>;
+
+  /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
+  /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
+  class SiPixelRecHitPhase1 : public SiPixelRecHit<pixelTopology::Phase1> {
+  public:
+    using SiPixelRecHit<pixelTopology::Phase1>::SiPixelRecHit;
+  };
+
+  class SiPixelRecHitPhase2 : public SiPixelRecHit<pixelTopology::Phase2> {
+  public:
+    using SiPixelRecHit<pixelTopology::Phase2>::SiPixelRecHit;
+  };
+
+  class SiPixelRecHitHIonPhase1 : public SiPixelRecHit<pixelTopology::HIonPhase1> {
+  public:
+    using SiPixelRecHit<pixelTopology::HIonPhase1>::SiPixelRecHit;
+  };
+  
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitProducerPhase1);
-DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitProducerHIonPhase1);
-DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitProducerPhase2);
+DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitPhase1);
+DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitHIonPhase1);
+DEFINE_FWK_ALPAKA_MODULE(SiPixelRecHitPhase2);

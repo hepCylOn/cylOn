@@ -40,14 +40,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace cms::alpakatools;
 
   template <typename TrackerTraits>
-  class PixelVertexProducerAlpaka : public edm::EDProducer {
+  class PixelVertex : public edm::EDProducer {
     using TkSoADevice = reco::TracksSoACollection;
     using VtxSoADevice = ZVertexSoACollection;
     using Algo = vertexFinder::Producer<TrackerTraits>;
 
   public:
-    explicit PixelVertexProducerAlpaka(edm::ProductRegistry& reg);
-    ~PixelVertexProducerAlpaka() override = default;
+    explicit PixelVertex(edm::ProductRegistry& reg);
+    ~PixelVertex() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -69,7 +69,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  PixelVertexProducerAlpaka<TrackerTraits>::PixelVertexProducerAlpaka(edm::ProductRegistry& reg)
+  PixelVertex<TrackerTraits>::PixelVertex(edm::ProductRegistry& reg)
       : algo_(/* oneKernel   */ true,
               /* useDensity  */ true,
               /* useDBSCAN   */ false,
@@ -86,7 +86,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         tokenVertex_(reg.produces<cms::alpakatools::Product<Queue, VtxSoADevice>>()) {}
 
   // template <typename TrackerTraits>
-  // void PixelVertexProducerAlpaka<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  // void PixelVertex<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //   edm::ParameterSetDescription desc;
 
   //   // Only one of these three algos can be used at once.
@@ -111,7 +111,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   // }
 
   template <typename TrackerTraits>
-  void PixelVertexProducerAlpaka<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  void PixelVertex<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     
     auto const& tracksWrapped = iEvent.get(tokenTrack_);
     cms::alpakatools::ScopedContextProduce<Queue> ctx{tracksWrapped};
@@ -120,12 +120,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     ctx.emplace(iEvent, tokenVertex_, algo_.makeAsync(ctx.stream(), tracks.view(), maxVertices_, ptMin_, ptMax_));
   }
 
-  using PixelVertexProducerAlpakaPhase1 = PixelVertexProducerAlpaka<pixelTopology::Phase1>;
-  using PixelVertexProducerAlpakaPhase2 = PixelVertexProducerAlpaka<pixelTopology::Phase2>;
-  using PixelVertexProducerAlpakaHIonPhase1 = PixelVertexProducerAlpaka<pixelTopology::HIonPhase1>;
+  // using PixelVertexPhase1 = PixelVertex<pixelTopology::Phase1>;
+  // using PixelVertexPhase2 = PixelVertex<pixelTopology::Phase2>;
+  // using PixelVertexHIonPhase1 = PixelVertex<pixelTopology::HIonPhase1>;
+
+  /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
+  /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
+  class PixelVertexPhase1 : public PixelVertex<pixelTopology::Phase1> {
+  public:
+    using PixelVertex<pixelTopology::Phase1>::PixelVertex;
+  };
+
+  class PixelVertexPhase2 : public PixelVertex<pixelTopology::Phase2> {
+  public:
+    using PixelVertex<pixelTopology::Phase2>::PixelVertex;
+  };
+
+  class PixelVertexHIonPhase1 : public PixelVertex<pixelTopology::HIonPhase1> {
+  public:
+    using PixelVertex<pixelTopology::HIonPhase1>::PixelVertex;
+  };
+  
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-DEFINE_FWK_ALPAKA_MODULE(PixelVertexProducerAlpakaPhase1);
-DEFINE_FWK_ALPAKA_MODULE(PixelVertexProducerAlpakaPhase2);
-DEFINE_FWK_ALPAKA_MODULE(PixelVertexProducerAlpakaHIonPhase1);
+DEFINE_FWK_ALPAKA_MODULE(PixelVertexPhase1);
+DEFINE_FWK_ALPAKA_MODULE(PixelVertexPhase2);
+DEFINE_FWK_ALPAKA_MODULE(PixelVertexHIonPhase1);

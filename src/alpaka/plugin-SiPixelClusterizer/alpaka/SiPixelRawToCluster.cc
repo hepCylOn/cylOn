@@ -58,6 +58,8 @@
 
 #include "SiPixelRawToClusterKernel.h"
 
+#define GPU_DEBUG
+
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TrackerTraits>
@@ -167,10 +169,24 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  const edm::EventSetup& iSetup,
                  edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
 
+#ifdef GPU_DEBUG
+    std::cout << "[SiPixelRawToCluster::GPU_DEBUG] acquire started " << std::endl;
+#endif
     cms::alpakatools::ScopedContextAcquire<Queue> ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
 
-    auto const& hMap = iSetup.get<SiPixelMappingSoACollection>();
-    auto const& dGains = iSetup.get<SiPixelGainCalibrationForHLTSoACollection>();
+    auto const& hMap = iSetup.get<SiPixelMappingHost>();
+    auto const& hGains = iSetup.get<SiPixelGainCalibrationForHLTHost>();
+
+/// TODO: make a helper for this, have the automatic mechamism for copy (later).
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+    SiPixelMappingSoACollection const& dMap = hMap;
+    SiPixelGainCalibrationForHLTSoACollection const& dGains = hGains;
+#else
+    SiPixelMappingSoACollection dMap = cms::alpakatools::CopyToDevice<SiPixelMappingHost>::copyAsync(ctx.stream(), hMap);
+    SiPixelGainCalibrationForHLTSoACollection dGains = cms::alpakatools::CopyToDevice<SiPixelGainCalibrationForHLTHost>::copyAsync(ctx.stream(), hGains);
+    alpaka::wait(ctx.stream());
+#endif
+
 
     // if (hMap.hasQuality() != useQuality_) {
     //   throw std::runtime_error("UseQuality of the module (" + std::to_string(useQuality_) +
@@ -187,7 +203,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // }
 
     fedIds_ = iSetup.get<SiPixelFedIds>().fedIds();
-    const unsigned char* modulesToUnpack = hMap->modToUnpDefault().data();
+    const unsigned char* modulesToUnpack = dMap->modToUnpDefault().data();
 
     const auto& buffers = iEvent.get(rawGetToken_);
 
@@ -261,6 +277,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (nDigis_ == 0)
       return;
 
+#ifdef GPU_DEBUG
+    std::cout << "[SiPixelRawToCluster::GPU_DEBUG] Finished FED unpacking. "
+              << "FEDs processed: " << fedCounter
+              << ", total digis: " << nDigis_ << "\n";
+    if (fedCounter > 0) {
+      std::cout << "[SiPixelRawToCluster::GPU_DEBUG] Example FED IDs: ";
+      for (size_t j = 0; j < std::min<size_t>(fedIds_.size(), 5); ++j)
+        std::cout << fedIds_[j] << " ";
+      std::cout << "\n";
+    }
+#endif
+
     // copy the FED data to a single cpu buffer
     pixelDetails::WordFedAppender wordFedAppender(ctx.stream(), nDigis_);
     for (uint32_t i = 0; i < fedIds_.size(); ++i) {
@@ -268,7 +296,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
     Algo_.makePhase1ClustersAsync(ctx.stream(),
                                   clusterThresholds_,
-                                  hMap.const_view(),
+                                  dMap.const_view(),
                                   modulesToUnpack,
                                   dGains.const_view(),
                                   wordFedAppender,
@@ -304,8 +332,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   }
 
-  using SiPixelRawToClusterPhase1 = SiPixelRawToCluster<pixelTopology::Phase1>;
-  using SiPixelRawToClusterHIonPhase1 = SiPixelRawToCluster<pixelTopology::HIonPhase1>;
+  // using SiPixelRawToClusterPhase1 = SiPixelRawToCluster<pixelTopology::Phase1>;
+  // using SiPixelRawToClusterHIonPhase1 = SiPixelRawToCluster<pixelTopology::HIonPhase1>;
+
+
+  /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
+  /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
+  class SiPixelRawToClusterPhase1 : public SiPixelRawToCluster<pixelTopology::Phase1> {
+  public:
+    using SiPixelRawToCluster<pixelTopology::Phase1>::SiPixelRawToCluster;
+  };
+
+  class SiPixelRawToClusterHIonPhase1 : public SiPixelRawToCluster<pixelTopology::HIonPhase1> {
+  public:
+    using SiPixelRawToCluster<pixelTopology::HIonPhase1>::SiPixelRawToCluster;
+  };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 

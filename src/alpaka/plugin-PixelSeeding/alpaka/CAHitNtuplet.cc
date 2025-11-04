@@ -35,7 +35,7 @@
 // #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "AlpakaDataFormats/CAGeometrySoA.h"
 #include "AlpakaDataFormats/alpaka/CAGeometrySoACollection.h"
-
+#include "AlpakaDataFormats/CAGeometryHost.h"
 
 // #define GPU_DEBUG
 
@@ -70,10 +70,12 @@
 
 // }  // namespace reco
 
+#define GPU_DEBUG
+
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TrackerTraits>
-  class CAHitNtupletAlpakaFromHits
+  class CAHitNtuplet
       // : public stream::EDProducer<edm::GlobalCache<::reco::CAGeometryParams>,
       //                             edm::RunCache<cms::alpakatools::MoveToDeviceCache<Device, ::reco::CAGeometryHost>>> 
       : public edm::EDProducer{
@@ -94,9 +96,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using Frame = SOAFrame<float>;
 
   public:
-    // explicit CAHitNtupletAlpakaFromHits(const edm::ParameterSet& iConfig, const ::reco::CAGeometryParams* iCache);
-    explicit CAHitNtupletAlpakaFromHits(edm::ProductRegistry& reg);
-    ~CAHitNtupletAlpakaFromHits() override = default;
+    // explicit CAHitNtuplet(const edm::ParameterSet& iConfig, const ::reco::CAGeometryParams* iCache);
+    explicit CAHitNtuplet(edm::ProductRegistry& reg);
+    ~CAHitNtuplet() override = default;
 
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
@@ -114,7 +116,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  CAHitNtupletAlpakaFromHits<TrackerTraits>::CAHitNtupletAlpakaFromHits(edm::ProductRegistry& reg)
+  CAHitNtuplet<TrackerTraits>::CAHitNtuplet(edm::ProductRegistry& reg)
   // (const edm::ParameterSet& iConfig,
                                                         // const ::reco::CAGeometryParams* iCache)
       :
@@ -134,7 +136,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   // template <typename TrackerTraits>
-  // void CAHitNtupletAlpakaFromHits<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  // void CAHitNtuplet<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //   edm::ParameterSetDescription desc;
 
   //   desc.add<edm::InputTag>("pixelRecHitSrc", edm::InputTag("siPixelRecHitsPreSplittingAlpaka"));
@@ -144,30 +146,72 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   // }
 
   template <typename TrackerTraits>
-  void CAHitNtupletAlpakaFromHits<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es) {
+  void CAHitNtuplet<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es) {
     auto bf = 0.0114256972711507; //1. / es.getData(tokenField_).inverseBzAtOriginInGeV();
 
-    auto const& geometry = es.get<CAGeometryOnDevice>();//runCache()->get(iEvent.queue());
+    auto const& hGeometry = es.get<::reco::CAGeometryHost>();//runCache()->get(iEvent.queue());
     auto const& phits = iEvent.get(tokenHit_);
     cms::alpakatools::ScopedContextProduce<Queue> ctx{phits};
     auto const& hits = ctx.get(phits);
     // std::array<double, 1> nHitsV = {{double(hits.nHits())}};
     // std::array<double, 1> emptyV;
 
-    uint32_t const maxTuples = maxNumberOfTuples_; //maxNumberOfTuples_.evaluate(nHitsV, emptyV);
-    uint32_t const maxDoublets = maxNumberOfDoublets_; //maxNumberOfDoublets_.evaluate(nHitsV, emptyV);
+/// TODO: make a helper for this, have the automatic mechamism for copy (later).
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+    reco::CAGeometrySoACollection const& geometry = hGeometry;
+#else
+    reco::CAGeometrySoACollection geometry = cms::alpakatools::CopyToDevice<::reco::CAGeometryHost>::copyAsync(ctx.stream(), hGeometry);
+    alpaka::wait(ctx.stream());
+#endif
 
-    ctx.emplace(iEvent,tokenTrack_,
-                deviceAlgo_.makeTuplesAsync(hits, geometry, bf, maxDoublets, maxTuples, ctx.stream()));
+#ifdef GPU_DEBUG
+  std::cout << "[CAHitNtuplet::GPU_DEBUG] Starting produce() for "
+            << TrackerTraits::nameModifier << std::endl;
+  std::cout << "[CAHitNtuplet::GPU_DEBUG] Number of hits: " << hits.nHits() << std::endl;
+#endif
+
+  uint32_t const maxTuples = maxNumberOfTuples_;
+  uint32_t const maxDoublets = maxNumberOfDoublets_;
+
+#ifdef GPU_DEBUG
+  std::cout << "[CAHitNtuplet::GPU_DEBUG] maxTuples=" << maxTuples
+            << " maxDoublets=" << maxDoublets << std::endl;
+#endif
+
+  ctx.emplace(iEvent,
+              tokenTrack_,
+              deviceAlgo_.makeTuplesAsync(hits, geometry, bf, maxDoublets, maxTuples, ctx.stream()));
+
+#ifdef GPU_DEBUG
+  std::cout << "[CAHitNtuplet::GPU_DEBUG] Finished produce() successfully." << std::endl;
+#endif
+
   }
 
-  using CAHitNtupletAlpakaFromHitsPhase1 = CAHitNtupletAlpakaFromHits<pixelTopology::Phase1>;
-  using CAHitNtupletAlpakaFromHitsHIonPhase1 = CAHitNtupletAlpakaFromHits<pixelTopology::HIonPhase1>;
-  using CAHitNtupletAlpakaFromHitsPhase2 = CAHitNtupletAlpakaFromHits<pixelTopology::Phase2>;
+  // using CAHitNtupletPhase1 = CAHitNtuplet<pixelTopology::Phase1>;
+  // using CAHitNtupletHIonPhase1 = CAHitNtuplet<pixelTopology::HIonPhase1>;
+  // using CAHitNtupletPhase2 = CAHitNtuplet<pixelTopology::Phase2>;
+
+  /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
+  /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
+  class CAHitNtupletPhase1 : public CAHitNtuplet<pixelTopology::Phase1> {
+  public:
+    using CAHitNtuplet<pixelTopology::Phase1>::CAHitNtuplet;
+  };
+
+  class CAHitNtupletHIonPhase1 : public CAHitNtuplet<pixelTopology::HIonPhase1> {
+  public:
+    using CAHitNtuplet<pixelTopology::HIonPhase1>::CAHitNtuplet;
+  };
+
+  class CAHitNtupletPhase2 : public CAHitNtuplet<pixelTopology::Phase2> {
+  public:
+    using CAHitNtuplet<pixelTopology::Phase2>::CAHitNtuplet;
+  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 // #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"
 
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletAlpakaFromHitsPhase1);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletAlpakaFromHitsHIonPhase1);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletAlpakaFromHitsPhase2);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);

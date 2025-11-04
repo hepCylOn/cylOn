@@ -46,6 +46,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         TrackerTraits::thetaCuts + nLayers);
       dcaCuts_.assign(TrackerTraits::dcaCuts,
                       TrackerTraits::dcaCuts + nLayers);
+      layerStarts_.assign(TrackerTraits::layerStart,
+                   TrackerTraits::layerStart + nLayers);
+
       phiCuts_.assign(TrackerTraits::phicuts,
                       TrackerTraits::phicuts + nPairs);
       minZ_.assign(TrackerTraits::minz,
@@ -59,6 +62,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       startingPairs_ = {0u, 1u, 2u}; 
 
       checkSize(thetaCuts_, nLayers, "thetaCuts_");
+      checkSize(layerStarts_, nLayers, "layerStarts_");
       checkSize(dcaCuts_, nLayers, "dcaCuts_");
       checkSize(phiCuts_, nPairs, "phiCuts_");
       checkSize(minZ_, nPairs, "minZ_");
@@ -77,6 +81,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // Geometry parameter data members
     std::vector<float> thetaCuts_;
     std::vector<float> dcaCuts_;
+    std::vector<unsigned int> layerStarts_;
+    
     std::vector<int> phiCuts_;
     std::vector<double> minZ_;
     std::vector<double> maxZ_;
@@ -106,16 +112,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto caGeometryHost = std::unique_ptr<reco::CAGeometryHost>(
       new reco::CAGeometryHost{{{nLayers + 1, nPairs, nModules}}, cms::alpakatools::host()});
 
-    auto layers = caGeometryHost->template view<reco::CALayersSoA>();
-    auto graph = caGeometryHost->template view<reco::CAGraphSoA>();
-    auto modules = caGeometryHost->template view<reco::CAModulesSoA>();
+    auto layers = caGeometryHost->template view<::reco::CALayersSoA>();
+    auto graph = caGeometryHost->template view<::reco::CAGraphSoA>();
+    auto modules = caGeometryHost->template view<::reco::CAModulesSoA>();
 
     // Fill layer-level data
     for (uint32_t i = 0; i < thetaCuts_.size(); ++i) {
-      layers.layerStarts(i) = i;  // placeholder
+      layers.layerStarts(i) = layerStarts_[i];  // placeholder
       layers.caThetaCut(i) = static_cast<float>(thetaCuts_[i]);
       layers.caDCACut(i) = static_cast<float>(dcaCuts_[i]);
     }
+
+    layers.layerStarts(thetaCuts_.size()) = nModules;
 
 #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] Filled " << nLayers << " layers with theta/DCACuts." << std::endl;
