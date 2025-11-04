@@ -22,9 +22,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     explicit CAGeometryHostESProducer(std::string const& datadir) : data_(datadir) {
       // Fill default parameters from TrackerTraits
-      constexpr uint32_t nLayers = TrackerTraits::numberOfLayers;
-      constexpr uint32_t nPairs = TrackerTraits::nPairsForQuadruplets;
-
+      nLayers_ = TrackerTraits::numberOfLayers;
+      nPairs_  = TrackerTraits::nPairs; //TrackerTraits::nPairsForQuadruplets;
+      nModules_ = TrackerTraits::numberOfModules;
       auto checkSize = [](auto const& vec, size_t expected, std::string const& name) {
       if (vec.size() != expected) {
         std::cerr << "[CAGeometryHostESProducer ERROR] Size mismatch in " << name << ":\n"
@@ -37,38 +37,38 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       std::cout << "[GPU_DEBUG] Constructing CAGeometryHostESProducer for "
                 << TrackerTraits::nameModifier << "\n"
                 << "  - Data directory: " << data_ << "\n"
-                << "  - Layers: " << nLayers
-                << ", Pairs: " << nPairs
+                << "  - Layers: " << nLayers_
+                << ", Pairs: " << nPairs_
                 << ", Default start pairs: {0,1,2}" << std::endl;
 #endif
 
       thetaCuts_.assign(TrackerTraits::thetaCuts,
-                        TrackerTraits::thetaCuts + nLayers);
+                        TrackerTraits::thetaCuts + nLayers_);
       dcaCuts_.assign(TrackerTraits::dcaCuts,
-                      TrackerTraits::dcaCuts + nLayers);
+                      TrackerTraits::dcaCuts + nLayers_);
       layerStarts_.assign(TrackerTraits::layerStart,
-                   TrackerTraits::layerStart + nLayers);
+                   TrackerTraits::layerStart + nLayers_);
 
       phiCuts_.assign(TrackerTraits::phicuts,
-                      TrackerTraits::phicuts + nPairs);
+                      TrackerTraits::phicuts + nPairs_);
       minZ_.assign(TrackerTraits::minz,
-                   TrackerTraits::minz + nPairs);
+                   TrackerTraits::minz + nPairs_);
       maxZ_.assign(TrackerTraits::maxz,
-                   TrackerTraits::maxz + nPairs);
+                   TrackerTraits::maxz + nPairs_);
       maxR_.assign(TrackerTraits::maxr,
-                   TrackerTraits::maxr + nPairs);
+                   TrackerTraits::maxr + nPairs_);
       pairGraph_.assign(TrackerTraits::layerPairs,
-                        TrackerTraits::layerPairs + (nPairs * 2));
+                        TrackerTraits::layerPairs + (nPairs_ * 2));
       startingPairs_ = {0u, 1u, 2u}; 
 
-      checkSize(thetaCuts_, nLayers, "thetaCuts_");
-      checkSize(layerStarts_, nLayers, "layerStarts_");
-      checkSize(dcaCuts_, nLayers, "dcaCuts_");
-      checkSize(phiCuts_, nPairs, "phiCuts_");
-      checkSize(minZ_, nPairs, "minZ_");
-      checkSize(maxZ_, nPairs, "maxZ_");
-      checkSize(maxR_, nPairs, "maxR_");
-      checkSize(pairGraph_, nPairs * 2, "pairGraph_");
+      checkSize(thetaCuts_, nLayers_, "thetaCuts_");
+      checkSize(layerStarts_, nLayers_, "layerStarts_");
+      checkSize(dcaCuts_, nLayers_, "dcaCuts_");
+      checkSize(phiCuts_, nPairs_, "phiCuts_");
+      checkSize(minZ_, nPairs_, "minZ_");
+      checkSize(maxZ_, nPairs_, "maxZ_");
+      checkSize(maxR_, nPairs_, "maxR_");
+      checkSize(pairGraph_, nPairs_ * 2, "pairGraph_");
 
     }
 
@@ -76,6 +76,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
 
+    int nLayers_, nPairs_, nModules_; //int(s) just because the PortableCollection wants so
     std::filesystem::path data_;
 
     // Geometry parameter data members
@@ -103,14 +104,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << "\n"
               << "  - Reading modules from: " << filepath << std::endl;
     #endif
-
-    constexpr uint32_t nLayers  = TrackerTraits::numberOfLayers;
-    constexpr uint32_t nPairs   = TrackerTraits::nPairsForQuadruplets;
-    constexpr uint32_t nModules = TrackerTraits::numberOfModules;
         
     // Construct full host geometry (layers + graph + modules)
     auto caGeometryHost = std::unique_ptr<reco::CAGeometryHost>(
-      new reco::CAGeometryHost{{{nLayers + 1, nPairs, nModules}}, cms::alpakatools::host()});
+      new reco::CAGeometryHost{{{nLayers_ + 1, nPairs_, nModules_}}, cms::alpakatools::host()});
 
     auto layers = caGeometryHost->template view<::reco::CALayersSoA>();
     auto graph = caGeometryHost->template view<::reco::CAGraphSoA>();
@@ -123,10 +120,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       layers.caDCACut(i) = static_cast<float>(dcaCuts_[i]);
     }
 
-    layers.layerStarts(thetaCuts_.size()) = nModules;
+    layers.layerStarts(thetaCuts_.size()) = nModules_;
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Filled " << nLayers << " layers with theta/DCACuts." << std::endl;
+    std::cout << "[GPU_DEBUG] Filled " << nLayers_ << " layers with theta/DCACuts." << std::endl;
 #endif
 
 
@@ -142,7 +139,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Filled " << nPairs << " CA graph pairs." << std::endl;
+    std::cout << "[GPU_DEBUG] Filled " << nPairs_ << " CA graph pairs." << std::endl;
 #endif
 
     // --- Read CAModulesLayout from binary file ---

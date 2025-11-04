@@ -697,7 +697,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }
 
-    if (this->m_params.algoParams_.doStats_) {
+    if (this->m_params.algoParams_.doStats_ or true) {
       numberOfBlocks = cms::alpakatools::divide_up_by(std::max(nhits, maxDoublets), blockSize);
       workDiv1D = cms::alpakatools::make_workdiv<Acc1D>(numberOfBlocks, blockSize);
 
@@ -735,7 +735,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     alpaka::wait(queue);
 #endif
-    if (this->m_params.algoParams_.doStats_) {
+    if (this->m_params.algoParams_.doStats_ or true) {
       // counters (add flag???)
 
       numberOfBlocks =

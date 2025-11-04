@@ -64,7 +64,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           1.0f,   // avgTracksPerCell_
 
           // Algorithm parameters
-          4,      // minHitsPerNtuplet_
+          3,      // minHitsPerNtuplet_
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_
           1.0f / (0.35f * 87.0f),  // hardCurvCut_
@@ -73,19 +73,19 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
           // Pixel cluster cut params
           8.0f * 0.0285f / 0.015f, // dzdrFact_
-          1,  // minYsizeB1_
-          1,  // minYsizeB2_
-          28, // maxDYsize12_
-          20, // maxDYsize_
-          20, // maxDYPred_
+          36, //1, // minYsizeB1_
+          28, //1, // minYsizeB2_
+          28, //28, // maxDYsize12_
+          20, //20, // maxDYsize_
+          20, //20, // maxDYPred_
 
           // Flags
           false, // useRiemannFit_
-          false, // fitNas4_
+          true, // fitNas4_
           true,  // earlyFishbone_
           false, // lateFishbone_
           false, // doStats_ (fillStatistics)
-          true,  // doSharedHitCut_
+          false,  // doSharedHitCut_
           false, // dupPassThrough_
           true   // useSimpleTripletCleaner_
       };
@@ -100,7 +100,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // chi2 scale factor
         30.,
         // triplet cuts
-        {0.3, 0.5, 12.0},
+        {0.3, 0.5, 12.0}, // |tip|, pt, |zip| 
         // quadruplet cuts
         {0.5, 0.3, 12.0}};
   }

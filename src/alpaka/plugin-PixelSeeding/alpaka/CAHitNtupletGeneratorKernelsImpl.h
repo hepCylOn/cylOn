@@ -133,14 +133,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
                           alpaka::hierarchy::Blocks{});
       }
 
-#ifdef NTUPLE_DEBUGS
+#ifdef NTUPLE_DEBUG
       if (cms::alpakatools::once_per_grid(acc)) {
         printf("number of found cells %d \n found tuples %d with total hits %d out of %d\n",
                *nCells,
                apc->get().first,
                apc->get().second,
                nHits);
-        if (apc->get().first < tracks_view.metadata().size()) {
+        if (int(apc->get().first ) < tracks_view.metadata().size()) {
           ALPAKA_ASSERT_ACC(foundNtuplets->size(apc->get().first) == 0);
           ALPAKA_ASSERT_ACC(foundNtuplets->size() == apc->get().second);
         }
