@@ -7,6 +7,7 @@
 
 #include "DataFormats/ParticleSimpleSoA.h"
 #include "AlpakaDataFormats/PixelTrackHost.h"
+#include "AlpakaDataFormats/ZVertexHost.h"
 #include "Framework/EDProducer.h"
 #include "Framework/Event.h"
 #include "Framework/EventSetup.h"
@@ -30,6 +31,7 @@ private:
     
   edm::EDGetTokenT<ParticleSimpleSoA> tSimpleParticles_;
   edm::EDGetTokenT<PixelTrackHost> tokenTrack_;
+  edm::EDGetTokenT<ZVertexHost> tokenVertex_;
 
   std::ofstream file;
 
@@ -92,8 +94,13 @@ ParticleFromSimple::ParticleFromSimple(edm::ProductRegistry& reg)
 
 void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
+  auto const& vertices = iEvent.get(tokenVertex_);
   auto const& tracks = iEvent.get(tokenTrack_);
   auto const& simpleParticles = iEvent.get(tSimpleParticles_);
+
+  // for(uint32_t o = 0; o < vertices->nvFinal; ++o){
+  //   std::cout << o << " -- " << vertices->ptv2[o] << std::endl;
+  // }
 
   totalParticles = totalParticles + simpleParticles.nParticles();
 
