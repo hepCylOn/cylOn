@@ -10,7 +10,7 @@
 
 #include "Framework/Event.h"
 #include "DataFormats/FEDRawDataCollection.h"
-#include "DataFormats/TrackingRecHitSimpleSoA.h"
+#include "AlpakaDataFormats/TrackingRecHitsHost.h"
 #include "DataFormats/DigiClusterCount.h"
 #include "DataFormats/TrackCount.h"
 #include "DataFormats/VertexCount.h"
@@ -43,14 +43,14 @@ namespace edm {
     std::atomic<int> numEvents_ = 0;
     
     EDPutTokenT<FEDRawDataCollection> rawToken_;
-    EDPutTokenT<TrackingRecHitSimpleSoA> hitToken_;
+    EDPutTokenT<reco::TrackingRecHitHost> hitToken_;
 
     EDPutTokenT<DigiClusterCount> digiClusterToken_;
     EDPutTokenT<TrackCount> trackToken_;
     EDPutTokenT<VertexCount> vertexToken_;
 
     std::vector<FEDRawDataCollection> raw_;
-    std::vector<TrackingRecHitSimpleSoA> hits_;
+    std::vector<reco::TrackingRecHitHost> hits_;
 
     std::vector<DigiClusterCount> digiclusters_;
     std::vector<TrackCount> tracks_;

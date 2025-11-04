@@ -1,0 +1,15 @@
+{
+  "xLocal": 0,
+  "yLocal": 1,
+  "xerrLocal": 2,
+  "yerrLocal": 3,
+  "xGlobal": 4,
+  "yGlobal": 5,
+  "zGlobal": 6,
+  "rGlobal": 7,
+  "iphi": 8,
+  "charge": 9,
+  "clusterSizeX": 10,
+  "clusterSizeY": 11,
+  "detectorIndex": 12
+}
