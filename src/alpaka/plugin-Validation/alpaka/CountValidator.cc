@@ -5,6 +5,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <TH1F.h>
+
 #include "AlpakaCore/Product.h"
 #include "AlpakaCore/ScopedContext.h"
 #include "AlpakaCore/config.h"

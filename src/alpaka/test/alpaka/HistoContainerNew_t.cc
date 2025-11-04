@@ -256,8 +256,3 @@ TEST_CASE("Standard checks of " ALPAKA_TYPE_ALIAS_NAME(alpakaTestHistoContainer)
     }
   }
 }
-
-// int main() {
-//   std::cout << "This test is disabled temporarily.\n";
-//   return 0;
-// }

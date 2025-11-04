@@ -32,3 +32,5 @@ Manifest.toml
 /serial
 /sycl
 /sycltest
+# logs
+*.log

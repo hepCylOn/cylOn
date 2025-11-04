@@ -185,6 +185,17 @@ ALL_DEPENDS += $(TESTS_SERIAL_DEP) $(TESTS_TBB_DEP) $(TESTS_CUDA_DEP) $(TESTS_RO
 # Needed to keep the unit test object files after building $(TARGET)
 .SECONDARY: $(TESTS_SERIAL_OBJ) $(TESTS_TBB_OBJ) $(TESTS_CUDA_OBJ) $(TESTS_CUDADLINK) $(TESTS_ROCM_OBJ)
 
+# Non-Alpaka (simple) tests
+TESTS_SIMPLE_SRC := $(wildcard $(TARGET_DIR)/test/*.cc)
+TESTS_SIMPLE_OBJ := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(TESTS_SIMPLE_SRC:%=%.o))
+TESTS_SIMPLE_DEP := $(TESTS_SIMPLE_OBJ:%.o=%.d)
+# executables go under $(TEST_DIR)/$(TARGET_NAME)/test/
+TESTS_SIMPLE_EXE := $(patsubst $(SRC_DIR)/$(TARGET_NAME)/test/%.cc,$(TEST_DIR)/alpaka_%,$(TESTS_SIMPLE_SRC))
+
+TESTS_EXE += $(TESTS_SIMPLE_EXE)
+ALL_DEPENDS += $(TESTS_SIMPLE_DEP)
+.SECONDARY: $(TESTS_SIMPLE_OBJ)
+
 define RUNTEST_template
 run_$(1): $(1)
 	@echo
@@ -290,7 +301,22 @@ $(OBJ_DIR)/$(TARGET_NAME)/bin/%.cc.o: $(SRC_DIR)/$(TARGET_NAME)/bin/%.cc
 	      -e '/^$$/ d' -e 's/$$/ :/' -e 's/ *//' < $(@D)/$*.cc.d.tmp >> $(@D)/$*.cc.d; \
 	  rm $(@D)/$*.cc.d.tmp
 
-# Tests, assume all are portable
+# Simple tests (Alpaka independent, in src/alpaka/test/)
+# (using serial flags and co., and alpaka_* just to distinguish them from the others)
+$(OBJ_DIR)/$(TARGET_NAME)/test/%.o: $(SRC_DIR)/$(TARGET_NAME)/test/%.cc
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(MY_CXXFLAGS) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	@cp $(@D)/$*.d $(@D)/$*.d.tmp; \
+	  sed 's#\($(TARGET_NAME)/$*\)\.o[ :]*#\1.o \1.d : #g' < $(@D)/$*.d.tmp > $(@D)/$*.d; \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' -e 's/ *//' < $(@D)/$*.d.tmp >> $(@D)/$*.d; \
+	  rm $(@D)/$*.d.tmp
+
+$(TEST_DIR)/alpaka_%: $(OBJ_DIR)/$(TARGET_NAME)/test/%.o $(LIBS)
+	@mkdir -p $(dir $@)
+	$(CXX) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SERIAL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+
+# Tests, the portable ones
 # Serial backend
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.serial.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)

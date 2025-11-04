@@ -29,15 +29,50 @@ endif
 
 # Build flags
 USER_CXXFLAGS := 
+USER_LDFLAGS  :=
 HOST_CXXFLAGS := -O2 -fPIC -fdiagnostics-show-option -felide-constructors -fmessage-length=0 -fno-math-errno -ftree-vectorize -fvisibility-inlines-hidden --param vect-max-version-for-alias-checks=50 -msse3 -pipe -pthread -Werror=address -Wall -Werror=array-bounds -Wno-attributes -Werror=conversion-null -Werror=delete-non-virtual-dtor -Wno-deprecated -Werror=format-contains-nul -Werror=format -Wno-long-long -Werror=main -Werror=missing-braces -Werror=narrowing -Wno-non-template-friend -Wnon-virtual-dtor -Werror=overflow -Werror=overlength-strings -Wparentheses -Werror=pointer-arith -Wno-psabi -Werror=reorder -Werror=return-local-addr -Wreturn-type -Werror=return-type -Werror=sign-compare -Werror=strict-aliasing -Wstrict-overflow -Werror=switch -Werror=type-limits -Wunused -Werror=unused-but-set-variable -Wno-unused-local-typedefs -Werror=unused-value -Wno-error=unused-variable -Wno-vla -Werror=write-strings -Wfatal-errors
 # in case os linker resolve errors, try adding -mcmodel=large
+
+############################################################################################################
+### ROOT 
+ROOTCONFIG := $(shell which root-config 2>/dev/null)
+
+ifeq ($(ROOTCONFIG),)
+  $(warning "ROOT not found — building without ROOT support.")
+else
+  $(info Found ROOT in $(shell which root))
+
+#   TODO: improve this, commenting for the moment.
+#   ## Check ROOT gcc and mine
+#   ROOT_GCC := $(shell root -b -q -e 'std::cout << gROOT->GetCompilerVersion() << std::endl;' 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+#   # Get the compiler used for this build
+#   LOCAL_GCC := $(shell $(CXX) -dumpfullversion -dumpversion)
+
+#   # Extract just the major version numbers (e.g. 11 from 11.4.1)
+#   ROOT_GCC_MAJOR := $(word 1,$(subst ., ,$(ROOT_GCC)))
+#   LOCAL_GCC_MAJOR := $(word 1,$(subst ., ,$(LOCAL_GCC)))
+
+#   # Compare them — stop if they differ
+#   ifneq ($(ROOT_GCC_MAJOR),$(LOCAL_GCC_MAJOR))
+#     $(warning ROOT built with GCC $(ROOT_GCC) but current compiler is $(LOCAL_GCC))
+#     $(warning This may cause ABI incompatibilities (e.g. libstdc++ or TBB mismatches).)
+#     $(error Please switch to GCC $(ROOT_GCC_MAJOR) or use a ROOT built with GCC $(LOCAL_GCC_MAJOR))
+#   endif
+  #ROOTCFLAGS := $(shell $(ROOTCONFIG) --cflags)
+  ROOTINCLUDES := $(filter -I%,$(shell root-config --cflags))
+  ROOTLIBS   := $(shell $(ROOTCONFIG) --libs)
+  HOST_CXXFLAGS  += $(ROOTINCLUDES) -DHAVE_ROOT
+  USER_LDFLAGS   += $(ROOTLIBS)
+endif
+
+############################################################################################################
 
 # Compiler flags supported by GCC but not by the LLVM-based compilers (clang, hipcc, icpx, etc.)
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
 export CXXFLAGS := -std=c++20 $(HOST_CXXFLAGS) $(USER_CXXFLAGS) -g
 export NVCXX_CXXFLAGS := -std=c++20 -O0 -cuda -gpu=managed -stdpar -fpic -gopt $(USER_CXXFLAGS)
-export LDFLAGS := -O2 -fPIC -pthread -Wl,-E -lstdc++fs -ldl
+export LDFLAGS := -O2 -fPIC -pthread -Wl,-E -lstdc++fs -ldl $(USER_LDFLAGS)
 export LDFLAGS_NVCC := -ccbin $(CXX) --linker-options '-E' --linker-options '-lstdc++fs'
 export LDFLAGS_NVCXX := -cuda -Wl,-E -ldl -gpu=managed -stdpar
 export SO_LDFLAGS := -Wl,-z,defs
