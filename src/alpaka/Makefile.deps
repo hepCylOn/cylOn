@@ -13,4 +13,5 @@ PixelVertexFinding_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats
 SiPixelClusterizer_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats SiPixelRawToDigi
 SiPixelRawToDigi_DEPENDS := DataFormats
 SiPixelRecHits_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats
+SimTracker_DEPENDS := Framework DataFormats
 Validation_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats

@@ -299,7 +299,11 @@ int main(int argc, char** argv) {
         if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
         else {
           if (not isPhase2) edmodules.emplace_back("CountValidatorFromHits");
-          else edmodules.emplace_back("ParticleFromSimple");
+          else{
+            edmodules.emplace_back("ParticleFromSimple");
+            edmodules.emplace_back("SimDoubletsProducer");
+            edmodules.emplace_back("SimDoubletsAnalyzer");
+          }
         }
       }
       if (histogram) {

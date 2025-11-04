@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <vector>
 #include <iostream>
+#include <cassert>
+#include <sstream>
 
 class TrackingRecHitSimpleSoA {
 public:
