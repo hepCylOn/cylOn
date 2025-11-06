@@ -19,7 +19,9 @@ namespace edm {
   public:
     using Config = nlohmann::json;
 
-    // Factory function: load configuration from a JSON file
+    ConfigRegistry() = default;
+
+    // Just load configuration from a JSON file
     static ConfigRegistry loadFromFile(const std::string& filename) {
   #ifdef INPUT_DEBUG
       std::cout << "[ConfigRegistry] Loading configuration from file: " << filename << std::endl;

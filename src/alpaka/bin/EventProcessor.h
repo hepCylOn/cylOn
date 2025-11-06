@@ -30,7 +30,8 @@ namespace edm {
 
   class EventProcessor {
   public:
-    explicit EventProcessor(int warmupEvents,
+    explicit EventProcessor(ConfigRegistry const& config,
+                            int warmupEvents,
                             int maxEvents,
                             int runForMinutes,
                             int numberOfStreams,
