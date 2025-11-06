@@ -20,7 +20,7 @@ namespace {
 namespace KOKKOS_NAMESPACE {
   class TestProducer2 : public edm::EDProducerExternalWork {
   public:
-    explicit TestProducer2(edm::ProductRegistry& reg);
+    explicit TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void acquire(edm::Event const& event,
@@ -32,7 +32,7 @@ namespace KOKKOS_NAMESPACE {
     edm::EDGetTokenT<cms::kokkos::Product<Kokkos::View<const float*, KokkosExecSpace>>> getToken_;
   };
 
-  TestProducer2::TestProducer2(edm::ProductRegistry& reg)
+  TestProducer2::TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg)
       : getToken_(reg.consumes<cms::kokkos::Product<Kokkos::View<const float*, KokkosExecSpace>>>()) {
     nevents = 0;
   }

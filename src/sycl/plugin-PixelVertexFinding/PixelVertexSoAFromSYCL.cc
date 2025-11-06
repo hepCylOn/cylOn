@@ -17,7 +17,7 @@ using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 class PixelVertexSoAFromSYCL : public edm::EDProducerExternalWork {
 public:
-  explicit PixelVertexSoAFromSYCL(edm::ProductRegistry& reg);
+  explicit PixelVertexSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelVertexSoAFromSYCL() override = default;
 
 private:
@@ -32,7 +32,7 @@ private:
   cms::sycltools::host::unique_ptr<ZVertexSoA> m_soa;
 };
 
-PixelVertexSoAFromSYCL::PixelVertexSoAFromSYCL(edm::ProductRegistry& reg)
+PixelVertexSoAFromSYCL::PixelVertexSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenSYCL_(reg.consumes<cms::sycltools::Product<ZVertexHeterogeneous>>()),
       tokenSOA_(reg.produces<ZVertexHeterogeneous>()) {}
 

@@ -23,7 +23,7 @@
 
 class SiPixelRawToClusterCUDA : public edm::EDProducer {
 public:
-  explicit SiPixelRawToClusterCUDA(edm::ProductRegistry& reg);
+  explicit SiPixelRawToClusterCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelRawToClusterCUDA() override = default;
 
 private:
@@ -45,7 +45,7 @@ private:
   const bool useQuality_;
 };
 
-SiPixelRawToClusterCUDA::SiPixelRawToClusterCUDA(edm::ProductRegistry& reg)
+SiPixelRawToClusterCUDA::SiPixelRawToClusterCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : rawGetToken_(reg.consumes<FEDRawDataCollection>()),
       digiPutToken_(reg.produces<SiPixelDigisSoA>()),
       clusterPutToken_(reg.produces<SiPixelClustersSoA>()),

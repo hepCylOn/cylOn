@@ -6,10 +6,12 @@
 
 #include <tbb/task.h>
 
+#include "Framework/ConfigRegistry.h"
 #include "Framework/FunctorTask.h"
 #include "Framework/PluginFactory.h"
 #include "Framework/WaitingTask.h"
 #include "Framework/Worker.h"
+
 
 #include "PluginManager.h"
 #include "Source.h"

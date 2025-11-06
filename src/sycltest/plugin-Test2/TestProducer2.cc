@@ -17,7 +17,7 @@ namespace {
 
 class TestProducer2 : public edm::EDProducerExternalWork {
 public:
-  explicit TestProducer2(edm::ProductRegistry& reg);
+  explicit TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void acquire(edm::Event const& event,
@@ -29,7 +29,7 @@ private:
   edm::EDGetTokenT<cms::sycltools::Product<cms::sycltools::device::unique_ptr<float[]>>> getToken_;
 };
 
-TestProducer2::TestProducer2(edm::ProductRegistry& reg)
+TestProducer2::TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg)
     : getToken_(reg.consumes<cms::sycltools::Product<cms::sycltools::device::unique_ptr<float[]>>>()) {}
 
 void TestProducer2::acquire(edm::Event const& event,

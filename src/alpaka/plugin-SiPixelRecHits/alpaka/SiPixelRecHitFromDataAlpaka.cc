@@ -15,7 +15,7 @@
 
 //   class SiPixelRecHitFromSimple : public edm::EDProducer {
 //   public:
-//     explicit SiPixelRecHitFromSimple(edm::ProductRegistry& reg);
+//     explicit SiPixelRecHitFromSimple(edm::ProductRegistry& reg, edm::Config const& cfg);
 //     ~SiPixelRecHitFromSimple() override = default;
 
 //   private:
@@ -27,7 +27,7 @@
 
 //   };
 
-//   SiPixelRecHitFromSimple::SiPixelRecHitFromSimple(edm::ProductRegistry& reg)
+//   SiPixelRecHitFromSimple::SiPixelRecHitFromSimple(edm::ProductRegistry& reg, edm::Config const& cfg)
 //       : bsHost_{cms::alpakatools::make_host_buffer<BeamSpotPOD, Platform>()},
 //         tSimpleHits_(reg.consumes<TrackingRecHitSimpleSoA>()),
 //         tHits_(reg.produces<cms::alpakatools::Product<Queue, TrackingRecHit2DAlpaka>>()) {}

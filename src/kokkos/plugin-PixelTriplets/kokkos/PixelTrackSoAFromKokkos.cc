@@ -12,7 +12,7 @@
 namespace KOKKOS_NAMESPACE {
   class PixelTrackSoAFromKokkos : public edm::EDProducerExternalWork {
   public:
-    explicit PixelTrackSoAFromKokkos(edm::ProductRegistry& reg);
+    explicit PixelTrackSoAFromKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelTrackSoAFromKokkos() override = default;
 
   private:
@@ -30,7 +30,7 @@ namespace KOKKOS_NAMESPACE {
     TracksHostMemSpace m_soa;
   };
 
-  PixelTrackSoAFromKokkos::PixelTrackSoAFromKokkos(edm::ProductRegistry& reg)
+  PixelTrackSoAFromKokkos::PixelTrackSoAFromKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenKokkos_(reg.consumes<cms::kokkos::Product<TracksDeviceMemSpace>>()),
         tokenSOA_(reg.produces<TracksHostMemSpace>()) {}
 

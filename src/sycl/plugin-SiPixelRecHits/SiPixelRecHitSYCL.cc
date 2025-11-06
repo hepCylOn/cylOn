@@ -16,7 +16,7 @@
 
 class SiPixelRecHitSYCL : public edm::EDProducer {
 public:
-  explicit SiPixelRecHitSYCL(edm::ProductRegistry& reg);
+  explicit SiPixelRecHitSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelRecHitSYCL() override = default;
 
 private:
@@ -32,7 +32,7 @@ private:
   pixelgpudetails::PixelRecHitGPUKernel gpuAlgo_;
 };
 
-SiPixelRecHitSYCL::SiPixelRecHitSYCL(edm::ProductRegistry& reg)
+SiPixelRecHitSYCL::SiPixelRecHitSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tBeamSpot(reg.consumes<cms::sycltools::Product<BeamSpotSYCL>>()),
       token_(reg.consumes<cms::sycltools::Product<SiPixelClustersSYCL>>()),
       tokenDigi_(reg.consumes<cms::sycltools::Product<SiPixelDigisSYCL>>()),

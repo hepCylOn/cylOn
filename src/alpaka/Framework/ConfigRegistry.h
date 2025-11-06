@@ -16,7 +16,7 @@
 namespace edm {
 
   using Config = nlohmann::json;
-  
+
   class ConfigRegistry {
   public:
 
@@ -34,7 +34,11 @@ namespace edm {
       }
 
       Config root;
-      in >> root;
+      try {
+        in >> root;
+      } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("[ConfigRegistry] JSON parse failed: ") + e.what());
+      }
 
   #ifdef INPUT_DEBUG
       std::cout << "[ConfigRegistry] Successfully parsed JSON with "
@@ -45,23 +49,42 @@ namespace edm {
     }
 
     // Retrieve the config object for a given producer
-    const Config& getProducerConfig(const std::string& name) const {
-  #ifdef INPUT_DEBUG
-      std::cout << "[ConfigRegistry] Fetching config for producer: " << name << std::endl;
-  #endif
+const Config& getProducerConfig(const std::string& fullName) const {
+#ifdef INPUT_DEBUG
+  std::cout << "[ConfigRegistry] Fetching config for producer: " << fullName << std::endl;
+#endif
 
-      auto it = configs_.find(name);
-      if (it == configs_.end()) {
-        throw std::runtime_error("No configuration found for producer: " + name);
-      }
-
-  #ifdef INPUT_DEBUG
-      std::cout << "[ConfigRegistry] Found configuration for '" << name
-                << "' with " << it->second.size() << " parameters." << std::endl;
-  #endif
-
-      return it->second;
+  // Derive a normalized name: strip "alpaka_*::" if present
+  std::string name = fullName;
+  auto pos = name.find("alpaka_");
+  if (pos != std::string::npos) {
+    auto nsEnd = name.find("::", pos);
+    if (nsEnd != std::string::npos) {
+      name = name.substr(nsEnd + 2);
+#ifdef INPUT_DEBUG
+      std::cout << "[ConfigRegistry] Normalized module name: " << name << std::endl;
+#endif
     }
+  }
+
+  auto it = configs_.find(name);
+  if (it == configs_.end()) {
+#ifdef INPUT_DEBUG
+    std::cout << "[ConfigRegistry] No configuration found for '" << name
+              << "', using empty config (defaults will apply)." << std::endl;
+#endif
+    static const Config emptyConfig = Config::object();
+    return emptyConfig;
+  }
+
+#ifdef INPUT_DEBUG
+  std::cout << "[ConfigRegistry] Found configuration for '" << name
+            << "' with " << it->second.size() << " parameters." << std::endl;
+#endif
+
+  return it->second;
+}
+
 
   private:
     explicit ConfigRegistry(Config root) {

@@ -10,7 +10,7 @@
 
 class SiPixelDigisSoAFromSYCL : public edm::EDProducerExternalWork {
 public:
-  explicit SiPixelDigisSoAFromSYCL(edm::ProductRegistry& reg);
+  explicit SiPixelDigisSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelDigisSoAFromSYCL() override = default;
 
 private:
@@ -30,7 +30,7 @@ private:
   size_t nDigis_;
 };
 
-SiPixelDigisSoAFromSYCL::SiPixelDigisSoAFromSYCL(edm::ProductRegistry& reg)
+SiPixelDigisSoAFromSYCL::SiPixelDigisSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : digiGetToken_(reg.consumes<cms::sycltools::Product<SiPixelDigisSYCL>>()),
       digiPutToken_(reg.produces<SiPixelDigisSoA>()) {}
 

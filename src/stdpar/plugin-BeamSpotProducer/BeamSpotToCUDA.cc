@@ -9,7 +9,7 @@
 
 class BeamSpotToCUDA : public edm::EDProducer {
 public:
-  explicit BeamSpotToCUDA(edm::ProductRegistry& reg);
+  explicit BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~BeamSpotToCUDA() override = default;
 
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -18,7 +18,7 @@ private:
   edm::EDPutTokenT<BeamSpot> bsPutToken_;
 };
 
-BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg) : bsPutToken_(reg.produces<BeamSpot>()) {}
+BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg) : bsPutToken_(reg.produces<BeamSpot>()) {}
 
 void BeamSpotToCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   auto const& bs = iSetup.get<BeamSpotPOD>();

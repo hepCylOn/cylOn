@@ -20,7 +20,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using VertexDevice = ZVertexSoACollection;  // Device-side vertex data
     using VertexHost   = ZVertexHost;           // Host-side vertex data
 
-    explicit PixelVertexSoAFromAlpaka(edm::ProductRegistry& reg);
+    explicit PixelVertexSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelVertexSoAFromAlpaka() override = default;
 
   private:
@@ -30,7 +30,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::EDPutTokenT<VertexHost> tokenHost_;
   };
 
-  PixelVertexSoAFromAlpaka::PixelVertexSoAFromAlpaka(edm::ProductRegistry& reg)
+  PixelVertexSoAFromAlpaka::PixelVertexSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenDevice_(reg.consumes<cms::alpakatools::Product<Queue, VertexDevice>>()),
         tokenHost_(reg.produces<VertexHost>()) {}
 

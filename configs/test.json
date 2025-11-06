@@ -1,11 +1,14 @@
 {
-  "SiPixelClusterProducer": {
-    "inputLabel": "rawDataCollector",
-    "minCharge": 1200,
-    "verbose": true
-  },
-  "CAHitNtupletProducer": {
-    "maxTuples": 200000,
-    "minPt": 0.8
+  "SiPixelRawToClusterPhase1": {
+    "includeErrors": true,
+    "useQuality": true,
+    "verbose": false,
+    "clusterThreshold_layer1": 4500,
+    "clusterThreshold_otherLayers": 4000,
+    "VCaltoElectronGain": 47.0,
+    "VCaltoElectronGain_L1": 50.0,
+    "VCaltoElectronOffset": -60.0,
+    "VCaltoElectronOffset_L1": -670.0
   }
 }
+

@@ -11,7 +11,7 @@
 
 class CAHitNtupletCUDA : public edm::EDProducer {
 public:
-  explicit CAHitNtupletCUDA(edm::ProductRegistry& reg);
+  explicit CAHitNtupletCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~CAHitNtupletCUDA() override = default;
 
 private:
@@ -23,7 +23,7 @@ private:
   CAHitNtupletGeneratorOnGPU gpuAlgo_;
 };
 
-CAHitNtupletCUDA::CAHitNtupletCUDA(edm::ProductRegistry& reg)
+CAHitNtupletCUDA::CAHitNtupletCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenHitCPU_{reg.consumes<TrackingRecHit2DCPU>()},
       tokenTrackCPU_{reg.produces<PixelTrackHeterogeneous>()},
       gpuAlgo_(reg) {}

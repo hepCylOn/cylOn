@@ -12,7 +12,7 @@
 
 class PixelVertexSoAFromCUDA : public edm::EDProducerExternalWork {
 public:
-  explicit PixelVertexSoAFromCUDA(edm::ProductRegistry& reg);
+  explicit PixelVertexSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelVertexSoAFromCUDA() override = default;
 
 private:
@@ -27,7 +27,7 @@ private:
   cms::hip::host::unique_ptr<ZVertexSoA> m_soa;
 };
 
-PixelVertexSoAFromCUDA::PixelVertexSoAFromCUDA(edm::ProductRegistry& reg)
+PixelVertexSoAFromCUDA::PixelVertexSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenCUDA_(reg.consumes<cms::hip::Product<ZVertexHeterogeneous>>()),
       tokenSOA_(reg.produces<ZVertexHeterogeneous>()) {}
 

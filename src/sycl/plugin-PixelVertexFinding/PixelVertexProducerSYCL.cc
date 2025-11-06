@@ -12,7 +12,7 @@
 
 class PixelVertexProducerSYCL : public edm::EDProducer {
 public:
-  explicit PixelVertexProducerSYCL(edm::ProductRegistry& reg);
+  explicit PixelVertexProducerSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelVertexProducerSYCL() override = default;
 
 private:
@@ -30,7 +30,7 @@ private:
   std::optional<bool> isCpu_;
 };
 
-PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
+PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : m_gpuAlgo(true,   // oneKernel
                 true,   // useDensity
                 false,  // useDBSCAN

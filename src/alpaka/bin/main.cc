@@ -290,10 +290,10 @@ int main(int argc, char** argv) {
     for (auto const& [backend, weight] : backends) {
       std::string prefix = "alpaka_" + backendName(backend) + "::";
       // "portable" ESModules
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
-      if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+      // if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
+      // if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
+      // if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
+      // if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
       // if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
       // "portable" EDModules
       std::vector<std::string> edmodules;

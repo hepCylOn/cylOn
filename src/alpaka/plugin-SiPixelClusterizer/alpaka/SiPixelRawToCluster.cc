@@ -28,6 +28,7 @@
 #include "SiPixelRawToClusterKernel.h"
 
 #define GPU_DEBUG
+#define INPUT_DEBUG
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 

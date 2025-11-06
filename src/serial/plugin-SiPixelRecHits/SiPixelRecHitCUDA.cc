@@ -12,7 +12,7 @@
 
 class SiPixelRecHitCUDA : public edm::EDProducer {
 public:
-  explicit SiPixelRecHitCUDA(edm::ProductRegistry& reg);
+  explicit SiPixelRecHitCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelRecHitCUDA() override = default;
 
 private:
@@ -28,7 +28,7 @@ private:
   pixelgpudetails::PixelRecHitGPUKernel gpuAlgo_;
 };
 
-SiPixelRecHitCUDA::SiPixelRecHitCUDA(edm::ProductRegistry& reg)
+SiPixelRecHitCUDA::SiPixelRecHitCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tBeamSpot(reg.consumes<BeamSpotPOD>()),
       token_(reg.consumes<SiPixelClustersSoA>()),
       tokenDigi_(reg.consumes<SiPixelDigisSoA>()),

@@ -15,7 +15,7 @@
 
 class BeamSpotToCUDA : public edm::EDProducer {
 public:
-  explicit BeamSpotToCUDA(edm::ProductRegistry& reg);
+  explicit BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~BeamSpotToCUDA() override = default;
 
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -26,7 +26,7 @@ private:
   cms::cuda::host::noncached::unique_ptr<BeamSpotPOD> bsHost;
 };
 
-BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg)
+BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : bsPutToken_{reg.produces<cms::cuda::Product<BeamSpotCUDA>>()},
       bsHost{cms::cuda::make_host_noncached_unique<BeamSpotPOD>(cudaHostAllocWriteCombined)} {}
 

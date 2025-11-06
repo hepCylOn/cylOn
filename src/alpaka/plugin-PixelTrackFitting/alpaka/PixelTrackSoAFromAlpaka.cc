@@ -20,7 +20,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using TkSoADevice = reco::TracksSoACollection;  // device-side Tracks container
     using TkSoAHost   = ::reco::TracksHost;         // host-side Tracks container
 
-    explicit PixelTrackSoAFromAlpaka(edm::ProductRegistry& reg);
+    explicit PixelTrackSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelTrackSoAFromAlpaka() override = default;
 
   private:
@@ -31,7 +31,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::EDPutTokenT<TkSoAHost> tokenHost_;
   };
 
-  PixelTrackSoAFromAlpaka::PixelTrackSoAFromAlpaka(edm::ProductRegistry& reg)
+  PixelTrackSoAFromAlpaka::PixelTrackSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenDevice_(reg.consumes<cms::alpakatools::Product<Queue, TkSoADevice>>()),
         tokenHost_(reg.produces<TkSoAHost>()) {}
 

@@ -9,7 +9,7 @@
 
 class TestProducer : public edm::EDProducer {
 public:
-  explicit TestProducer(edm::ProductRegistry& reg);
+  explicit TestProducer(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void produce(edm::Event& event, edm::EventSetup const& eventSetup) override;
@@ -18,7 +18,7 @@ private:
   edm::EDPutTokenT<unsigned int> putToken_;
 };
 
-TestProducer::TestProducer(edm::ProductRegistry& reg)
+TestProducer::TestProducer(edm::ProductRegistry& reg, edm::Config const& cfg)
     : rawGetToken_(reg.consumes<FEDRawDataCollection>()), putToken_(reg.produces<unsigned int>()) {}
 
 void TestProducer::produce(edm::Event& event, edm::EventSetup const& eventSetup) {

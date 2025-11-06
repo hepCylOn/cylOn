@@ -97,7 +97,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   public:
     // explicit CAHitNtuplet(const edm::ParameterSet& iConfig, const ::reco::CAGeometryParams* iCache);
-    explicit CAHitNtuplet(edm::ProductRegistry& reg);
+    explicit CAHitNtuplet(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~CAHitNtuplet() override = default;
 
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -116,7 +116,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  CAHitNtuplet<TrackerTraits>::CAHitNtuplet(edm::ProductRegistry& reg)
+  CAHitNtuplet<TrackerTraits>::CAHitNtuplet(edm::ProductRegistry& reg, edm::Config const& cfg)
   // (const edm::ParameterSet& iConfig,
                                                         // const ::reco::CAGeometryParams* iCache)
       :

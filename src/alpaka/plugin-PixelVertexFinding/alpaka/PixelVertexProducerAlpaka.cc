@@ -46,7 +46,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using Algo = vertexFinder::Producer<TrackerTraits>;
 
   public:
-    explicit PixelVertex(edm::ProductRegistry& reg);
+    explicit PixelVertex(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelVertex() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
@@ -69,7 +69,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  PixelVertex<TrackerTraits>::PixelVertex(edm::ProductRegistry& reg)
+  PixelVertex<TrackerTraits>::PixelVertex(edm::ProductRegistry& reg, edm::Config const& cfg)
       : algo_(/* oneKernel   */ true,
               /* useDensity  */ true,
               /* useDBSCAN   */ false,

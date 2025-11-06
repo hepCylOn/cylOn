@@ -24,7 +24,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class TrackingRecHitHostBinDumper : public edm::EDProducer {
   public:
-    explicit TrackingRecHitHostBinDumper(edm::ProductRegistry& reg);
+    explicit TrackingRecHitHostBinDumper(edm::ProductRegistry& reg, edm::Config const& cfg);
     void produce(edm::Event& iEvent, edm::EventSetup const& iSetup) override;
     using HitsOnDevice = reco::TrackingRecHitsSoACollection;
     using HitsOnHost = ::reco::TrackingRecHitHost;
@@ -58,7 +58,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     static bool headerWritten_;
   };
 
-  TrackingRecHitHostBinDumper::TrackingRecHitHostBinDumper(edm::ProductRegistry& reg)
+  TrackingRecHitHostBinDumper::TrackingRecHitHostBinDumper(edm::ProductRegistry& reg, edm::Config const& cfg)
       :
       tokenHit_{reg.consumes<cms::alpakatools::Product<Queue, HitsOnDevice>>()}
       {

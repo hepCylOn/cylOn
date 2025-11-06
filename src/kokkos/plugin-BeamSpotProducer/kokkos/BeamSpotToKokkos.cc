@@ -11,7 +11,7 @@
 namespace KOKKOS_NAMESPACE {
   class BeamSpotToKokkos : public edm::EDProducer {
   public:
-    explicit BeamSpotToKokkos(edm::ProductRegistry& reg);
+    explicit BeamSpotToKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~BeamSpotToKokkos() override = default;
 
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -22,7 +22,7 @@ namespace KOKKOS_NAMESPACE {
     // typename Kokkos::View<BeamSpotPOD, KokkosExecSpace>::HostMirror bsHost;
   };
 
-  BeamSpotToKokkos::BeamSpotToKokkos(edm::ProductRegistry& reg)
+  BeamSpotToKokkos::BeamSpotToKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : bsPutToken_{reg.produces<cms::kokkos::Product<BeamSpotKokkos<KokkosDeviceMemSpace>>>()} {}
 
   void BeamSpotToKokkos::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {

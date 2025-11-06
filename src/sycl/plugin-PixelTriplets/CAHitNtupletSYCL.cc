@@ -14,7 +14,7 @@
 
 class CAHitNtupletSYCL : public edm::EDProducer {
 public:
-  explicit CAHitNtupletSYCL(edm::ProductRegistry& reg);
+  explicit CAHitNtupletSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~CAHitNtupletSYCL() override = default;
 
 private:
@@ -26,7 +26,7 @@ private:
   CAHitNtupletGeneratorOnGPU gpuAlgo_;
 };
 
-CAHitNtupletSYCL::CAHitNtupletSYCL(edm::ProductRegistry& reg)
+CAHitNtupletSYCL::CAHitNtupletSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenHitGPU_{reg.consumes<cms::sycltools::Product<TrackingRecHit2DSYCL>>()},
       tokenTrackGPU_{reg.produces<cms::sycltools::Product<PixelTrackHeterogeneous>>()},
       gpuAlgo_(reg) {}

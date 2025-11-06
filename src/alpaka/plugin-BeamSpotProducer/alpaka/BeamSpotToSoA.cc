@@ -16,7 +16,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class BeamSpotToSoA : public edm::EDProducer {
   public:
-    explicit BeamSpotToSoA(edm::ProductRegistry& reg);
+    explicit BeamSpotToSoA(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~BeamSpotToSoA() override = default;
 
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -27,7 +27,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::host_buffer<BeamSpotPOD> bsHost_;
   };
 
-  BeamSpotToSoA::BeamSpotToSoA(edm::ProductRegistry& reg)
+  BeamSpotToSoA::BeamSpotToSoA(edm::ProductRegistry& reg, edm::Config const& cfg)
       : bsPutToken_{reg.produces<cms::alpakatools::Product<Queue, BeamSpotSoACollection>>()},
         bsHost_{cms::alpakatools::make_host_buffer<BeamSpotPOD, Platform>()} {
 #ifdef GPU_DEBUG

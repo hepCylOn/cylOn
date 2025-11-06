@@ -6,9 +6,9 @@
 #include <unordered_map>
 
 #include "Framework/Worker.h"
-#include "Framework/ConfigRegistry.h"
 
 class ProductRegistry;
+class ConfigRegistry;
 
 // Nothing here is thread safe
 namespace edm {
@@ -26,7 +26,7 @@ namespace edm {
       class Maker : public MakerBase {
       public:
         virtual std::unique_ptr<Worker> create(ProductRegistry& reg, Config const& cfg) const override {
-          return std::make_unique<WorkerT<T>>(reg);
+          return std::make_unique<WorkerT<T>>(reg,cfg);
         };
       };
 

@@ -6,7 +6,7 @@
 
 class BeamSpotToPOD : public edm::EDProducer {
 public:
-  explicit BeamSpotToPOD(edm::ProductRegistry& reg);
+  explicit BeamSpotToPOD(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~BeamSpotToPOD() override = default;
 
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -15,7 +15,7 @@ private:
   const edm::EDPutTokenT<BeamSpotPOD> bsPutToken_;
 };
 
-BeamSpotToPOD::BeamSpotToPOD(edm::ProductRegistry& reg) : bsPutToken_{reg.produces<BeamSpotPOD>()} {}
+BeamSpotToPOD::BeamSpotToPOD(edm::ProductRegistry& reg, edm::Config const& cfg) : bsPutToken_{reg.produces<BeamSpotPOD>()} {}
 
 void BeamSpotToPOD::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   iEvent.emplace(bsPutToken_, iSetup.get<BeamSpotPOD>());

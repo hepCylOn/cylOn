@@ -20,7 +20,7 @@
 namespace KOKKOS_NAMESPACE {
   class HistoValidator : public edm::EDProducerExternalWork {
   public:
-    explicit HistoValidator(edm::ProductRegistry& reg);
+    explicit HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void acquire(const edm::Event& iEvent,
@@ -93,7 +93,7 @@ namespace KOKKOS_NAMESPACE {
       {"vertex_ndof", SimpleAtomicHisto(170, 0, 170)},
       {"vertex_pt2", SimpleAtomicHisto(100, 0, 4000)}};
 
-  HistoValidator::HistoValidator(edm::ProductRegistry& reg)
+  HistoValidator::HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
       : digiToken_(reg.consumes<cms::kokkos::Product<SiPixelDigisKokkos<KokkosDeviceMemSpace>>>()),
         clusterToken_(reg.consumes<cms::kokkos::Product<SiPixelClustersKokkos<KokkosDeviceMemSpace>>>()),
         hitToken_(reg.consumes<cms::kokkos::Product<TrackingRecHit2DKokkos<KokkosDeviceMemSpace>>>()),

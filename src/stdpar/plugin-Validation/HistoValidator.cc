@@ -15,7 +15,7 @@
 
 class HistoValidator : public edm::EDProducer {
 public:
-  explicit HistoValidator(edm::ProductRegistry& reg);
+  explicit HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -65,7 +65,7 @@ std::map<std::string, SimpleAtomicHisto> HistoValidator::histos = {
     {"vertex_ndof", SimpleAtomicHisto(170, 0, 170)},
     {"vertex_pt2", SimpleAtomicHisto(100, 0, 4000)}};
 
-HistoValidator::HistoValidator(edm::ProductRegistry& reg)
+HistoValidator::HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
     : digiToken_(reg.consumes<SiPixelDigis>()),
       clusterToken_(reg.consumes<SiPixelClusters>()),
       hitToken_(reg.consumes<TrackingRecHit2D>()),

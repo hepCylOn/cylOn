@@ -43,7 +43,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class SiPixelRecHit : public edm::EDProducer {
   public:
-    explicit SiPixelRecHit(edm::ProductRegistry& reg);
+    explicit SiPixelRecHit(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~SiPixelRecHit() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
@@ -61,7 +61,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  SiPixelRecHit<TrackerTraits>::SiPixelRecHit(edm::ProductRegistry& reg)
+  SiPixelRecHit<TrackerTraits>::SiPixelRecHit(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tBeamSpot(reg.consumes<cms::alpakatools::Product<Queue, BeamSpotSoACollection>>()),
         tokenClusters_(reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()),
         tokenDigi_(reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()),

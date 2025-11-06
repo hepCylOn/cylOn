@@ -14,7 +14,7 @@
 
 class PixelVertexProducerCUDA : public edm::EDProducer {
 public:
-  explicit PixelVertexProducerCUDA(edm::ProductRegistry& reg);
+  explicit PixelVertexProducerCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelVertexProducerCUDA() override = default;
 
 private:
@@ -35,7 +35,7 @@ private:
   const float ptMin_;
 };
 
-PixelVertexProducerCUDA::PixelVertexProducerCUDA(edm::ProductRegistry& reg)
+PixelVertexProducerCUDA::PixelVertexProducerCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : onGPU_(true),
       gpuAlgo_(true,   // oneKernel
                true,   // useDensity

@@ -21,7 +21,7 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TrackingRecHitsToDevice : public edm::EDProducerExternalWork {
   public:
-    explicit TrackingRecHitsToDevice(edm::ProductRegistry& reg);
+    explicit TrackingRecHitsToDevice(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~TrackingRecHitsToDevice() override = default;
 
     using HitsOnDevice = reco::TrackingRecHitsSoACollection;
@@ -42,7 +42,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   };
 
-  TrackingRecHitsToDevice::TrackingRecHitsToDevice(edm::ProductRegistry& reg)
+  TrackingRecHitsToDevice::TrackingRecHitsToDevice(edm::ProductRegistry& reg, edm::Config const& cfg)
       : input_(reg.consumes<HitsOnHost>()),
         output_(reg.produces<cms::alpakatools::Product<Queue, HitsOnDevice>>()) {}
 

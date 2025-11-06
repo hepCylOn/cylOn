@@ -16,7 +16,7 @@
 
 //   class SiPixelRecHitSoAFromAlpaka : public edm::EDProducerExternalWork {
 //   public:
-//     explicit SiPixelRecHitSoAFromAlpaka(edm::ProductRegistry& reg);
+//     explicit SiPixelRecHitSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg);
 //     ~SiPixelRecHitSoAFromAlpaka() override = default;
 
 //   private:
@@ -31,7 +31,7 @@
 //     cms::alpakatools::host_buffer<SiPixelRecHit::TrackSoA> soa_;
 //   };
 
-//   SiPixelRecHitSoAFromAlpaka::SiPixelRecHitSoAFromAlpaka(edm::ProductRegistry& reg)
+//   SiPixelRecHitSoAFromAlpaka::SiPixelRecHitSoAFromAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg)
 //       : tokenDevice_(reg.consumes<cms::alpakatools::Product<Queue, SiPixelRecHitAlpaka>>()),
 //         tokenHost_(reg.produces<SiPixelRecHitHost>()),
 //         soa_{cms::alpakatools::make_host_buffer<SiPixelRecHit::TrackSoA, Platform>()} {}

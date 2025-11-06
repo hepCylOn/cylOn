@@ -24,7 +24,7 @@
 
 class SiPixelRawToClusterSYCL : public edm::EDProducerExternalWork {
 public:
-  explicit SiPixelRawToClusterSYCL(edm::ProductRegistry& reg);
+  explicit SiPixelRawToClusterSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelRawToClusterSYCL() override = default;
 
 private:
@@ -50,7 +50,7 @@ private:
   std::optional<bool> isCpu_;
 };
 
-SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg)
+SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : rawGetToken_(reg.consumes<FEDRawDataCollection>()),
       digiPutToken_(reg.produces<cms::sycltools::Product<SiPixelDigisSYCL>>()),
       clusterPutToken_(reg.produces<cms::sycltools::Product<SiPixelClustersSYCL>>()),

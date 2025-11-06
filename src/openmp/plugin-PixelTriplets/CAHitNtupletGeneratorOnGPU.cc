@@ -42,7 +42,7 @@ namespace {
 }  // namespace
 
 using namespace std;
-CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
+CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg, edm::Config const& cfg)
     : m_params(false,             // onGPU
                3,                 // minHitsPerNtuplet,
                458752,            // maxNumberOfDoublets

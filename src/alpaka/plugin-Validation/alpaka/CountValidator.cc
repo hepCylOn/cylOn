@@ -31,7 +31,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class CountValidator : public edm::EDProducer {
   public:
-    explicit CountValidator(edm::ProductRegistry& reg);
+    explicit CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -65,7 +65,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   std::mutex CountValidator::sumTrackDifferenceMutex;
   float CountValidator::sumTrackDifference = 0.f;
 
-  CountValidator::CountValidator(edm::ProductRegistry& reg)
+  CountValidator::CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
       : digiClusterCountToken_(reg.consumes<DigiClusterCount>()),
         trackCountToken_(reg.consumes<TrackCount>()),
         vertexCountToken_(reg.consumes<VertexCount>()),

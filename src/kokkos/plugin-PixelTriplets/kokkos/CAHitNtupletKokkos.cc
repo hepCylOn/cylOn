@@ -15,7 +15,7 @@
 namespace KOKKOS_NAMESPACE {
   class CAHitNtupletKokkos : public edm::EDProducer {
   public:
-    explicit CAHitNtupletKokkos(edm::ProductRegistry& reg);
+    explicit CAHitNtupletKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~CAHitNtupletKokkos() override = default;
 
   private:
@@ -28,7 +28,7 @@ namespace KOKKOS_NAMESPACE {
     CAHitNtupletGeneratorOnGPU gpuAlgo_;
   };
 
-  CAHitNtupletKokkos::CAHitNtupletKokkos(edm::ProductRegistry& reg)
+  CAHitNtupletKokkos::CAHitNtupletKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenHitGPU_{reg.consumes<cms::kokkos::Product<TrackingRecHit2DKokkos<KokkosDeviceMemSpace>>>()},
         tokenTrackGPU_{
             reg.produces<cms::kokkos::Product<cms::kokkos::shared_ptr<pixelTrack::TrackSoA, KokkosDeviceMemSpace>>>()},
