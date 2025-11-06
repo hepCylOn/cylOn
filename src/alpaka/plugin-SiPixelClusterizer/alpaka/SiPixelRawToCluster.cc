@@ -25,37 +25,6 @@
 #include "Framework/PluginFactory.h"
 #include "SiPixelRawToDigi/ErrorChecker.h"
 
-// #include "CalibTracker/Records/interface/SiPixelGainCalibrationForHLTSoARcd.h"
-// #include "CalibTracker/Records/interface/SiPixelMappingSoARecord.h"
-// #include "CondFormats/DataRecord/interface/SiPixelFedCablingMapRcd.h"
-// #include "CondFormats/SiPixelObjects/interface/SiPixelFedCablingMap.h"
-// #include "CondFormats/SiPixelObjects/interface/SiPixelFedCablingTree.h"
-// #include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelGainCalibrationForHLTDevice.h"
-// #include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelMappingDevice.h"
-// #include "CondFormats/SiPixelObjects/interface/alpaka/SiPixelMappingUtilities.h"
-// #include "AlpakaDataFormats/FEDNumbering.h"
-// #include "AlpakaDataFormats/FEDRawData.h"
-// #include "AlpakaDataFormats/FEDRawDataCollection.h"
-// #include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
-// #include "AlpakaDataFormats/alpaka/SiPixelDigiErrorsSoACollection.h"
-// #include "AlpakaDataFormats/alpaka/SiPixelDigisSoACollection.h"
-// #include "AlpakaDataFormats/SiPixelFormatterErrors.h"
-// #include "EventFilter/SiPixelRawToDigi/interface/PixelDataFormatter.h"
-// #include "EventFilter/SiPixelRawToDigi/interface/PixelUnpackingRegions.h"
-// #include "FWCore/Framework/interface/ESWatcher.h"
-// #include "FWCore/MessageLogger/interface/MessageLogger.h"
-// #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-// #include "FWCore/ParameterSet/interface/ParameterSet.h"
-// #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-// #include "FWCore/Utilities/interface/ESGetToken.h"
-// #include "FWCore/Utilities/interface/InputTag.h"
-// #include "HeterogeneousCore/AlpakaCore/interface/alpaka/EDPutToken.h"
-// #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESGetToken.h"
-// #include "HeterogeneousCore/AlpakaCore/interface/alpaka/Event.h"
-// #include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/SynchronizingEDProducer.h"
-// #include "AlpakaCore/config.h"
-// #include "RecoLocalTracker/SiPixelClusterizer/interface/SiPixelClusterThresholds.h"
-
 #include "SiPixelRawToClusterKernel.h"
 
 #define GPU_DEBUG
@@ -65,7 +34,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class SiPixelRawToCluster : public edm::EDProducerExternalWork {
   public:
-    explicit SiPixelRawToCluster(edm::ProductRegistry& reg);
+    explicit SiPixelRawToCluster(edm::ProductRegistry& reg, edm::ConfigRegistry const& cfg);
     ~SiPixelRawToCluster() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
@@ -80,20 +49,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::ContextState<Queue> ctxState_;
 
     edm::EDGetTokenT<FEDRawDataCollection> rawGetToken_;
-    // edm::EDPutTokenT<SiPixelFormatterErrors> fmtErrorToken_;
     edm::EDPutTokenT<cms::alpakatools::Product<Queue,SiPixelDigisSoACollection>> digiPutToken_;
     edm::EDPutTokenT<cms::alpakatools::Product<Queue,SiPixelDigiErrorsSoACollection>> digiErrorPutToken_;
     edm::EDPutTokenT<cms::alpakatools::Product<Queue,SiPixelClustersSoACollection>> clusterPutToken_;
 
-    // edm::ESWatcher<SiPixelFedCablingMapRcd> recordWatcher_;
-    // const edm::ESGetToken<SiPixelMappingDevice, SiPixelMappingSoARecord> mapToken_;
-    // const edm::ESGetToken<SiPixelGainCalibrationForHLTDevice, SiPixelGainCalibrationForHLTSoARcd> gainsToken_;
-    // const edm::ESGetToken<SiPixelFedCablingMap, SiPixelFedCablingMapRcd> cablingMapToken_;
 
-    // std::unique_ptr<SiPixelFedCablingTree> cabling_;
     std::vector<unsigned int> fedIds_;
-    // const SiPixelFedCablingMap* cablingMap_ = nullptr;
-    // std::unique_ptr<PixelUnpackingRegions> regions_;
 
     Algo Algo_;
     PixelFormatterErrors errors_;
@@ -110,28 +71,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       : rawGetToken_(reg.consumes<FEDRawDataCollection>()),
         digiPutToken_(reg.produces<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()),
         clusterPutToken_(reg.produces<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()),
-        // mapToken_(esConsumes()),
-        // gainsToken_(esConsumes()),
-        // cablingMapToken_(esConsumes<SiPixelFedCablingMap, SiPixelFedCablingMapRcd>(
-        //     edm::ESInputTag("", iConfig.getParameter<std::string>("CablingMapLabel")))),
-        includeErrors_(true),
-        useQuality_(true),
-        verbose_(false),
-        clusterThresholds_((int32_t)4000, //iConfig.getParameter<int32_t>("clusterThreshold_layer1"),
-                          (int32_t)4000, //  iConfig.getParameter<int32_t>("clusterThreshold_otherLayers"),
-                          (float)47, //  static_cast<float>(iConfig.getParameter<double>("VCaltoElectronGain")),
-                          (float)50, //  static_cast<float>(iConfig.getParameter<double>("VCaltoElectronGain_L1")),
-                          (float)-60, //  static_cast<float>(iConfig.getParameter<double>("VCaltoElectronOffset")),
-                          (float)-670 /*static_cast<float>(iConfig.getParameter<double>("VCaltoElectronOffset_L1"))*/) {
+        includeErrors_(cfg.value("includeErrors", true)),
+        useQuality_(cfg.value("useQuality", true)),
+        verbose_(cfg.value("verbose", false)),
+        clusterThresholds_(
+            cfg.value("clusterThreshold_layer1", 4000),
+            cfg.value("clusterThreshold_otherLayers", 4000),
+            static_cast<float>(cfg.value("VCaltoElectronGain", 47.0)),
+            static_cast<float>(cfg.value("VCaltoElectronGain_L1", 50.0)),
+            static_cast<float>(cfg.value("VCaltoElectronOffset", -60.0)),
+            static_cast<float>(cfg.value("VCaltoElectronOffset_L1", -670.0))) {
+
     if (includeErrors_) {
       digiErrorPutToken_ = reg.produces<cms::alpakatools::Product<Queue, SiPixelDigiErrorsSoACollection>>();
     }
 
-    // // regions
-    // if (!iConfig.getParameter<edm::ParameterSet>("Regions").getParameterNames().empty()) {
-    //   regions_ = std::make_unique<PixelUnpackingRegions>(iConfig, consumesCollector());
-    // }
-  }
+#ifdef INPUT_DEBUG
+  std::cout << "[SiPixelRawToCluster] Configuration:" << std::endl;
+  std::cout << "  includeErrors = " << includeErrors_ << std::endl;
+  std::cout << "  useQuality    = " << useQuality_ << std::endl;
+  std::cout << "  verbose       = " << verbose_ << std::endl;
+  std::cout << "  thresholds L1 = " << clusterThresholds_.clusterThreshold_layer1
+            << ", other = " << clusterThresholds_.clusterThreshold_otherLayers << std::endl;
+#endif
+}
 
   // template <typename TrackerTraits>
   // void SiPixelRawToCluster<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

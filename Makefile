@@ -59,6 +59,8 @@ else
 #     $(error Please switch to GCC $(ROOT_GCC_MAJOR) or use a ROOT built with GCC $(LOCAL_GCC_MAJOR))
 #   endif
   #ROOTCFLAGS := $(shell $(ROOTCONFIG) --cflags)
+  
+  ## Consider using -isystem ?
   ROOTINCLUDES := $(filter -I%,$(shell root-config --cflags))
   ROOTLIBS   := $(shell $(ROOTCONFIG) --libs)
   HOST_CXXFLAGS  += $(ROOTINCLUDES) -DHAVE_ROOT
@@ -342,6 +344,10 @@ HWLOC_BASE := $(EXTERNAL_BASE)/hwloc
 export HWLOC_DEPS := $(HWLOC_BASE)
 HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
+
+JSON_BASE := $(EXTERNAL_BASE)/nlohmann
+export JSON_DEPS := $(JSON_BASE)
+export JSON_CXXFLAGS := -isystem $(JSON_DEPS)/
 
 # TBB from external
 ifndef TBB_BASE

@@ -7,6 +7,7 @@
 
 #include "AlpakaCore/backendAdvanced.h"
 #include "Framework/EventSetup.h"
+#include "Framework/ConfigRegistry.h"
 
 #include "PluginManager.h"
 #include "StreamSchedule.h"
@@ -52,6 +53,7 @@ namespace edm {
 
     edmplugin::PluginManager pluginManager_;
     ProductRegistry registry_;
+    ConfigRegistry config_;
     Source source_;
     EventSetup eventSetup_;
     std::vector<StreamSchedule> schedules_;

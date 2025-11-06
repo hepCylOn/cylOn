@@ -59,6 +59,7 @@ namespace {
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"
+        << " --config            Path to the json configuration file (default 'configs/test.json' in the directory of the executable)\n"
         << " --transfer          Transfer results from GPU to CPU (default is to leave them on GPU)\n"
         << " --validation        Run (rudimentary) validation at the end (implies --transfer)\n"
         << " --histogram         Produce histograms at the end (implies --transfer)\n"
@@ -106,6 +107,7 @@ bool getOptionalArgument(std::vector<std::string> const& args,
     return false;
   }
   value = *it;
+  ++i;
   return true;
 }
 
@@ -129,11 +131,14 @@ int main(int argc, char** argv) {
   int maxEvents = -1;
   int runForMinutes = -1;
   std::filesystem::path datadir;
+  std::filesystem::path config;
   bool transfer = false;
   bool validation = false;
   bool histogram = false;
   bool empty = false;
   bool fromHits = false;
+  bool dumpHits = false;
+
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
       print_help(args.front());
@@ -174,6 +179,8 @@ int main(int argc, char** argv) {
       getArgument(args, i, runForMinutes);
     } else if (*i == "--data") {
       getArgument(args, i, datadir);
+    } else if (*i == "--config") {
+      getArgument(args, i, config);
     } else if (*i == "--transfer") {
       transfer = true;
     } else if (*i == "--validation") {
@@ -181,6 +188,8 @@ int main(int argc, char** argv) {
       validation = true;
     } else if (*i == "--fromHits") {
       fromHits = true;
+    } else if (*i == "--dumpHits") {
+      dumpHits = true;
     } else if (*i == "--histogram") {
       transfer = true;
       histogram = true;
@@ -205,8 +214,16 @@ int main(int argc, char** argv) {
   if (datadir.empty()) {
     datadir = std::filesystem::path(args[0]).parent_path() / "data";
   }
+  if (config.empty()) {
+    config = std::filesystem::path(args[0]).parent_path() / "configs/test.json";
+  }
+
   if (not std::filesystem::exists(datadir)) {
     std::cout << "Data directory '" << datadir << "' does not exist" << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (not std::filesystem::exists(config)) {
+    std::cout << "Config file '" << config << "' does not exist" << std::endl;
     return EXIT_FAILURE;
   }
   if (backends.empty()) {
@@ -273,34 +290,41 @@ int main(int argc, char** argv) {
     for (auto const& [backend, weight] : backends) {
       std::string prefix = "alpaka_" + backendName(backend) + "::";
       // "portable" ESModules
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); // was SiPixelFedCablingMapESProducer
-      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer"); // was SiPixelGainCalibrationForHLTESProducer
-      // if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostFromGPUBinESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
       // if (fromHits) esmodules.emplace_back(prefix + "AdHocCAGeometryESProducer");
       // "portable" EDModules
       std::vector<std::string> edmodules;
       edmodules.emplace_back(prefix + "BeamSpotToSoA");
+      
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
-      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
-      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitProducerPhase1");
-      // if (fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitFromSimple");
-      edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-      edmodules.emplace_back(prefix + "PixelVertexPhase1");
-      if (transfer) {
-        edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-        edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
-      }
-      if (validation) {
-        edmodules.emplace_back(prefix + "CountValidator");
-      }
-      if (histogram) {
-        edmodules.emplace_back(prefix + "HistoValidator");
-      }
+      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
+      // if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
+      // if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
+
+      // if (not dumpHits)
+      // {
+      //   edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+      //   edmodules.emplace_back(prefix + "PixelVertexPhase1");
+      //   if (transfer) {
+      //     edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+      //     edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+      //   }
+      //   if (validation) {
+      //     edmodules.emplace_back(prefix + "CountValidator");
+      //   }
+      //   if (histogram) {
+      //     edmodules.emplace_back(prefix + "HistoValidator");
+      //   }
+      // }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
+  
+  edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
+
   edm::EventProcessor processor(warmupEvents,
                                 maxEvents,
                                 runForMinutes,

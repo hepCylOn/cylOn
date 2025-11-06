@@ -1,0 +1,11 @@
+{
+  "SiPixelClusterProducer": {
+    "inputLabel": "rawDataCollector",
+    "minCharge": 1200,
+    "verbose": true
+  },
+  "CAHitNtupletProducer": {
+    "maxTuples": 200000,
+    "minPt": 0.8
+  }
+}

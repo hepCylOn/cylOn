@@ -8,6 +8,7 @@
 #include "Framework/Worker.h"
 
 class ProductRegistry;
+class ConfigRegistry;
 
 // Nothing here is thread safe
 namespace edm {
@@ -17,13 +18,13 @@ namespace edm {
       public:
         virtual ~MakerBase() = default;
 
-        virtual std::unique_ptr<Worker> create(ProductRegistry& reg) const = 0;
+        virtual std::unique_ptr<Worker> create(ProductRegistry& reg, ConfigRegistry const& cfg) const = 0;
       };
 
       template <typename T>
       class Maker : public MakerBase {
       public:
-        virtual std::unique_ptr<Worker> create(ProductRegistry& reg) const override {
+        virtual std::unique_ptr<Worker> create(ProductRegistry& reg, ConfigRegistry const& cfg) const override {
           return std::make_unique<WorkerT<T>>(reg);
         };
       };
@@ -46,7 +47,7 @@ namespace edm {
       };
     }  // namespace impl
 
-    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg);
+    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, ConfigRegistry const& cfg);
   }  // namespace PluginFactory
 }  // namespace edm
 

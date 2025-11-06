@@ -15,6 +15,8 @@ TARGET := $(BASE_DIR)/$(TARGET_NAME)
 include Makefile.deps
 EXTERNAL_DEPENDS := $(alpaka_EXTERNAL_DEPENDS)
 
+$(info > External deps: $(EXTERNAL_DEPENDS))
+
 $(TARGET):
 test_cpu: $(TARGET)
 	@echo

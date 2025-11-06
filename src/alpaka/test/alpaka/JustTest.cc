@@ -63,6 +63,8 @@
 
 #include "plugin-PixelSeeding/alpaka/CACell.h"
 //Dummy test just to compile
+#include "nlohmann/json.hpp"
+#include "Framework/ConfigRegistry.h"
 
 int main() {
   return 0;

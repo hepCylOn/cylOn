@@ -15,25 +15,32 @@
 #include "Source.h"
 #include "StreamSchedule.h"
 
+#define FW_DEBUG
+
 namespace edm {
   StreamSchedule::StreamSchedule(ProductRegistry reg,
+                                 ConfigRegistry const& configRegistry
                                  edmplugin::PluginManager& pluginManager,
                                  Source* source,
                                  EventSetup const* eventSetup,
                                  int streamId,
                                  std::vector<std::string> const& path)
-      : registry_(std::move(reg)), source_(source), eventSetup_(eventSetup), streamId_(streamId) {
+      : registry_(std::move(reg)), config_(configRegistry), source_(source), eventSetup_(eventSetup), streamId_(streamId) {
     path_.reserve(path.size());
     int modInd = 1;
     for (auto const& name : path) {
       pluginManager.load(name);
       registry_.beginModuleConstruction(modInd);
-      path_.emplace_back(PluginFactory::create(name, registry_));
-      //std::cout << "module " << modInd << " " << path_.back().get() << std::endl;
+      path_.emplace_back(PluginFactory::create(name, registry_, config_));
+#ifdef FW_DEBUG
+      std::cout << "module " << modInd << " " << path_.back().get() << std::endl;
+#endif
       std::vector<Worker*> consumes;
       for (unsigned int depInd : registry_.consumedModules()) {
         if (depInd != ProductRegistry::kSourceIndex) {
-          //std::cout << "module " << modInd << " depends on " << (depInd-1) << " " << path_[depInd-1].get() << std::endl;
+#ifdef FW_DEBUG
+          std::cout << "module " << modInd << " depends on " << (depInd-1) << " " << path_[depInd-1].get() << std::endl;
+#endif
           consumes.push_back(path_[depInd - 1].get());
         }
       }

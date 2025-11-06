@@ -30,8 +30,10 @@ namespace edm {
       }
     };  // namespace impl
 
-    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg) {
-      return impl::getGlobalRegistry().get(name)->create(reg);
+    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, ConfigRegistry const& cfg) {
+      auto const* maker = impl::getGlobalRegistry().get(name);
+      auto const& producerCfg = cfg.getProducerConfig(name);
+      return maker->create(reg, producerCfg);
     }
   }  // namespace PluginFactory
 }  // namespace edm

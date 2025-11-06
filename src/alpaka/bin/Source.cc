@@ -33,6 +33,9 @@ namespace hitReader {
     in.read(reinterpret_cast<char*>(&endian_marker), sizeof(endian_marker));
     if (endian_marker != kExpectedEndianness)
       throw std::runtime_error("Endianness mismatch — file not native endian");
+#ifdef INPUT_DEBUG
+    std::cout << "Input file is good!" << std::endl;
+#endif
   }
 
   template <typename Span>
@@ -65,8 +68,6 @@ namespace hitReader {
     std::memcpy(modView.moduleStart().data(), moduleStart.data(),
                 (nModules + 1) * sizeof(uint32_t));
 
-    // ---- read all columns ----
-    // ---- read all columns (SoA) ----
     read_column(in, hitView.xLocal(),       nHits);
     read_column(in, hitView.yLocal(),       nHits);
     read_column(in, hitView.xerrLocal(),    nHits);
@@ -76,7 +77,7 @@ namespace hitReader {
     read_column(in, hitView.zGlobal(),      nHits);
     read_column(in, hitView.rGlobal(),      nHits);
     read_column(in, hitView.iphi(),         nHits);
-    read_column(in, hitView.chargeAndStatus(), nHits);   // <-- FIXED: deduce type
+    read_column(in, hitView.chargeAndStatus(), nHits); 
     read_column(in, hitView.clusterSizeX(), nHits);
     read_column(in, hitView.clusterSizeY(), nHits);
     read_column(in, hitView.detectorIndex(), nHits);
@@ -109,18 +110,6 @@ namespace {
     }
     return rawCollection;
   }
-
-//   TrackingRecHitSimpleSoA readHits(std::ifstream &if) {
-
-//     TrackingRecHitSimpleSoA hitSoA(1);
-//     hitSoA.readText(if);
-// // #ifdef HITSBIN
-// //     hitSoA.readBinary(is);
-// // #else
-    
-// // #endif
-//     return hitSoA;
-//   }
 
 }  // namespace
 

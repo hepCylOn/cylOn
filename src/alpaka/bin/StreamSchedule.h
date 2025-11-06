@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Framework/ConfigRegistry.h"
 #include "Framework/ProductRegistry.h"
 #include "Framework/WaitingTaskHolder.h"
 
@@ -22,6 +23,7 @@ namespace edm {
   public:
     // copy ProductRegistry per stream
     explicit StreamSchedule(ProductRegistry reg,
+                            ConfigRegistry config,
                             edmplugin::PluginManager& pluginManager,
                             Source* source,
                             EventSetup const* eventSetup,
@@ -41,6 +43,7 @@ namespace edm {
     void processOneEventAsync(WaitingTaskHolder h);
 
     ProductRegistry registry_;
+    ConfigRegistry config_;
     Source* source_;
     EventSetup const* eventSetup_;
     std::vector<std::unique_ptr<Worker>> path_;
