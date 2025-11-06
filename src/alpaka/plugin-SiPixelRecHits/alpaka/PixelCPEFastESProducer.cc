@@ -9,6 +9,7 @@
 #include "Framework/EventSetup.h"
 #include "Geometry/SimplePixelTopology.h"
 #include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 #define GPU_DEBUG 
 

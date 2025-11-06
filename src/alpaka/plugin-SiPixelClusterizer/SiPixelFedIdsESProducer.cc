@@ -10,6 +10,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 class SiPixelFedIdsESProducer : public edm::ESProducer {
 public:
@@ -22,7 +23,7 @@ private:
 };
 
 void SiPixelFedIdsESProducer::produce(edm::EventSetup& eventSetup) {
-  std::ifstream in(data_, std::ios::binary);
+  auto in = edm::utils::openInputFile(data_);
   in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
   unsigned int nfeds;
   in.read(reinterpret_cast<char*>(&nfeds), sizeof(unsigned));

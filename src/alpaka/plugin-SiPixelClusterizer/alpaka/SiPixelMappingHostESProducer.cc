@@ -12,6 +12,7 @@
 #include "Framework/EventSetup.h"
 #include "Framework/ESPluginFactory.h"
 #include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 #define GPU_DEBUG
 
@@ -20,7 +21,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class SiPixelMappingHostESProducer : public edm::ESProducer {
   public:
     explicit SiPixelMappingHostESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {
-      std::cout << "i'm here" << std::endl;
     }
     void produce(edm::EventSetup& eventSetup);
 
@@ -30,7 +30,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   void SiPixelMappingHostESProducer::produce(edm::EventSetup& eventSetup) {
-    std::ifstream in(data_, std::ios::binary);
+    auto in = edm::utils::openInputFile(data_);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit);
 
     unsigned int size;

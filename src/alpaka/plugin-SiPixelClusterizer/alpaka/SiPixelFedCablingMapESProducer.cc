@@ -12,6 +12,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class SiPixelFedCablingMapESProducer : public edm::ESProducer {
@@ -25,7 +26,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   void SiPixelFedCablingMapESProducer::produce(edm::EventSetup& eventSetup) {
-    std::ifstream in(data_, std::ios::binary);
+    auto in = edm::utils::openInputFile(data_);
 
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
     SiPixelFedCablingMapGPU obj;

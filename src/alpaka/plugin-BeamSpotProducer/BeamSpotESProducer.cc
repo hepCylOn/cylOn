@@ -10,6 +10,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 #define GPU_DEBUG
 
@@ -41,7 +42,7 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
 #endif
 
   try {
-    std::ifstream in(data_, std::ios::binary);
+    auto in = edm::utils::openInputFile(data_);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
 
     in.read(reinterpret_cast<char*>(bs.get()), sizeof(BeamSpotPOD));

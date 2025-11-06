@@ -14,6 +14,7 @@
 #include "AlpakaDataFormats/alpaka/CAGeometrySoACollection.h"
 #include "AlpakaDataFormats/SOARotation.h"
 #include "Geometry/SimplePixelTopology.h"
+#include "Framework/StreamFileUtils.h"
 
 #define GPU_DEBUG
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -144,7 +145,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using Rotation = SOARotation<float>;
     using Frame = SOAFrame<float>;
 
-    std::ifstream in(data_, std::ios::binary);
+    auto in = edm::utils::openInputFile(data_);
     if (!in.is_open()) {
       throw std::runtime_error("CAGeometryHostESProducer: cannot open " + data_.string());
     }
