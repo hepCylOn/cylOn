@@ -319,6 +319,21 @@ int main(int argc, char** argv) {
           edmodules.emplace_back(prefix + "HistoValidator");
         }
       }
+      if (not dumpHits)
+      {
+        edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+        edmodules.emplace_back(prefix + "PixelVertexPhase1");
+        if (transfer) {
+          edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+        }
+        if (validation) {
+          edmodules.emplace_back(prefix + "CountValidator");
+        }
+        if (histogram) {
+          edmodules.emplace_back(prefix + "HistoValidator");
+        }
+      }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
@@ -326,7 +341,7 @@ int main(int argc, char** argv) {
   edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
 
   edm::EventProcessor processor(cfg, 
-				warmupEvents,
+                                warmupEvents,
                                 maxEvents,
                                 runForMinutes,
                                 numberOfStreams,
