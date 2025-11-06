@@ -12,6 +12,8 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ESPluginFactory.h"
+#include "Framework/ConfigRegistry.h"
+#include "Framework/StreamFileUtils.h"
 
 #define GPU_DEBUG 
 
@@ -19,20 +21,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class SiPixelGainCalibrationForHLTHostESProducer : public edm::ESProducer {
   public:
-    explicit SiPixelGainCalibrationForHLTHostESProducer(std::filesystem::path const& datadir) : data_(datadir) {}
+    explicit SiPixelGainCalibrationForHLTHostESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {}
     void produce(edm::EventSetup& eventSetup);
 
   private:
     std::filesystem::path data_;
+    std::filesystem::path defaultPath_ = "data/SiPixelGainCalibrationForHLTHostRun2.bin";
   };
 
   void SiPixelGainCalibrationForHLTHostESProducer::produce(edm::EventSetup& eventSetup) {
-    auto filepath = data_ / "SiPixelGainCalibrationForHLTHostRun2.bin"; // "SiPixelGainCalibrationForHLTHost.bin";
-    std::ifstream in(filepath, std::ios::binary);
+    std::cout << "produce" << std::endl;
+    auto in = edm::utils::openInputFile(data_);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit);
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Reading SiPixelGainCalibrationForHLTHost from: " << filepath << "\n";
+    std::cout << "[GPU_DEBUG] Reading SiPixelGainCalibrationForHLTHost from: " << data_ << "\n";
 #endif
 
     // 1. number of decoding structures

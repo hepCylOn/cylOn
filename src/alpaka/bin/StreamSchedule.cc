@@ -33,7 +33,8 @@ namespace edm {
     for (auto const& name : path) {
       pluginManager.load(name);
       registry_.beginModuleConstruction(modInd);
-      path_.emplace_back(PluginFactory::create(name, registry_, config_));
+      auto const& cfg = config_.getProducerConfig(name);
+      path_.emplace_back(PluginFactory::create(name, registry_, cfg));
 #ifdef FW_DEBUG
       std::cout << "module " << modInd << " " << path_.back().get() << std::endl;
 #endif

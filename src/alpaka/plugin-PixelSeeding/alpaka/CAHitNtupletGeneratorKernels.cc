@@ -207,7 +207,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     cms::alpakatools::fillManyFromVector<Acc1D>(device_hitPhiHist_->data(),
                                                 device_hitPhiView_,
-                                                TrackerTraits::numberOfLayers,  // could be ll.metadata().size() - 1
+                                                ll.metadata().size() - 1,
                                                 hh.iphi().data(),
                                                 this->device_layerStarts_->data(),
                                                 hh.metadata().size(),
@@ -809,6 +809,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template class CAHitNtupletGeneratorKernels<pixelTopology::Phase1>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::Phase2>;
+  template class CAHitNtupletGeneratorKernels<pixelTopology::GenericUpgrade>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::HIonPhase1>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

@@ -1,12 +1,12 @@
 #ifndef Framework_ESPluginFactory_h
 #define Framework_ESPluginFactory_h
 
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
 #include "Framework/ESProducer.h"
+#include "Framework/ConfigRegistry.h" 
 
 class ProductRegistry;
 
@@ -18,14 +18,14 @@ namespace edm {
       public:
         virtual ~MakerBase() = default;
 
-        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const = 0;
+        virtual std::unique_ptr<ESProducer> create(Config const& cfg) const = 0;
       };
 
       template <typename T>
       class Maker : public MakerBase {
       public:
-        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const override {
-          return std::make_unique<T>(datadir);
+        virtual std::unique_ptr<ESProducer> create(Config const& cfg) const override {
+          return std::make_unique<T>(cfg);
         };
       };
 
@@ -47,7 +47,7 @@ namespace edm {
       };
     }  // namespace impl
 
-    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir);
+    std::unique_ptr<ESProducer> create(std::string const& name, Config const& cfg);
   }  // namespace ESPluginFactory
 }  // namespace edm
 

@@ -605,6 +605,15 @@ namespace pixelTopology {
     static constexpr char const *nameModifier = "HIonPhase1";
   };
 
+  struct GenericUpgrade : public Phase2
+  {
+    static constexpr uint32_t maxDepth = 30;
+    static constexpr uint32_t maxHitsOnTrack = 30;
+    static constexpr uint32_t maxHitsOnTrackForFullFit = 15;
+
+    static constexpr char const *nameModifier = "Upgrade";
+  };
+
   template <typename T>
   using isPhase1Topology = typename std::enable_if<std::is_base_of<Phase1, T>::value>::type;
 

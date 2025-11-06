@@ -28,7 +28,8 @@ namespace edm {
         runForMinutes_(runForMinutes) {
     for (auto const& name : esproducers) {
       pluginManager_.load(name);
-      auto esp = ESPluginFactory::create(name, datadir);
+      auto const& cfg = config_.getProducerConfig(name);
+      auto esp = ESPluginFactory::create(name, cfg);
       esp->produce(eventSetup_);
     }
 

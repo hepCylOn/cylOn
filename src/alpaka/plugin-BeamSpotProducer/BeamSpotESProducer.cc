@@ -9,12 +9,13 @@
 #include "Framework/ESPluginFactory.h"
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
+#include "Framework/ConfigRegistry.h"
 
 #define GPU_DEBUG
 
 class BeamSpotESProducer : public edm::ESProducer {
 public:
-  explicit BeamSpotESProducer(std::filesystem::path const& datadir) : data_(datadir) {
+  explicit BeamSpotESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {
 #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] BeamSpotESProducer constructed with data path: "
               << data_ << std::endl;
@@ -25,6 +26,7 @@ public:
 
 private:
   std::filesystem::path data_;
+  std::filesystem::path defaultPath_ = "data/beamspot.bin";
 };
 
 void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
@@ -34,20 +36,19 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
 
   auto bs = std::make_unique<BeamSpotPOD>();
 
-  const auto filePath = data_ / "beamspot.bin";
 #ifdef GPU_DEBUG
-  std::cout << "[GPU_DEBUG] Attempting to open file: " << filePath << std::endl;
+  std::cout << "[GPU_DEBUG] Attempting to open file: " << data_ << std::endl;
 #endif
 
   try {
-    std::ifstream in(filePath, std::ios::binary);
+    std::ifstream in(data_, std::ios::binary);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
 
     in.read(reinterpret_cast<char*>(bs.get()), sizeof(BeamSpotPOD));
 
 #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] Successfully read BeamSpotPOD (" << sizeof(BeamSpotPOD)
-              << " bytes) from " << filePath << std::endl;
+              << " bytes) from " << data_ << std::endl;
     std::cout << "[GPU_DEBUG] BeamSpot values: "
               << "x=" << bs->x << "  y=" << bs->y << "  z=" << bs->z
               << "  sigmaZ=" << bs->sigmaZ << std::endl;

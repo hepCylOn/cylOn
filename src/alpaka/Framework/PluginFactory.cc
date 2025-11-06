@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "PluginFactory.h"
-#include "Framework/ConfigRegistry.h"
+// #include "Framework/ConfigRegistry.h"
 
 namespace edm {
   namespace PluginFactory {
@@ -31,10 +31,8 @@ namespace edm {
       }
     };  // namespace impl
 
-    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, ConfigRegistry const& cfg) {
-      auto const* maker = impl::getGlobalRegistry().get(name);
-      auto const& producerCfg = cfg.getProducerConfig(name);
-      return maker->create(reg, producerCfg);
+    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, Config const& cfg) {
+      return impl::getGlobalRegistry().get(name)->create(reg, cfg);
     }
   }  // namespace PluginFactory
 }  // namespace edm

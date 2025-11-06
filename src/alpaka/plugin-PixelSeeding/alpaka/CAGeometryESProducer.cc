@@ -7,6 +7,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ESPluginFactory.h"
+#include "Framework/ConfigRegistry.h"
 
 #include "AlpakaDataFormats/CAGeometryHost.h"
 #include "AlpakaDataFormats/CAGeometrySoA.h"
@@ -20,7 +21,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class CAGeometryHostESProducer : public edm::ESProducer {
   public:
-    explicit CAGeometryHostESProducer(std::string const& datadir) : data_(datadir) {
+    explicit CAGeometryHostESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {
       // Fill default parameters from TrackerTraits
       nLayers_ = TrackerTraits::numberOfLayers;
       nPairs_  = TrackerTraits::nPairs; //TrackerTraits::nPairsForQuadruplets;
@@ -78,7 +79,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     int nLayers_, nPairs_, nModules_; //int(s) just because the PortableCollection wants so
     std::filesystem::path data_;
-
+    std::filesystem::path defaultPath_ = std::string("data/CAGeometryHostModules") + std::string(TrackerTraits::nameModifier) + ".bin";;
     // Geometry parameter data members
     std::vector<float> thetaCuts_;
     std::vector<float> dcaCuts_;
@@ -96,13 +97,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   void CAGeometryHostESProducer<TrackerTraits>::produce(edm::EventSetup& eventSetup) {
 
-    auto filename =
-        "CAGeometryHostModules" + std::string(TrackerTraits::nameModifier) + ".bin";
-    auto filepath = data_ / filename;
-
     #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << "\n"
-              << "  - Reading modules from: " << filepath << std::endl;
+              << "  - Reading modules from: " << data_ << std::endl;
     #endif
         
     // Construct full host geometry (layers + graph + modules)
@@ -147,9 +144,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using Rotation = SOARotation<float>;
     using Frame = SOAFrame<float>;
 
-    std::ifstream in(filepath, std::ios::binary);
+    std::ifstream in(data_, std::ios::binary);
     if (!in.is_open()) {
-      throw std::runtime_error("CAGeometryHostESProducer: cannot open " + filepath.string());
+      throw std::runtime_error("CAGeometryHostESProducer: cannot open " + data_.string());
     }
 
     // read number of modules (and check consistency)
@@ -161,7 +158,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (nModulesInFile < nModulesExpected) {
       std::ostringstream msg;
       msg << "[CAGeometryHostESProducer ERROR] Module count mismatch when reading file:\n"
-          << "  File: " << filepath << "\n"
+          << "  File: " << data_ << "\n"
           << "  Expected (TrackerTraits::numberOfModules) = " << nModulesExpected << "\n"
           << "  Found in file = " << nModulesInFile << " (too few!)\n";
     #ifdef GPU_DEBUG
@@ -173,7 +170,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (nModulesInFile > nModulesExpected) {
       std::ostringstream msg;
       msg << "[CAGeometryHostESProducer WARNING] File contains more modules than expected.\n"
-          << "  File: " << filepath << "\n"
+          << "  File: " << data_ << "\n"
           << "  Expected = " << nModulesExpected << ", Found = " << nModulesInFile << "\n"
           << "  Will load only the first " << nModulesExpected << " modules.\n";
     #ifdef GPU_DEBUG
@@ -205,7 +202,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] Finished reading " << nModulesInFile
-              << " module frames from " << filepath.filename() << std::endl;
+              << " module frames from " << data_.filename() << std::endl;
     #endif
 
     /// TODO: allow for a queue to be here (porcoddue). And after, have the automatic mechamism for ESProducers (later).

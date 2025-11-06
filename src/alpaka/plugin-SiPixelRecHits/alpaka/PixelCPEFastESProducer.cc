@@ -8,6 +8,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Geometry/SimplePixelTopology.h"
+#include "Framework/ConfigRegistry.h"
 
 #define GPU_DEBUG 
 
@@ -16,19 +17,19 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class PixelCPEFastESProducer : public edm::ESProducer {
   public:
-    explicit PixelCPEFastESProducer(std::string const& datadir) : data_(datadir) {}
+    explicit PixelCPEFastESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {}
     void produce(edm::EventSetup& eventSetup);
 
   private:
     std::string data_;
+    std::string defaultPath_ = "data/PixelCPEFastRun2.bin";
   };
 
   template <typename TrackerTraits>
   void PixelCPEFastESProducer<TrackerTraits>::produce(edm::EventSetup& eventSetup) {
-    auto filepath = data_ + "/PixelCPEFastRun2.bin";
 
     try {
-      auto cpeFast = std::make_unique<PixelCPEFast<TrackerTraits>>(filepath.c_str());
+      auto cpeFast = std::make_unique<PixelCPEFast<TrackerTraits>>(data_.c_str());
       eventSetup.put(std::move(cpeFast));
     #ifdef GPU_DEBUG
       std::cout << "[GPU_DEBUG] Successfully constructed and stored PixelCPEFast<"

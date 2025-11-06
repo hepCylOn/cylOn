@@ -208,6 +208,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     using CAHitNtuplet<pixelTopology::Phase2>::CAHitNtuplet;
   };
+
+  class CAHitNtupletUpgrade : public CAHitNtuplet<pixelTopology::GenericUpgrade> {
+  public:
+    using CAHitNtuplet<pixelTopology::GenericUpgrade>::CAHitNtuplet;
+  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 // #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"

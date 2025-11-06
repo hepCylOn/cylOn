@@ -9,6 +9,7 @@
 
 class ProductRegistry;
 class ConfigRegistry;
+class Config;
 
 // Nothing here is thread safe
 namespace edm {
@@ -48,7 +49,7 @@ namespace edm {
       };
     }  // namespace impl
 
-    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, ConfigRegistry const& cfg);
+    std::unique_ptr<Worker> create(std::string const& name, ProductRegistry& reg, Config const& cfg);
   }  // namespace PluginFactory
 }  // namespace edm
 

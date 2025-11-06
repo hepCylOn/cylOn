@@ -12,6 +12,7 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ESPluginFactory.h"
+#include "Framework/ConfigRegistry.h"
 
 //#define GPU_DEBUG
 
@@ -19,26 +20,25 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class SiPixelGainCalibrationForHLTHostFromGPUBinESProducer : public edm::ESProducer {
   public:
-    explicit SiPixelGainCalibrationForHLTHostFromGPUBinESProducer(std::filesystem::path const& datadir)
-        : data_(datadir) {}
+    explicit SiPixelGainCalibrationForHLTHostFromGPUBinESProducer(edm::Config const& cfg)
+        :  input_(static_cast<std::string>(cfg.value("input", "data/gain.bin"))),
+           output_(static_cast<std::string>(cfg.value("output", "data/SiPixelGainCalibrationForHLTHostRun2.bin"))) {}
     void produce(edm::EventSetup& eventSetup);
 
   private:
-    std::filesystem::path data_;
+    std::filesystem::path input_;
+    std::filesystem::path output_;
   };
 
   void SiPixelGainCalibrationForHLTHostFromGPUBinESProducer::produce(edm::EventSetup& eventSetup) {
     using GPUFormat = SiPixelGainForHLTonGPU;
     using DecodingStructure = GPUFormat::DecodingStructure;
 
-    auto inputFile = data_ / "gain.bin";
-    auto outputFile = data_ / "SiPixelGainCalibrationForHLTHostRun2.bin";
-
-    std::ifstream in(inputFile, std::ios::binary);
+    std::ifstream in(input_, std::ios::binary);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Reading old GPU-format gain from: " << inputFile << "\n";
+    std::cout << "[GPU_DEBUG] Reading old GPU-format gain from: " << input_ << "\n";
 #endif
 
     // --- read GPU object header
@@ -103,7 +103,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     view.link() = 0.0f;  // not stored in old format, set to default
 
     // --- Write out the converted host format to a new binary file
-    std::ofstream out(outputFile, std::ios::binary);
+    std::ofstream out(output_, std::ios::binary);
     out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
     out.write(reinterpret_cast<const char*>(&size), sizeof(unsigned int));
     out.write(reinterpret_cast<const char*>(view.v_pedestals().data()),
@@ -127,7 +127,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     out.close();
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Wrote converted host-format gain to: " << outputFile << "\n";
+    std::cout << "[GPU_DEBUG] Wrote converted host-format gain to: " << output_ << "\n";
 #endif
 
     // --- put the new object into the EventSetup

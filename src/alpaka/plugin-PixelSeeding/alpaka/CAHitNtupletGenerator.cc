@@ -462,13 +462,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       fitter.launchRiemannKernels(hits_d.view(),
                                   geometry_d.view<::reco::CAModulesSoA>(),
                                   hits_d.view().metadata().size(),
-                                  TrackerTraits::maxNumberOfQuadruplets,
+                                  nTracks,
                                   queue);
     } else {
       fitter.launchBrokenLineKernels(hits_d.view(),
                                      geometry_d.view<::reco::CAModulesSoA>(),
                                      hits_d.view().metadata().size(),
-                                     TrackerTraits::maxNumberOfQuadruplets,
+                                     nTracks,
                                      queue);
     }
     kernels.classifyTuples(hits_d.view(), tracks.view(), queue);
