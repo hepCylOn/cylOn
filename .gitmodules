@@ -1,0 +1,3 @@
+[submodule "tools/patatune"]
+	path = tools/patatune
+	url = git@github.com:cms-patatrack/patatune.git
