@@ -300,32 +300,33 @@ int main(int argc, char** argv) {
       edmodules.emplace_back(prefix + "BeamSpotToSoA");
       
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
-      // if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
-      // if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
-      // if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
+      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
+      if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
+      if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
 
-      // if (not dumpHits)
-      // {
-      //   edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-      //   edmodules.emplace_back(prefix + "PixelVertexPhase1");
-      //   if (transfer) {
-      //     edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-      //     edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
-      //   }
-      //   if (validation) {
-      //     edmodules.emplace_back(prefix + "CountValidator");
-      //   }
-      //   if (histogram) {
-      //     edmodules.emplace_back(prefix + "HistoValidator");
-      //   }
-      // }
+      if (not dumpHits)
+      {
+        edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+        edmodules.emplace_back(prefix + "PixelVertexPhase1");
+        if (transfer) {
+          edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+        }
+        if (validation) {
+          edmodules.emplace_back(prefix + "CountValidator");
+        }
+        if (histogram) {
+          edmodules.emplace_back(prefix + "HistoValidator");
+        }
+      }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
   
   edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
 
-  edm::EventProcessor processor(warmupEvents,
+  edm::EventProcessor processor(cfg, 
+				warmupEvents,
                                 maxEvents,
                                 runForMinutes,
                                 numberOfStreams,

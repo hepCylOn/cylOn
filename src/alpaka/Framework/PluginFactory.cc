@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "PluginFactory.h"
-#include "Framework/ConfigRegistry.h"
 
 namespace edm {
   namespace PluginFactory {

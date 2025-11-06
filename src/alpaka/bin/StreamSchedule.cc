@@ -19,7 +19,7 @@
 
 namespace edm {
   StreamSchedule::StreamSchedule(ProductRegistry reg,
-                                 ConfigRegistry const& configRegistry
+                                 ConfigRegistry const& configRegistry,
                                  edmplugin::PluginManager& pluginManager,
                                  Source* source,
                                  EventSetup const* eventSetup,

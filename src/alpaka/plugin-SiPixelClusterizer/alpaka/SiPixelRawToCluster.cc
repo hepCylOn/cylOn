@@ -34,7 +34,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class SiPixelRawToCluster : public edm::EDProducerExternalWork {
   public:
-    explicit SiPixelRawToCluster(edm::ProductRegistry& reg, edm::ConfigRegistry const& cfg);
+    explicit SiPixelRawToCluster(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~SiPixelRawToCluster() override = default;
 
     // static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
@@ -67,7 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename TrackerTraits>
-  SiPixelRawToCluster<TrackerTraits>::SiPixelRawToCluster(edm::ProductRegistry& reg)
+  SiPixelRawToCluster<TrackerTraits>::SiPixelRawToCluster(edm::ProductRegistry& reg, edm::Config const& cfg)
       : rawGetToken_(reg.consumes<FEDRawDataCollection>()),
         digiPutToken_(reg.produces<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()),
         clusterPutToken_(reg.produces<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()),
@@ -91,8 +91,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   std::cout << "  includeErrors = " << includeErrors_ << std::endl;
   std::cout << "  useQuality    = " << useQuality_ << std::endl;
   std::cout << "  verbose       = " << verbose_ << std::endl;
-  std::cout << "  thresholds L1 = " << clusterThresholds_.clusterThreshold_layer1
-            << ", other = " << clusterThresholds_.clusterThreshold_otherLayers << std::endl;
+  // std::cout << "  thresholds L1 = " << clusterThresholds_.clusterThreshold_layer1
+  //           << ", other = " << clusterThresholds_.clusterThreshold_otherLayers << std::endl;
 #endif
 }
 

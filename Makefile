@@ -546,6 +546,11 @@ else ifeq ($(OPENMP_COMPILER), NVIDIA)
   export OPENMP_CXXFLAGS := -mp=gpu -gpu=cc80 -std=c++17 -fPIC --gcc-toolchain=$(GCC_TOOLCHAIN) $(OPENMP_EIGEN_CXXFLAGS)
 endif
 
+## Catch2 build (using the alpaka one for the moment)
+CATCH2_BUILD:=$(EXTERNAL_BASE)/alpaka/thirdParty/catch2
+$(CATCH2_BUILD)/lib/libCatch2WithMain.a:
+	cd $(CATCH2_DIR) && $(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+	$(CMAKE) --build $(CATCH2_BUILD) --target install
 
 # force the recreation of the environment file any time the Makefile is updated, before building any other target
 -include environment

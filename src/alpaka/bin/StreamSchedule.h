@@ -23,7 +23,7 @@ namespace edm {
   public:
     // copy ProductRegistry per stream
     explicit StreamSchedule(ProductRegistry reg,
-                            ConfigRegistry config,
+                            ConfigRegistry const& configRegistry,
                             edmplugin::PluginManager& pluginManager,
                             Source* source,
                             EventSetup const* eventSetup,

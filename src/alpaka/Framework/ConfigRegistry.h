@@ -15,9 +15,10 @@
 
 namespace edm {
 
+  using Config = nlohmann::json;
+  
   class ConfigRegistry {
   public:
-    using Config = nlohmann::json;
 
     ConfigRegistry() = default;
 
