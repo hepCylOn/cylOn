@@ -13,10 +13,10 @@
 #include "Framework/EventSetup.h"
 #include "Framework/PluginFactory.h"
 
-class ParticleFromSimple : public edm::EDProducer {
+class PixelTrackValidatorFromHits : public edm::EDProducer {
 public:
-  explicit ParticleFromSimple(edm::ProductRegistry& reg);
-  ~ParticleFromSimple() override = default;
+  explicit PixelTrackValidatorFromHits(edm::ProductRegistry& reg);
+  ~PixelTrackValidatorFromHits() override = default;
 
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -64,7 +64,7 @@ private:
 
 };
 
-ParticleFromSimple::ParticleFromSimple(edm::ProductRegistry& reg)
+PixelTrackValidatorFromHits::PixelTrackValidatorFromHits(edm::ProductRegistry& reg)
     : tSimpleParticles_(reg.consumes<ParticleSimpleSoA>()),
       tokenTrack_(reg.consumes<PixelTrackHost>()) {
 
@@ -92,7 +92,7 @@ ParticleFromSimple::ParticleFromSimple(edm::ProductRegistry& reg)
 
       }
 
-void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void PixelTrackValidatorFromHits::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
   auto const& vertices = iEvent.get(tokenVertex_);
   auto const& tracks = iEvent.get(tokenTrack_);
@@ -177,7 +177,7 @@ void ParticleFromSimple::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   }
 }
 
-void ParticleFromSimple::endJob() {
+void PixelTrackValidatorFromHits::endJob() {
   file.open("/data/user/borzari/cmssw/pixeltrack-standalone/output.txt");
   if (file.is_open()) {
 
@@ -202,7 +202,7 @@ void ParticleFromSimple::endJob() {
   file.close();  // fecha o arquivo
 }
 
-std::pair<int,uint32_t> ParticleFromSimple::getMostRepeatingPart( std::vector<uint32_t> vec) {
+std::pair<int,uint32_t> PixelTrackValidatorFromHits::getMostRepeatingPart( std::vector<uint32_t> vec) {
 
   std::unordered_map<int, int> freq;
   int mostFrequent = vec[0];
@@ -219,7 +219,7 @@ std::pair<int,uint32_t> ParticleFromSimple::getMostRepeatingPart( std::vector<ui
   return std::make_pair(maxCount,mostFrequent);
 }
 
-double ParticleFromSimple::deltaPhi(double phi1, double phi2) {
+double PixelTrackValidatorFromHits::deltaPhi(double phi1, double phi2) {
   double o2pi = 1. / (2. * M_PI);
   if (std::abs((phi1 - phi2)) <= double(M_PI))
     return (phi1 - phi2);
@@ -227,7 +227,7 @@ double ParticleFromSimple::deltaPhi(double phi1, double phi2) {
   return (phi1 - phi2) - n * double(2. * M_PI);
 }
 
-void ParticleFromSimple::logSpace (const unsigned n, const double a, const double b, std::vector<double> &bins) const
+void PixelTrackValidatorFromHits::logSpace (const unsigned n, const double a, const double b, std::vector<double> &bins) const
 {
   double step = (b - a) / ((double) n);
 
@@ -236,7 +236,7 @@ void ParticleFromSimple::logSpace (const unsigned n, const double a, const doubl
     bins.push_back (pow (10.0, i));
 }
 
-void ParticleFromSimple::linSpace (const unsigned n, const double a, const double b, std::vector<double> &bins) const
+void PixelTrackValidatorFromHits::linSpace (const unsigned n, const double a, const double b, std::vector<double> &bins) const
 {
   double step = (b - a) / ((double) n);
 
@@ -245,7 +245,7 @@ void ParticleFromSimple::linSpace (const unsigned n, const double a, const doubl
     bins.push_back (i);
 }
 
-void ParticleFromSimple::writeEffAndFake(std::vector<double>& num, std::vector<double>& den, std::ofstream& file, std::vector<double>& bins)
+void PixelTrackValidatorFromHits::writeEffAndFake(std::vector<double>& num, std::vector<double>& den, std::ofstream& file, std::vector<double>& bins)
 {
   for (int i = 0; i < int(num.size()); ++i){
     if (den[i] == 0) file << den[i] << ",";
@@ -259,7 +259,7 @@ void ParticleFromSimple::writeEffAndFake(std::vector<double>& num, std::vector<d
   file << std::endl;
 }
 
-void ParticleFromSimple::writeResolution(std::map<int,std::vector<double>>& res, std::ofstream& file, std::vector<double>& binsVar, std::vector<double>& binsEta)
+void PixelTrackValidatorFromHits::writeResolution(std::map<int,std::vector<double>>& res, std::ofstream& file, std::vector<double>& binsVar, std::vector<double>& binsEta)
 {
   for(int j = 0; j < int(binsVar.size()) - 1; ++j){
         double stdDevRes = stdDev(res[j]);
@@ -270,7 +270,7 @@ void ParticleFromSimple::writeResolution(std::map<int,std::vector<double>>& res,
       file << std::endl;
 }
 
-double ParticleFromSimple::stdDev(const std::vector<double>& vec) const
+double PixelTrackValidatorFromHits::stdDev(const std::vector<double>& vec) const
 {
     int n = vec.size();
     if (n == 0) return 0.0;
@@ -291,4 +291,4 @@ double ParticleFromSimple::stdDev(const std::vector<double>& vec) const
 
 
 
-DEFINE_FWK_MODULE(ParticleFromSimple);
+DEFINE_FWK_MODULE(PixelTrackValidatorFromHits);
