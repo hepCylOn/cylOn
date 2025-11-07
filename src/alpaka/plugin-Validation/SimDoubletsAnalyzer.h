@@ -108,11 +108,11 @@ private:
   std::vector<double> binsPT;
   std::vector<double> binsIPhi;
 
-  std::vector<std::vector<uint16_t>> histoInnerZ;
-  std::vector<std::vector<uint16_t>> histoDR;
-  std::vector<std::vector<uint16_t>> histoZ0;
-  std::vector<std::vector<uint16_t>> histoPT;
-  std::vector<std::vector<uint16_t>> histoIPhi;
+  std::vector<std::vector<uint32_t>> histoInnerZ;
+  std::vector<std::vector<uint32_t>> histoDR;
+  std::vector<std::vector<uint32_t>> histoZ0;
+  std::vector<std::vector<uint32_t>> histoPT;
+  std::vector<std::vector<uint32_t>> histoIPhi;
 
   int nBins;
 

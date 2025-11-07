@@ -97,7 +97,7 @@ void logSpace (const unsigned n, const double a, const double b, std::vector<T> 
 }
 
 template<typename T>
-void writeHisto(std::vector<uint16_t>& vec, std::ofstream& file, std::vector<T>& bins)
+void writeHisto(std::vector<uint32_t>& vec, std::ofstream& file, std::vector<T>& bins)
 {
   for (int i = 0; i < int(vec.size()); ++i){
     file << vec[i] << ",";
@@ -344,6 +344,13 @@ SimDoubletsAnalyzer::SimDoubletsAnalyzer(edm::ProductRegistry& reg)
     histoZ0[i].resize(nBins);
     histoPT[i].resize(nBins);
     histoIPhi[i].resize(nBins);
+    for (int j = 0; j < nBins; j++){
+      histoInnerZ[i][j] = 0;
+      histoDR[i][j] = 0;
+      histoZ0[i][j] = 0;
+      histoPT[i][j] = 0;
+      histoIPhi[i][j] = 0;
+    }
   }
 
   // resize all histogram vectors, so that we can fill them according to the
@@ -363,6 +370,24 @@ SimDoubletsAnalyzer::SimDoubletsAnalyzer(edm::ProductRegistry& reg)
 
 SimDoubletsAnalyzer::~SimDoubletsAnalyzer() {
   std::cout << totalDoublets << " -- " << totalPassedDoublets << std::endl;
+
+  simdoublets::linSpace<double> (nBins, *(std::min_element(vecInnerZ.begin(), vecInnerZ.end())), *(std::max_element(vecInnerZ.begin(), vecInnerZ.end())), binsInnerZ);
+  simdoublets::linSpace<double> (nBins, 0.0, 8.0, binsDR);
+  simdoublets::linSpace<double> (nBins, 0.0, 100.0, binsZ0);
+  simdoublets::logSpace<double> (nBins, -0.5, 2.0, binsPT);
+  simdoublets::linSpace<double> (nBins, *(std::min_element(vecIPhi.begin(), vecIPhi.end())), *(std::max_element(vecIPhi.begin(), vecIPhi.end())), binsIPhi);
+
+  for(int i = 0; i < nBins; ++i){
+    for(int j = 0; j < int(vecInnerZ.size()); ++j){
+      int k = vecLayerPairId[j];
+      if(vecInnerZ[j] > binsInnerZ[i] && vecInnerZ[j] < binsInnerZ[i+1]) histoInnerZ[k][i]++;
+      if(vecDR[j] > binsDR[i] && vecDR[j] < binsDR[i+1]) histoDR[k][i]++;
+      if(vecZ0[j] > binsZ0[i] && vecZ0[j] < binsZ0[i+1]) histoZ0[k][i]++;
+      if(vecPT[j] > binsPT[i] && vecPT[j] < binsPT[i+1]) histoPT[k][i]++;
+      if(vecIPhi[j] > binsIPhi[i] && vecIPhi[j] < binsIPhi[i+1]) histoIPhi[k][i]++;
+    }
+  }
+
   file.open("/data/user/borzari/cmssw/pixeltrack-standalone/outputSimDoublets.txt");
   if (file.is_open()) {
 
@@ -454,8 +479,8 @@ void SimDoubletsAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSe
       dphi = simdoublets::deltaPhi(inner_phi, outer_phi);
       idphi = std::min(std::abs(int16_t(outer_iphi - inner_iphi)), std::abs(int16_t(inner_iphi - outer_iphi)));
 
-      if (dr < 0.0) {
-        std::cout << doublet.innerLayerId() << " -- " << doublet.outerLayerId() << std::endl;
+      if (dr < 0.0) { // Check for negative DR (only a few doublets in 100 events ~ 500k simDoublets)
+        std::cout << doublet.innerLayerId() << " -- " << doublet.outerLayerId() << " -- " << inner_r << " -- " << outer_r << std::endl;
       }
 
       // ----------------------------------------------------------
@@ -538,25 +563,21 @@ void SimDoubletsAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSe
         doubletGetsCut = true;
         passZWindow++;
       }
-      // else {passZWindow++;}
       // z0cutoff
       if (dr > cellMaxr_[layerPairIdIndex] || dr < 0 || z0 > cellZ0Cut_) {
         doubletGetsCut = true;
         passZ0Cutoff++;
       }
-      // else {passZ0Cutoff++;}
       // ptcut
       if (pT < cellPtCut_) {
         doubletGetsCut = true;
         passPTCut++;
       }
-      // else {passPTCut++;}
       // iphicut
       if (idphi > cellPhiCuts_[layerPairIdIndex]) {
         doubletGetsCut = true;
         passIPhiCut++;
       }
-      // else {passIPhiCut++;}
 
       // determine the moduleId
       // const GeomDetUnit* geomDetUnit = doublet.innerRecHit()->det();
@@ -691,23 +712,6 @@ void SimDoubletsAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 
   }  // end loop over SimDoublets (= loop over TrackingParticles)
   std::cout << passZWindow << " -- " << passZ0Cutoff << " -- " << passPTCut << " -- " << passIPhiCut << std::endl;
-
-  simdoublets::linSpace<double> (nBins, *(std::min_element(vecInnerZ.begin(), vecInnerZ.end())), *(std::max_element(vecInnerZ.begin(), vecInnerZ.end())), binsInnerZ);
-  simdoublets::linSpace<double> (nBins, *(std::min_element(vecDR.begin(), vecDR.end())), *(std::max_element(vecDR.begin(), vecDR.end())), binsDR);
-  simdoublets::linSpace<double> (nBins, *(std::min_element(vecZ0.begin(), vecZ0.end())), *(std::max_element(vecZ0.begin(), vecZ0.end())), binsZ0);
-  simdoublets::logSpace<double> (nBins, -0.5, 2.0, binsPT);
-  simdoublets::linSpace<double> (nBins, *(std::min_element(vecIPhi.begin(), vecIPhi.end())), *(std::max_element(vecIPhi.begin(), vecIPhi.end())), binsIPhi);
-
-  for(int i = 0; i < nBins; ++i){
-    for(int j = 0; j < int(vecInnerZ.size()); ++j){
-      int k = vecLayerPairId[j];
-      if(vecInnerZ[j] > binsInnerZ[i] && vecInnerZ[j] < binsInnerZ[i+1]) histoInnerZ[k][i]++;
-      if(vecDR[j] > binsDR[i] && vecDR[j] < binsDR[i+1]) histoDR[k][i]++;
-      if(vecZ0[j] > binsZ0[i] && vecZ0[j] < binsZ0[i+1]) histoZ0[k][i]++;
-      if(vecPT[j] > binsPT[i] && vecPT[j] < binsPT[i+1]) histoPT[k][i]++;
-      if(vecIPhi[j] > binsIPhi[i] && vecIPhi[j] < binsIPhi[i+1]) histoIPhi[k][i]++;
-    }
-  }
 
 }
 
