@@ -168,10 +168,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         // all cuts: true if fails
         constexpr float z0cut = 12.f;      // cm
-        // constexpr float z0cut = 1.7*12.f;      // cm (for colliderML)
+        // constexpr float z0cut = 10.f;      // cm (for colliderML)
         constexpr float hardPtCut = 0.5f;  // GeV
-        constexpr float minRadius = hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field)
-        // constexpr float minRadius = hardPtCut * 128.3f;  // cm (1 GeV track has 1 GeV/c / (e * 2.6T) ~ 128 cm radius in a 2.6T field for colliderML)
+        constexpr float minRadius = hardPtCut * 87.78f;  // cm (1 GeV track has 1 GeV/c / (e * 3.8T) ~ 87 cm radius in a 3.8T field (for some reason this cut is also better for colliderML))
+        // constexpr float minRadius = hardPtCut * 128.3f;  // cm (1 GeV track has 1 GeV/c / (e * 2.6T) ~ 128 cm radius in a 2.6T field)
         constexpr float minRadius2T4 = 4.f * minRadius * minRadius;
         auto ptcut = [&](int j, int16_t idphi) {
           auto r2t4 = minRadius2T4;
