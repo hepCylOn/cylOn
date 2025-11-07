@@ -7,6 +7,7 @@
 
 #include "SoATemplate/SoALayout.h"
 
+///TODO: since we have started to use this also outside of the CA maybe is worth a renaming
 namespace caStructures {
 
   GENERATE_SOA_LAYOUT(CAPairLayout, SOA_COLUMN(uint32_t, inner), SOA_COLUMN(uint32_t, outer))
