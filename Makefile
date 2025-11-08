@@ -99,7 +99,7 @@ export LIB_DIR := $(BASE_DIR)/lib
 export TEST_DIR := $(BASE_DIR)/test
 
 # Scripts 
-export SCRIPTS_DIR := $(BASE_DIR)/scripts
+export SCRIPTS_DIR := $(BASE_DIR)/scripts:$(BASE_DIR)/scripts/trackml
 
 # System external definitions
 # CUDA

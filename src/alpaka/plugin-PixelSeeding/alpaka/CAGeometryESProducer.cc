@@ -22,76 +22,98 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   class CAGeometryHostESProducer : public edm::ESProducer {
   public:
-    explicit CAGeometryHostESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {
-      // Fill default parameters from TrackerTraits
-      nLayers_ = TrackerTraits::numberOfLayers;
-      nPairs_  = TrackerTraits::nPairs; //TrackerTraits::nPairsForQuadruplets;
-      nModules_ = TrackerTraits::numberOfModules;
-      auto checkSize = [](auto const& vec, size_t expected, std::string const& name) {
-      if (vec.size() != expected) {
-        std::cerr << "[CAGeometryHostESProducer ERROR] Size mismatch in " << name << ":\n"
-                  << "  expected = " << expected << ", actual = " << vec.size() << std::endl;
-        std::abort();
+    explicit CAGeometryHostESProducer(edm::Config const& cfg) : 
+      data_(static_cast<std::string>(cfg.value("data", defaultPath_))),
+      nLayers_(static_cast<int>(cfg.value("nLayers", TrackerTraits::numberOfLayers))),
+      nPairs_(static_cast<int>(cfg.value("nPairs", TrackerTraits::nPairs))),
+      nModules_(static_cast<int>(cfg.value("nModules", TrackerTraits::numberOfModules)))
+      {
+
+      auto getVectorOrDefault = [&](std::string const& key, auto const* defaults, size_t expected) {
+      using T = std::remove_cvref_t<decltype(defaults[0])>;
+      std::vector<T> vec;
+
+      if (cfg.contains(key)) {
+        try {
+          vec = cfg.at(key).get<std::vector<T>>();
+          if (vec.size() != expected) {
+            std::cerr << "[CAGeometryHostESProducer ERROR] Size mismatch in " << key << ":\n"
+                      << "  expected = " << expected << ", actual = " << vec.size() << std::endl;
+            std::abort();
+          }
+        } catch (std::exception const& e) {
+          std::cerr << "[CAGeometryHostESProducer WARNING] Failed to read key '" << key
+                    << "': " << e.what() << ". Using default values." << std::endl;
+          vec.assign(defaults, defaults + expected);
+        }
+      } else {
+        vec.assign(defaults, defaults + expected);
       }
+
+      return vec;
     };
 
-#ifdef GPU_DEBUG
-      std::cout << "[GPU_DEBUG] Constructing CAGeometryHostESProducer for "
-                << TrackerTraits::nameModifier << "\n"
-                << "  - Data directory: " << data_ << "\n"
-                << "  - Layers: " << nLayers_
-                << ", Pairs: " << nPairs_
-                << ", Default start pairs: {0,1,2}" << std::endl;
-#endif
+  thetaCuts_   = getVectorOrDefault("thetaCuts", TrackerTraits::thetaCuts, nLayers_);
+  dcaCuts_     = getVectorOrDefault("dcaCuts", TrackerTraits::dcaCuts, nLayers_);
+  layerStarts_ = getVectorOrDefault("layerStarts", TrackerTraits::layerStart, nLayers_);
+  phiCuts_     = getVectorOrDefault("phiCuts", TrackerTraits::phicuts, nPairs_);
+  minZ_        = getVectorOrDefault("minZ", TrackerTraits::minz, nPairs_);
+  maxZ_        = getVectorOrDefault("maxZ", TrackerTraits::maxz, nPairs_);
+  maxR_        = getVectorOrDefault("maxR", TrackerTraits::maxr, nPairs_);
+  pairGraph_   = getVectorOrDefault("pairGraph", TrackerTraits::layerPairs, nPairs_ * 2);
+  startingPairs_ = cfg.contains("startingPairs")
+                   ? cfg.at("startingPairs").get<std::vector<uint8_t>>()
+                   : std::vector<uint8_t>{0u, 1u, 2u};
 
-      thetaCuts_.assign(TrackerTraits::thetaCuts,
-                        TrackerTraits::thetaCuts + nLayers_);
-      dcaCuts_.assign(TrackerTraits::dcaCuts,
-                      TrackerTraits::dcaCuts + nLayers_);
-      layerStarts_.assign(TrackerTraits::layerStart,
-                   TrackerTraits::layerStart + nLayers_);
+auto maxVal = std::ranges::max(startingPairs_);
+  if (maxVal >= static_cast<unsigned int>(nPairs_)) {
+    std::cerr << "[CAGeometryHostESProducer ERROR] Invalid 'startingPairs' values: "
+              << "maximum value " << maxVal << " exceeds nPairs = " << nPairs_ << std::endl;
+    std::abort();
+  }
 
-      phiCuts_.assign(TrackerTraits::phicuts,
-                      TrackerTraits::phicuts + nPairs_);
-      minZ_.assign(TrackerTraits::minz,
-                   TrackerTraits::minz + nPairs_);
-      maxZ_.assign(TrackerTraits::maxz,
-                   TrackerTraits::maxz + nPairs_);
-      maxR_.assign(TrackerTraits::maxr,
-                   TrackerTraits::maxr + nPairs_);
-      pairGraph_.assign(TrackerTraits::layerPairs,
-                        TrackerTraits::layerPairs + (nPairs_ * 2));
-      startingPairs_ = {0u, 1u, 2u}; 
 
-      checkSize(thetaCuts_, nLayers_, "thetaCuts_");
-      checkSize(layerStarts_, nLayers_, "layerStarts_");
-      checkSize(dcaCuts_, nLayers_, "dcaCuts_");
-      checkSize(phiCuts_, nPairs_, "phiCuts_");
-      checkSize(minZ_, nPairs_, "minZ_");
-      checkSize(maxZ_, nPairs_, "maxZ_");
-      checkSize(maxR_, nPairs_, "maxR_");
-      checkSize(pairGraph_, nPairs_ * 2, "pairGraph_");
+  #ifdef GPU_DEBUG
 
+    auto vecToString = [](auto const& v) {
+    std::ostringstream os;
+    os << "{";
+    for (size_t i = 0; i < v.size(); ++i) {
+      os << v[i];
+      if (i + 1 < v.size()) os << ", ";
     }
+    os << "}";
+    return os.str();
+  };
+
+  std::cout << "[GPU_DEBUG] Constructing CAGeometryHostESProducer for "
+            << TrackerTraits::nameModifier << "\n"
+            << "  - Data directory: " << data_ << "\n"
+            << "  - Layers: " << nLayers_
+            << ", Pairs: " << nPairs_
+            << ", Starting pairs: " << vecToString(startingPairs_) << std::endl;
+#endif
+}
 
     void produce(edm::EventSetup& eventSetup);
 
   private:
 
-    int nLayers_, nPairs_, nModules_; //int(s) just because the PortableCollection wants so
     std::filesystem::path data_;
+    int nLayers_, nPairs_, nModules_; //int(s) just because the PortableCollection wants so
+    
     std::filesystem::path defaultPath_ = std::string("data/CAGeometryHostModules") + std::string(TrackerTraits::nameModifier) + ".bin";;
     // Geometry parameter data members
     std::vector<float> thetaCuts_;
     std::vector<float> dcaCuts_;
     std::vector<unsigned int> layerStarts_;
     
-    std::vector<int> phiCuts_;
-    std::vector<double> minZ_;
-    std::vector<double> maxZ_;
-    std::vector<double> maxR_;
-    std::vector<unsigned int> pairGraph_;
-    std::vector<unsigned int> startingPairs_;
+    std::vector<short int> phiCuts_;
+    std::vector<float> minZ_;
+    std::vector<float> maxZ_;
+    std::vector<float> maxR_;
+    std::vector<uint8_t> pairGraph_;
+    std::vector<uint8_t> startingPairs_;
   };
 
   // ---------- Produce ----------
