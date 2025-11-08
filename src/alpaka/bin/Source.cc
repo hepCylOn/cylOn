@@ -8,94 +8,11 @@
 #include <mutex>
 
 #include "Source.h"
+#include "ParticleReader.h"
+#include "HitReader.h"
 
 #define INPUT_DEBUG
 
-///TODO: move this outside in an-hoc helper header
-namespace hitReader {
-
-  constexpr uint32_t kExpectedEndianness = 0x01020304;
-  constexpr uint32_t kFormatVersion = 1;
-  constexpr char kMagic[4] = {'T', 'R', 'H', '1'};
-
-  inline void check_header(std::ifstream& in) {
-    char magic[4];
-    in.read(magic, 4);
-    if (std::memcmp(magic, kMagic, 4) != 0)
-      throw std::runtime_error("Invalid file magic (not a TRH1 binary)");
-
-    uint32_t version;
-    in.read(reinterpret_cast<char*>(&version), sizeof(version));
-    if (version != kFormatVersion)
-      throw std::runtime_error("Unsupported TRH version");
-
-    uint32_t endian_marker;
-    in.read(reinterpret_cast<char*>(&endian_marker), sizeof(endian_marker));
-    if (endian_marker != kExpectedEndianness)
-      throw std::runtime_error("Endianness mismatch — file not native endian");
-#ifdef INPUT_DEBUG
-    std::cout << "Input file is good!" << std::endl;
-#endif
-  }
-
-  template <typename Span>
-  void read_column(std::ifstream& in, Span view, uint32_t nHits) {
-    using Elem = typename Span::value_type;
-    if (view.size() < nHits) {
-      throw std::runtime_error("Span too small for requested number of hits");
-    }
-    in.read(reinterpret_cast<char*>(view.data()), nHits * sizeof(Elem));
-    if (!in)
-      throw std::runtime_error("Error reading column data");
-  }
-
-  inline reco::TrackingRecHitHost read_single_event(std::ifstream& in)
-  {
-    uint32_t nHits, nModules;
-    in.read(reinterpret_cast<char*>(&nHits), sizeof(nHits));
-    in.read(reinterpret_cast<char*>(&nModules), sizeof(nModules));
-    if (!in) throw std::runtime_error("Error reading event header");
-
-    std::vector<uint32_t> moduleStart(nModules + 1);
-    in.read(reinterpret_cast<char*>(moduleStart.data()), (nModules + 1) * sizeof(uint32_t));
-
-    reco::TrackingRecHitHost recHitHost(cms::alpakatools::host(), nHits, nModules);
-
-    auto hitView = recHitHost.view<reco::TrackingRecHitSoA>();
-    auto modView = recHitHost.view<reco::HitModuleSoA>();
-
-    // copy module starts
-    std::memcpy(modView.moduleStart().data(), moduleStart.data(),
-                (nModules + 1) * sizeof(uint32_t));
-
-    read_column(in, hitView.xLocal(),       nHits);
-    read_column(in, hitView.yLocal(),       nHits);
-    read_column(in, hitView.xerrLocal(),    nHits);
-    read_column(in, hitView.yerrLocal(),    nHits);
-    read_column(in, hitView.xGlobal(),      nHits);
-    read_column(in, hitView.yGlobal(),      nHits);
-    read_column(in, hitView.zGlobal(),      nHits);
-    read_column(in, hitView.rGlobal(),      nHits);
-    read_column(in, hitView.iphi(),         nHits);
-    read_column(in, hitView.chargeAndStatus(), nHits); 
-    read_column(in, hitView.clusterSizeX(), nHits);
-    read_column(in, hitView.clusterSizeY(), nHits);
-    read_column(in, hitView.detectorIndex(), nHits);
-
-#ifdef INPUT_DEBUG    
-    std::cout << "  First hit global: ("
-              << hitView.xGlobal()[0] << ", "
-              << hitView.yGlobal()[0] << ", "
-              << hitView.zGlobal()[0] << "), "
-              << "r=" << hitView.rGlobal()[0]
-              << ", detIdx=" << hitView.detectorIndex()[0] << '\n';
-#endif
-
-    return recHitHost;
-  }
-
-
-}
 namespace {
   FEDRawDataCollection readRaw(std::ifstream &is, unsigned int nfeds) {
     FEDRawDataCollection rawCollection;
@@ -142,6 +59,8 @@ namespace edm {
     std::ifstream in_digiclusters;
     std::ifstream in_tracks;
     std::ifstream in_vertices;
+    std::ifstream in_particles;
+    std::ifstream in_map;
 
     if (validation_) {
       digiClusterToken_ = reg.produces<DigiClusterCount>();
@@ -151,9 +70,15 @@ namespace edm {
       in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
       in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
       in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+      in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
+      in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
+
       in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      
+      particleToken_ = reg.produces<sim::ParticleHost>();
     }
 
     if(not fromHits_)
@@ -186,20 +111,51 @@ namespace edm {
     else
     {
       hitReader::check_header(in_file);
-      int32_t nEvents;
-      in_file.read(reinterpret_cast<char*>(&nEvents), sizeof(nEvents));
+      if (validation)
+      {
+        particleReader::check_header(in_particles);
+        hitReader::check_header(in_map);
+      }
+
+      int32_t nEventsP, nEventsH, nEventsM;
+      in_file.read(reinterpret_cast<char*>(&nEventsH), sizeof(nEventsH));
+      nEventsP = nEventsM = nEventsH;
+
+      if (validation)
+      {
+        in_particles.read(reinterpret_cast<char*>(&nEventsP), sizeof(nEventsP));
+        in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
+      }
+
+      if(nEventsH != nEventsP or nEventsH != nEventsM)
+        throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
+      assert(nEventsH == nEventsP);
+
 #ifdef INPUT_DEBUG
-      std::cout << "File contains " << nEvents << " events\n";
+      std::cout << "File contains " << nEventsH << " events\n";
 #endif
-      for (int32_t ev = 0; ev < nEvents && ev < maxEvents; ++ev) {
+      for (int32_t ev = 0; ev < nEventsH && ev < maxEvents; ++ev) {
         hits_.emplace_back(hitReader::read_single_event(in_file));
+        if (validation)
+        {
+          particles_.emplace_back(particleReader::read_single_event(in_particles));
+          maps_.emplace_back(mapReader::read_single_event(in_map));
+        }
+          
 #ifdef INPUT_DEBUG
-        std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
+        std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
 #endif
       }
       if (!in_file.good() && !in_file.eof()) {
-        throw std::runtime_error("I/O error while reading file");
+        throw std::runtime_error("I/O error while reading input file");
     }
+
+      if (validation){
+        if (!in_particles.good() && !in_particles.eof()) 
+          throw std::runtime_error("I/O error while reading particles file");
+        if (!in_map.good() && !in_map.eof()) 
+          throw std::runtime_error("I/O error while reading hit-map file");
+      }
 
     // std::cout << "Successfully read all events from " << filename << std::endl;
     }
@@ -208,6 +164,10 @@ namespace edm {
       assert(raw_.size() == digiclusters_.size());
       assert(raw_.size() == tracks_.size());
       assert(raw_.size() == vertices_.size());
+    } 
+    else if (validation_)
+    {
+      assert(hits_.size() == particles_.size());
     }
 
     if (runForMinutes_ < 0 and maxEvents_ < 0) {
@@ -271,10 +231,14 @@ namespace edm {
       ev->emplace(rawToken_, raw_[index]);
     else 
       ev->emplace(hitToken_, std::move(hits_[index]));
-    if (validation_) {
+    if (validation_ and not fromHits_) {
       ev->emplace(digiClusterToken_, digiclusters_[index]);
       ev->emplace(trackToken_, tracks_[index]);
       ev->emplace(vertexToken_, vertices_[index]);
+    }
+    else if (validation_)
+    {
+      ev->emplace(particleToken_, std::move(particles_[index]));
     }
 
     return ev;
