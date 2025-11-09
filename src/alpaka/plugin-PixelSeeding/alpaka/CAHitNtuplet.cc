@@ -126,9 +126,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         tokenTrack_(reg.produces<cms::alpakatools::Product<Queue, TkSoADevice>>()),
         // maxNumberOfDoublets_(iConfig.getParameter<std::string>("maxNumberOfDoublets")),
         // maxNumberOfTuples_(iConfig.getParameter<std::string>("maxNumberOfTuples")),
-        maxNumberOfDoublets_(500000),
-        maxNumberOfTuples_(200000),
-        deviceAlgo_(Params()) //default params
+        maxNumberOfDoublets_(cfg.value("maxNumberOfDoublets", 500000)),
+        maxNumberOfTuples_(cfg.value("maxNumberOfTuples", 100000)),
+        deviceAlgo_(Params(cfg)) //default params
         // deviceAlgo_(iConfig) 
   {
     // iCache->tokenGeometry_ = esConsumes<edm::Transition::BeginRun>();
@@ -191,7 +191,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   // using CAHitNtupletPhase1 = CAHitNtuplet<pixelTopology::Phase1>;
   // using CAHitNtupletHIonPhase1 = CAHitNtuplet<pixelTopology::HIonPhase1>;
   // using CAHitNtupletPhase2 = CAHitNtuplet<pixelTopology::Phase2>;
-
+  // using CAHitNtupletUpgrade = CAHitNtuplet<pixelTopology::GenericUpgrade>;
+  
   /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
   /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
   class CAHitNtupletPhase1 : public CAHitNtuplet<pixelTopology::Phase1> {
@@ -215,8 +216,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-// #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"
 
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletUpgrade);
