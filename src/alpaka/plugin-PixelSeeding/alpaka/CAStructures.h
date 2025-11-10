@@ -11,6 +11,8 @@ namespace caStructures {
 
   //Configuration params common to all topologies, for the algorithms
   struct AlgoParams {
+    // BField
+    float bField_;
     // Container sizes
     float avgHitsPerTrack_;
     float avgCellsPerHit_;

@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""
+CylOn tuner
+
+What it does
+------------
+1) Checks your merged *hits* binary to see how many events it contains.
+2) If < target events, runs `trackml-hits-particles-binaries.py` to (re)build
+   merged binaries with at least that many events.
+3) Runs `trackml-sim-doublets.py` (updated with --csv-out) across the merged
+   binaries (or CSVs) to suggest layer-pair cut parameters. Exports CSV.
+4) Builds a CA geometry/config JSON using your `trackml-ca-geometry-binary`
+   with doStats enabled; writes to configs/trackml_forstats.json.
+5) Runs the reconstruction:
+     ./alpaka --maxEvents {target_events} --config configs/trackml_forstats.json --cuda --fromHits --data data/trackml/
+   Captures the CAStats line printed by the app and computes metrics:
+     - avgHitsPerTrack, avgCellsPerHit, avgCellsPerCell, avgTracksPerCell
+6) If limits are too small/big, adjusts sizes by rules below and repeats until
+   convergence or iteration cap.
+   - If counters hit the max (saturation), increase by +25%.
+   - If they are "too big", shrink to mean + 3 sigma (computed across runs).
+   - Otherwise keep as-is.
+
+Assumptions
+-----------
+- Your merged binaries writer stores an event-count uint32 after the TRH1 header,
+  endianness token and version (as in your prior "merged binaries" helper).
+- `trackml-sim-doublets.py` supports `--csv-out` (see patch file we ship).
+- `trackml-ca-geometry-binary` can accept a small JSON/CSV describing per layer-pair
+  cuts, or you can let our helper write a full config JSON it expects.
+- The alpaka executable prints a single "CAStats: ..." line per job as shown.
+
+You will likely need to tweak the exact commands/flags for your local setup.
+The script logs each step and never deletes your data.
+
+Usage
+-----
+  python3 trackml_end2end_autotune.py \
+    --events-root data/trackml/events \
+    --merged-root data/trackml \
+    --target-events 100 \
+    --builder trackml-hits-particles-binaries.py \
+    --simdoublets trackml-sim-doublets.py \
+    --geometry-bin trackml-ca-geometry-binary \
+    --alpaka ./alpaka \
+    --volumes pixel strip_short \
+    --max-iters 5
+
+"""
+import argparse, json, os, re, shutil, struct, subprocess, sys, time
+from pathlib import Path
+from statistics import mean, pstdev
+
+MAGIC_TRH1 = b"TRH1"
+ENDIANNESS = 0x01020304
+
+def log(msg):
+    print(f"[pipeline] {msg}", flush=True)
+
+def read_hits_n_events(hits_bin: Path) -> int :
+    """Best-effort parse of merged hits binary -> number of events (uint32 after header tokens)."""
+    if not hits_bin.exists():
+        return None
+    with open(hits_bin, "rb") as f:
+        magic = f.read(4)
+        if magic != MAGIC_TRH1:
+            log(f"Unexpected magic in {hits_bin}: {magic!r}")
+            return None
+        endian = struct.unpack("<I", f.read(4))[0]
+        if endian != ENDIANNESS:
+            log(f"Unexpected endianness token in {hits_bin}: {hex(endian)} (expected {hex(ENDIANNESS)})")
+            # continue anyway
+        version = struct.unpack("<I", f.read(4))[0]
+        try:
+            n_events = struct.unpack("<I", f.read(4))[0]
+        except struct.error:
+            log(f"Could not read nEvents from {hits_bin} (truncated?)")
+            return None
+        return n_events
+
+def ensure_target_events(args) -> int:
+    """
+    Ensure merged binaries exist in merged-root and contain at least target events.
+    Returns the detected/built number of events.
+    """
+    hits_bin = Path(args.merged_root) / "hits.bin"
+    n_events = read_hits_n_events(hits_bin)
+    log(f"Detected events in merged hits: {n_events if n_events is not None else 'unknown'}")
+
+    if n_events is not None and n_events >= args.target_events:
+        return n_events
+
+    log("Building / rebuilding merged binaries to reach the target event count...")
+    cmd = [
+        args.builder,
+        "--indir", args.events_root,
+        "--outdir", args.merged_root,
+        "--modules", str(Path(args.merged_root) / "detectors.csv"),
+        "--pattern", "event*",
+        "--max-events", args.target_events,
+    ]
+    if args.volumes:
+        cmd += ["--volumes"] + list(args.volumes)
+    # Optional flag that your builder may support (ignore if unknown)
+    if args.target_events:
+        cmd += ["--max-events", str(args.target_events)]
+    log("RUN " + " ".join(cmd))
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        log(f"Binary builder failed: {e}")
+        raise
+
+    n_events = read_hits_n_events(hits_bin)
+    if n_events is None:
+        log("Warning: couldn't parse event count; continuing anyway.")
+        n_events = args.target_events
+    return n_events
+
+def run_simdoublets(args, out_csv: Path) -> Path:
+    log("Running trackml-sim-doublets.py to derive cut suggestions...")
+    cmd = [
+        args.simdoublets,
+        "--indir", args.events_root,
+        "--mode", "true-only",
+        "--outdir", args.merged_root + "/sim_plots",
+        "--csv-out", str(out_csv),
+    ]
+    # Allow the script to read binaries if it supports a flag
+    # if args.use_binaries:
+    #     cmd += ["--from-binaries"]
+    # if args.layer_pairs:
+    #     cmd += ["--layer-pairs"] + [str(x) for x in args.layer_pairs]
+    log("RUN " + " ".join(cmd))
+    subprocess.run(cmd, check=True)
+    if not out_csv.exists():
+        raise RuntimeError(f"Expected CSV not written: {out_csv}")
+    return out_csv
+
+def make_config_from_csv(args, cuts_csv: Path, out_json: Path) -> Path:
+    log("Generating CA config JSON (with doStats: true) from suggested cuts...")
+    cmd = [args.converter,
+           "--csv", str(cuts_csv),
+           "--template", str(args.config_template) if args.config_template else "",
+           "--out", str(out_json)]
+    log("RUN " + " ".join([c for c in cmd if c]))
+    subprocess.run([c for c in cmd if c], check=True)
+    if not out_json.exists():
+        raise RuntimeError(f"Config JSON not found at {out_json}")
+    return out_json
+
+CASTATS_RE = re.compile(
+    r"CAStats:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)"
+)
+
+def run_alpaka(args, config_json: Path) -> dict:
+    log("Running reconstruction to collect CAStats...")
+    cmd = [
+        args.bin,
+        "--maxEvents", str(args.target_events),
+        "--config", str(config_json),
+        "--fromHits",
+        "--data", str(args.merged_root),
+    ]
+    if args.cuda:
+        cmd.append("--cuda")
+    log("RUN " + " ".join(cmd))
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    stats_line = None
+    for line in proc.stdout:
+        sys.stdout.write(line)
+        if line.strip().startswith("CAStats:"):
+            stats_line = line.strip()
+    proc.wait()
+    if proc.returncode != 0:
+        raise RuntimeError(f"Alpaka job failed with code {proc.returncode}")
+    if not stats_line:
+        raise RuntimeError("Couldn't find CAStats line in output.")
+    m = CASTATS_RE.search(stats_line)
+    if not m:
+        raise RuntimeError(f"Couldn't parse CAStats line: {stats_line}")
+    keys = ["nEvents","nHits","nCells","nTrips","nCellTracks","nTuples","nFitTracks","nLooseTracks","nGoodTracks",
+            "nUsedHits","nDupHits","nFishCells","nKilledCells","nEmptyCells","nZeroTrackCells"]
+    vals = list(map(int, m.groups()))
+    return dict(zip(keys, vals))
+
+def derive_metrics(stats: dict) -> dict:
+    # Safeguard division by zero
+    def div(a,b): return a / b if b else 0.0
+    metrics = {
+        "avgHitsPerTrack": div(stats["nUsedHits"], stats["nTuples"]),
+        "avgCellsPerHit": div(stats["nCells"], stats["nHits"]),
+        "avgCellsPerCell": div(stats["nTrips"], stats["nCells"]),
+        "avgTracksPerCell": div(stats["nCellTracks"], stats["nTuples"]),
+    }
+    return metrics
+
+def update_sizes(config: dict, stats: dict, history: list[dict]) -> tuple[dict, bool, dict]:
+    """
+    Adjust sizes in config["producer"]["maxNumberOfDoublets"/"maxNumberOfTuples"] by rules:
+    - If nCells == maxDoublets: increase by +25%.
+    - If nTuples == maxTuples: increase by +25%.
+    - Else, if we have >=3 runs, shrink toward mean+3sigma of observed needs.
+    Returns (new_config, changed?, notes)
+    """
+    notes = {}
+    changed = False
+
+    prod = config.get("producer", config)
+    maxDoublets = int(prod.get("maxNumberOfDoublets", 5_000_000))
+    maxTuples   = int(prod.get("maxNumberOfTuples", 500_000))
+
+    need_doublets = stats["nCells"]
+    need_tuples   = stats["nTuples"]
+
+    # Saturation grow
+    if need_doublets >= maxDoublets:
+        new = int(maxDoublets * 1.25) + 1
+        prod["maxNumberOfDoublets"] = new
+        notes["maxNumberOfDoublets"] = f"increase 25% ({maxDoublets} -> {new}) [saturated]"
+        changed = True
+    if need_tuples >= maxTuples:
+        new = int(maxTuples * 1.25) + 1
+        prod["maxNumberOfTuples"] = new
+        notes["maxNumberOfTuples"] = f"increase 25% ({maxTuples} -> {new}) [saturated]"
+        changed = True
+
+    # Shrink to mean+3sigma if we have enough history and no saturation
+    if len(history) >= 3 and not (need_doublets >= maxDoublets or need_tuples >= maxTuples):
+        ds = [h["nCells"] for h in history]
+        ts = [h["nTuples"] for h in history]
+        mu_d, sig_d = mean(ds), (pstdev(ds) if len(ds) > 1 else 0.0)
+        mu_t, sig_t = mean(ts), (pstdev(ts) if len(ts) > 1 else 0.0)
+        target_d = int(mu_d + 3*sig_d) + 1
+        target_t = int(mu_t + 3*sig_t) + 1
+        if target_d < maxDoublets:
+            notes["maxNumberOfDoublets"] = f"shrink to mean+3σ ({maxDoublets} -> {target_d})"
+            prod["maxNumberOfDoublets"] = target_d
+            changed = True
+        if target_t < maxTuples:
+            notes["maxNumberOfTuples"] = f"shrink to mean+3σ ({maxTuples} -> {target_t})"
+            prod["maxNumberOfTuples"] = target_t
+            changed = True
+
+    # Save back
+    if "producer" in config:
+        config["producer"] = prod
+    return config, changed, notes
+
+def load_json(p: Path) -> dict:
+    return json.loads(Path(p).read_text())
+
+def save_json(p: Path, obj: dict):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(obj, indent=2))
+    tmp.rename(p)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--events-root", required=True, help="TrackML CSV root, contains events/ and detectors.csv")
+    ap.add_argument("--merged-root", required=True, help="Directory where merged binaries live (and are written)")
+    ap.add_argument("--target-events", type=int, default=100)
+    ap.add_argument("--builder", default="trackml-hits-particles-binaries.py")
+    ap.add_argument("--simdoublets", default="trackml-sim-doublets.py")
+    ap.add_argument("--converter", default="trackml-make-config-from-sim.py")
+    ap.add_argument("--geometry-bin", default="trackml-ca-geometry-binary")
+    ap.add_argument("--config-template", default="", help="Optional JSON template to start from")
+    ap.add_argument("--bin", default="./alpaka")
+    ap.add_argument("--volumes", nargs="*", default=[])
+    ap.add_argument("--use-binaries", action="store_true")
+    ap.add_argument("--cuda", action="store_true")
+    ap.add_argument("--max-iters", type=int, default=5)
+    ap.add_argument("--layer-pairs", nargs="*", type=int, default=[],
+                    help="Optional flat list like: 0 1 1 2 2 3 ...")
+
+    args = ap.parse_args()
+
+    events_root = Path(args.events_root)
+    merged_root = Path(args.merged_root)
+    merged_root.mkdir(parents=True, exist_ok=True)
+    (Path("configs")).mkdir(exist_ok=True)
+
+    # Step 1-2: ensure merged binaries have enough events
+    n_events = ensure_target_events(args)
+    log(f"Merged binaries events: {n_events}")
+
+    # Step 3: run sim-doublets & export suggested cuts per layer-pair
+    cuts_csv = merged_root / "simdoublets_cuts.csv"
+    run_simdoublets(args, cuts_csv)
+
+    # Step 4: build CA config JSON (doStats true)
+    config_json = Path("configs/trackml_forstats.json")
+    make_config_from_csv(args, cuts_csv, config_json)
+
+    # Iterative tuning loop
+    history = []
+    for it in range(1, args.max_iters + 1):
+        log(f"=== Iteration {it}/{args.max_iters} ===")
+        # Step 5: run reconstruction and parse CAStats
+        stats = run_alpaka(args, config_json)
+        log(f"CAStats: {stats}")
+
+        metrics = derive_metrics(stats)
+        log(f"Derived metrics: {metrics}")
+
+        history.append(stats)
+
+        # Step 6: adjust sizes and possibly re-run
+        cfg = load_json(config_json)
+        cfg, changed, notes = update_sizes(cfg, stats, history)
+        if changed:
+            log(f"Adjusted sizes: {notes}")
+            save_json(config_json, cfg)
+        else:
+            log("Sizes look OK. Stopping autotune loop.")
+            break
+
+    log(f"Done. Final config at: {config_json}")
+
+if __name__ == "__main__":
+    main()
+"""))
+
+# 2) Helper to create config JSON from CSV (layer-pair cuts -> JSON with doStats=true).
+maker = base / "make_config_from_simdoublets_csv.py"
+maker.write_text(dedent(r"""
+#!/usr/bin/env python3
+"""
+Read a CSV produced by trackml-sim-doublets.py and emit a CA config JSON.
+
+Expected CSV columns (per layer pair):
+  layerPairId, minZ, maxZ, maxR, phiCut, z0Cut, ptCut, minYsizeB1, minYsizeB2, maxDYsize12, maxDYsize, maxDYPred
+
+We keep other config fields (if provided via --template) unchanged, but ensure:
+  - deviceAlgo cut arrays are set from CSV (ordered by the layerPairs array)
+  - producer.doStats = true
+  - path to data isn't hardcoded here (passed to executable at runtime)
+
+"""
+import argparse, csv, json
+from pathlib import Path
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--csv", required=True)
+    ap.add_argument("--template", default="", help="Optional base JSON to merge into")
+    ap.add_argument("--out", required=True)
+    args = ap.parse_args()
+
+    # Load template or minimal skeleton
+    cfg = {}
+    if args.template and Path(args.template).exists():
+        cfg = json.loads(Path(args.template).read_text())
+    if "producer" not in cfg:
+        cfg["producer"] = {}
+    if "deviceAlgo" not in cfg:
+        cfg["deviceAlgo"] = {}
+
+    # Always turn on stats
+    cfg["producer"]["doStats"] = True
+
+    # Read CSV
+    rows = []
+    with open(args.csv, newline="") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            rows.append(row)
+
+    # Sort by layerPairId for a stable ordering
+    rows.sort(key=lambda r: int(r["layerPairId"]))
+
+    # Fill arrays for the CA algo
+    # Also build layerPairs flat array [inner0, outer0, inner1, outer1, ...]
+    layerPairs = []
+    cellMinz, cellMaxz, cellMaxr, cellPhiCuts = [], [], [], []
+    # globals (singletons) come from first row; if per-pair present, we could harmonize to max/min
+    for row in rows:
+        lp = int(row["layerPairId"])
+        inner = lp // 100
+        outer = lp % 100
+        layerPairs.extend([inner, outer])
+        cellMinz.append(float(row["minZ"]))
+        cellMaxz.append(float(row["maxZ"]))
+        cellMaxr.append(float(row["maxR"]))
+        cellPhiCuts.append(int(row["phiCut"]))
+
+    cfg["deviceAlgo"]["layerPairs"] = layerPairs
+    cfg["deviceAlgo"]["cellMinz"] = cellMinz
+    cfg["deviceAlgo"]["cellMaxz"] = cellMaxz
+    cfg["deviceAlgo"]["cellMaxr"] = cellMaxr
+    cfg["deviceAlgo"]["cellPhiCuts"] = cellPhiCuts
+
+    # Global-ish knobs (kept flat for now; if CSV varies per-pair we pick a conservative choice)
+    def pick_conservative(key, cast):
+        vals = [cast(r[key]) for r in rows if r.get(key,"")!=""]
+        if not vals: return None
+        if key in ("z0Cut",):    # smaller is stricter; pick max allowed (less strict)
+            return max(vals)
+        if key in ("ptCut",):    # larger is stricter; pick min allowed (less strict)
+            return min(vals)
+        if key in ("minYsizeB1","minYsizeB2"): # larger is stricter; pick min
+            return min(vals)
+        if key in ("maxDYsize12","maxDYsize","maxDYPred"): # larger is looser; pick min strictness? choose median min
+            return min(vals)
+        return vals[0]
+
+    dev = cfg["deviceAlgo"]
+    for key, cast in [
+        ("z0Cut", float),
+        ("ptCut", float),
+        ("minYsizeB1", int),
+        ("minYsizeB2", int),
+        ("maxDYsize12", int),
+        ("maxDYsize", int),
+        ("maxDYPred", int),
+    ]:
+        val = pick_conservative(key, cast)
+        if val is not None:
+            dev[key] = val
+
+    # Ensure some sane size defaults if not present (will autotune later)
+    prod = cfg["producer"]
+    prod.setdefault("maxNumberOfDoublets", 5_000_000)
+    prod.setdefault("maxNumberOfTuples",   500_000)
+
+    # Write
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(cfg, indent=2))
+    print(f"[config] wrote {out} with {len(rows)} layer-pair rows.")
+
+if __name__ == "__main__":
+    main()

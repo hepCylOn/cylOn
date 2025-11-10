@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <set>
 #include <memory>
+#include <vector>  // <-- added
 
 #include "AlpakaDataFormats/TracksHost.h"
 #include "AlpakaDataFormats/TrackingRecHitsHost.h"
@@ -21,6 +22,8 @@
 
 #include <TFile.h>
 #include <TTree.h>
+
+#define GPU_DEBUG
 
 class SimpleTrackValidation : public edm::EDProducer {
 public:
@@ -40,8 +43,6 @@ private:
   bool isGoodParticle(const sim::ParticleSoAConstView& parts, uint32_t idx) const;
 
   // mapping helpers
-  uint32_t nTracks(const reco::TrackSoAConstView& tracks) const;
-  int trackNHits(const reco::TrackSoAConstView& tracks, int i) const;
   std::pair<uint32_t, uint32_t> trackHitRange(const reco::TrackSoAConstView& tracks, int i) const;
 
   // === EDM tokens ===
@@ -54,9 +55,12 @@ private:
   // === configuration (from JSON) ===
   const double minPt_;
   const double maxEta_;
+  const double maxZip_;   // |vz| cut (cm)
+  const double maxTip_;      // sqrt(vx^2+vy^2) cut (cm)
   const unsigned int nBins_;
   const unsigned int minHits_;
   const float purity_;
+  const bool bypassbad_;
   const std::string outputFileName_;
   std::set<int> allowedPdgIds_;
 
@@ -101,32 +105,32 @@ private:
   std::map<int, std::vector<double>> resD0_;
   std::map<int, std::vector<double>> resDZ_;
 
-//   TODO: use RNTuples 
-//   using RNTupleModel = ROOT::Experimental::RNTupleModel;
-//   using RNTupleWriter = ROOT::Experimental::RNTupleWriter;
+  // just counts (discrete nHits)
+  std::map<int, double> cntNHits_;
 
-//   std::unique_ptr<RNTupleWriter> ntuple_;
-//   std::shared_ptr<int> fieldKind_;      // 0=eff, 1=fake, 2=res
-//   std::shared_ptr<int> fieldCoord_;     // 0=pt, 1=eta, 2=phi, 3=d0, 4=dz
-//   std::shared_ptr<float> fieldBinCenter_;
-//   std::shared_ptr<float> fieldValue_;
-//   std::shared_ptr<float> fieldNum_;
-//   std::shared_ptr<float> fieldDen_;
-    std::unique_ptr<TFile> outFile_;
-    TTree* ttree_;
+  // ROOT outputs
+  std::unique_ptr<TFile> outFile_;
+  TTree* ttree_;
 
-    int kind_;      // 0=eff, 1=fake, 2=res
-    int coord_;     // 0=pt, 1=eta, 2=phi, 3=d0, 4=dz
-    float binCenter_;
-    float value_;
-    float num_;
-    float den_;
+  // NEW: separate simple-counts tree with vector branches
+  TTree* tcounts_;
+  std::vector<float> ptCenters_,  ptCounts_;
+  std::vector<float> etaCenters_, etaCounts_;
+  std::vector<float> phiCenters_, phiCounts_;
+  std::vector<float> nHitsValues_, nHitsCounts_;
+
+  int kind_;      // 0=eff, 1=fake, 2=dup, 3=res, 4=counts (not used in Counts tree)
+  int coord_;     // 0=pt, 1=eta, 2=phi, 3=d0, 4=dz, 5=nHits (not used in Counts tree)
+  float binCenter_;
+  float value_;
+  float num_;
+  float den_;
 };
 
 
 namespace {
-  enum class kType : int { Efficiency = 0, FakeRate = 1, Duplicates = 2, Resolution = 3 };
-  enum class kCoord : int { Pt = 0, Eta = 1, Phi = 2, D0 = 3, DZ = 4 };
+  enum class kType : int { Efficiency = 0, FakeRate = 1, Duplicates = 2, Resolution = 3, Counts = 4 };
+  enum class kCoord : int { Pt = 0, Eta = 1, Phi = 2, D0 = 3, DZ = 4, NHits = 5 };
 }
 
 SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Config const& cfg)
@@ -137,9 +141,12 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
       tokenHitMap_(reg.consumes<utils::SimpleMapHost>()),
       minPt_(cfg.value("minPt", -1.0)),          
       maxEta_(cfg.value("maxEta", 999.)),
-      nBins_(cfg.value("nBins", 40)),
+      maxZip_(cfg.value("maxZip", 1.0e9)),  // in mm
+      maxTip_(cfg.value("maxTip", 300.)),   // in mm
+      nBins_(cfg.value("nBins", 50)),
       minHits_(cfg.value("minHits",4)),
       purity_(cfg.value("trackPurity",0.75)),
+      bypassbad_(static_cast<bool>(cfg.value("bypassBad",false))),
       outputFileName_(cfg.value("outputFile", std::string("pixelTrackValidation_ntuple.root")))
      {
 
@@ -156,9 +163,31 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
         }
     }
 
+#ifdef GPU_DEBUG
+    std::cout << "[SimpleTrackValidation] Config:"
+              << " minPt=" << minPt_
+              << " maxEta=" << maxEta_
+              << " nBins=" << nBins_
+              << " minHits=" << minHits_
+              << " purity=" << purity_
+              << " maxZip=" << maxZip_
+              << " mazTip=" << maxTip_
+              << " output=\"" << outputFileName_ << "\""
+              << " nPDG=" << allowedPdgIds_.size()
+              << std::endl;
+#endif
 
     logSpace(nBins_, -0.1, 2.0, binsPt_);
     linSpace(nBins_, -4.0, 4.0, binsEtaPhi_);
+
+#ifdef GPU_DEBUG
+    std::cout << "[SimpleTrackValidation] Bin sizes: pt=" << binsPt_.size()
+              << " eta/phi=" << binsEtaPhi_.size() << std::endl;
+    if (!binsPt_.empty())
+      std::cout << "  pt[0]=" << binsPt_.front() << " pt[last]=" << binsPt_.back() << std::endl;
+    if (!binsEtaPhi_.empty())
+      std::cout << "  eta/phi[0]=" << binsEtaPhi_.front() << " eta/phi[last]=" << binsEtaPhi_.back() << std::endl;
+#endif
 
     effPtDen_.assign(nBins_, 0.0);
     effPtNum_.assign(nBins_, 0.0);
@@ -181,23 +210,11 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
     dupPhiDen_.assign(nBins_, 0.0);
     dupPhiNum_.assign(nBins_, 0.0);
 
-    // // --- RNTuple creation ---
-    // auto model = RNTupleModel::Create();
-    // fieldKind_      = model->MakeField<int>("kind", 0);
-    // fieldCoord_     = model->MakeField<int>("coord", 0);
-    // fieldBinCenter_ = model->MakeField<float>("binCenter", 0.f);
-    // fieldValue_     = model->MakeField<float>("value", 0.f);
-    // fieldNum_       = model->MakeField<float>("num", 0.f);
-    // fieldDen_       = model->MakeField<float>("den", 0.f);
-
-    // ntuple_ = RNTupleWriter::Recreate(std::move(model),
-    //                                     "PixelTrackValidation",
-    //                                     outputFileName_);
-
-    // open file and create tree
+    // open file and create trees
     outFile_ = std::make_unique<TFile>(outputFileName_.c_str(), "RECREATE");
-    ttree_ = new TTree("Validation", "PixelTrack Validation");
 
+    // Main validation tree
+    ttree_ = new TTree("Validation", "PixelTrack Validation");
     ttree_->Branch("kind", &kind_, "kind/I");
     ttree_->Branch("coord", &coord_, "coord/I");
     ttree_->Branch("binCenter", &binCenter_, "binCenter/F");
@@ -205,19 +222,43 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
     ttree_->Branch("num", &num_, "num/F");
     ttree_->Branch("den", &den_, "den/F");
 
+    // NEW simple-counts tree
+    tcounts_ = new TTree("Counts", "Simple track counts");
+    tcounts_->Branch("ptCenters",  &ptCenters_);
+    tcounts_->Branch("ptCounts",   &ptCounts_);
+    tcounts_->Branch("etaCenters", &etaCenters_);
+    tcounts_->Branch("etaCounts",  &etaCounts_);
+    tcounts_->Branch("phiCenters", &phiCenters_);
+    tcounts_->Branch("phiCounts",  &phiCounts_);
+    tcounts_->Branch("nHitsValues", &nHitsValues_);
+    tcounts_->Branch("nHitsCounts", &nHitsCounts_);
+
+#ifdef GPU_DEBUG
+    std::cout << "[SimpleTrackValidation] ROOT output opened: " << outputFileName_ << std::endl;
+#endif
 }
 
 bool SimpleTrackValidation::isGoodParticle(const sim::ParticleSoAConstView& parts, uint32_t idx) const {
   const float pt  = parts.pt(idx);
   const float eta = parts.eta(idx);
-  const int pdg   = parts.pdgID(idx);
+  const int   pdg = parts.pdgID(idx);
 
+  // basic kinematics
   if (pt < minPt_) return false;
   if (std::abs(eta) > maxEta_) return false;
 
+  // vertex-based cuts
+  const float vx = parts.vx(idx);
+  const float vy = parts.vy(idx);
+  const float vz = parts.vz(idx);
+  const double rVtx = std::hypot(double(vx), double(vy));  // |r_vertex| in cm
+
+  if (std::abs(vz) > maxZip_) return false;
+  if (rVtx > maxTip_) return false;
+
+  // PDG filter (optional)
   if (!allowedPdgIds_.empty()) {
-    if (allowedPdgIds_.find(pdg) == allowedPdgIds_.end())
-      return false;
+    if (allowedPdgIds_.find(pdg) == allowedPdgIds_.end()) return false;
   }
 
   return true;
@@ -226,16 +267,6 @@ bool SimpleTrackValidation::isGoodParticle(const sim::ParticleSoAConstView& part
 // =======================================================================================
 // Track / hit indexing helpers for the new SoA
 // =======================================================================================
-
-uint32_t SimpleTrackValidation::nTracks(const reco::TrackSoAConstView& tracks) const {
-  // metadata().size() is how other code gets the number of entries
-  return tracks.metadata().size();
-}
-
-int SimpleTrackValidation::trackNHits(const reco::TrackSoAConstView& tracks, int i) const {
-  auto [start, end] = trackHitRange(tracks, i);
-  return static_cast<int>(end - start);
-}
 
 std::pair<uint32_t, uint32_t> SimpleTrackValidation::trackHitRange(
     const reco::TrackSoAConstView& tracks, int i) const {
@@ -254,18 +285,34 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
   auto const& hitsHost     = iEvent.get(tokenHits_);
   // auto const& vertices     = iEvent.get(tokenVertex_); // currently unused
   auto const& simpleParts  = iEvent.get(tSimpleParticles_);
-  auto const& hitPartMap      = iEvent.get(tokenHitMap_); 
+  auto const& hitPartMap   = iEvent.get(tokenHitMap_); 
 
   auto tracksView = tracksHost.view<reco::TrackSoA>();
+  // If you meant the recHits host, you could use: hitsHost.view<reco::TrackingRecHitSoA>();
   auto hitsView   = tracksHost.view<reco::TrackHitSoA>(); 
   auto hitMapView = hitPartMap.view();
 
   auto nParticles = simpleParts.view().metadata().size();
+  auto isValidPartId = [&](uint32_t id) {
+    return id != std::numeric_limits<uint32_t>::max() && int(id) < nParticles; // TODO: share sentinel
+  };
+
+#ifdef GPU_DEBUG
+  std::cout << "[produce] nParticles=" << nParticles
+            << " nTracks=" << tracksView.nTracks()
+            << " nTrackHits=" << hitsView.metadata().size()
+            << " nHitMap=" << hitMapView.metadata().size()
+            << std::endl;
+#endif
+
   // total truth particles (after selection)
   for (int j = 0; j < nParticles; ++j) {
     if (!isGoodParticle(simpleParts.view(), j)) continue;
     ++totalParticles_;
   }
+#ifdef GPU_DEBUG
+  std::cout << "[produce] total selected particles so far: " << totalParticles_ << std::endl;
+#endif
 
   // Denominator for efficiencies: loop over all selected particles
   for (int ib = 0; ib < static_cast<int>(binsPt_.size()) - 1; ++ib) {
@@ -288,22 +335,46 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
       if (phi > phiMin && phi < phiMax)  effPhiDen_[ib] += 1.0;
     }
   }
-
-  uint32_t lastMatchedPartInd = std::numeric_limits<uint32_t>::max();
+#ifdef GPU_DEBUG
+  {
+    double sumPtDen=0, sumEtaDen=0, sumPhiDen=0;
+    for (size_t i=0;i<effPtDen_.size();++i){sumPtDen+=effPtDen_[i];sumEtaDen+=effEtaDen_[i];sumPhiDen+=effPhiDen_[i];}
+    std::cout << "[produce] Denominators: pt=" << sumPtDen
+              << " eta=" << sumEtaDen
+              << " phi=" << sumPhiDen << std::endl;
+  }
+#endif
 
   std::map<uint32_t,uint32_t> simToRecoMap;
+
   // Loop over tracks
-  const auto nTrk = nTracks(tracksView);
+  const auto nTrk = tracksView.nTracks();
+#ifdef GPU_DEBUG
+  std::cout << "[produce] Looping over " << nTrk << " tracks" << std::endl;
+#endif
   for (int i = 0; i < static_cast<int>(nTrk); ++i) {
 
-    const int nHitsTrk = trackNHits(tracksView, i);
+    const int nHitsTrk = reco::nHits(tracksView, i);
     if (nHitsTrk < int(minHits_))
+    {
+#ifdef GPU_DEBUG
+      std::cout << "  [track " << i << "] skip: nHits=" << nHitsTrk
+                << " < minHits=" << minHits_ << std::endl;
+#endif
       continue;
+    }
 
     // quality cut: BAD / DUP are rejected
     const auto q = tracksView[i].quality();
-    if (q == pixelTrack::Quality::bad || q == pixelTrack::Quality::dup)
+    if (not bypassbad_ and (q == pixelTrack::Quality::bad || q == pixelTrack::Quality::dup)) {
+#ifdef GPU_DEBUG
+      std::cout << "  [track " << i << "] skip: quality=" << int(q) << std::endl;
+#endif
       continue;
+    }
+
+    // Count this track by its nHits (after cuts)
+    cntNHits_[nHitsTrk] += 1.0;
 
     const float trkPt  = tracksView[i].pt();
     const float trkEta = tracksView[i].eta();
@@ -311,7 +382,13 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
     const float trkTip = reco::tip(tracksView, i);
     const float trkZip = reco::zip(tracksView, i);
 
-    // fake-rate denominators
+#ifdef GPU_DEBUG
+    std::cout << "  [track " << i << "] pt=" << trkPt << " eta=" << trkEta
+              << " phi=" << trkPhi << " tip=" << trkTip << " zip=" << trkZip
+              << " nHits=" << nHitsTrk << std::endl;
+#endif
+
+    // fake-rate denominators (these are "all tracks in bin" -> usable as simple counts)
     for (int ib = 0; ib < static_cast<int>(binsPt_.size()) - 1; ++ib) {
       const double ptMin   = binsPt_[ib];
       const double ptMax   = binsPt_[ib + 1];
@@ -328,40 +405,79 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
     std::vector<uint32_t> partIndices;
     auto [hitStart, hitEnd] = trackHitRange(tracksView, i);
 
-    for (uint32_t ih = hitStart; ih < hitEnd; ++ih) {
-      uint32_t partIndex = hitMapView[ih].id(); 
-      partIndices.push_back(partIndex);
+#ifdef GPU_DEBUG
+    std::cout << "    [track " << i << "] hit range: [" << hitStart << ", " << hitEnd << ")" << std::endl;
+#endif
+
+    for (uint32_t ii = hitStart; ii < hitEnd; ++ii) {
+      const uint32_t ih = hitsView[ii].id();        // global recHit index
+      if (int(ih) >= hitMapView.metadata().size()) {
+#ifdef GPU_DEBUG
+        std::cout << "    [track " << i << "] ERROR: recHitIdx=" << ih
+                  << " >= hitMap size=" << hitMapView.metadata().size()
+                  << " (index-space mismatch) -- skipping this track\n";
+#endif
+        partIndices.clear();
+        break;  // bail on this track defensively
+      }
+      const uint32_t partIndex = hitMapView[ih].id();
+      if (isValidPartId(partIndex))  // skip noise/sentinel
+        partIndices.push_back(partIndex);
     }
+
+#ifdef GPU_DEBUG
+    if (partIndices.empty())
+      std::cout << "    [track " << i << "] no mapped particle indices" << std::endl;
+    else
+      std::cout << "    [track " << i << "] mapped particle indices: " << partIndices.size() << std::endl;
+#endif
 
     if (partIndices.empty())
       continue;
 
     auto [occurrences, bestPartInd] = getMostRepeatingPart(partIndices);
 
-    bool isDuplicate = false;
+    constexpr double cutForTriplets = 2.0/3.0;
+    const bool isTriplet = (nHitsTrk == 3);
+
+    const double purityVal = double(occurrences) / double(nHitsTrk);
+    bool good = isValidPartId(bestPartInd) &&
+                ( (purityVal >= purity_) || (isTriplet && purityVal >= cutForTriplets) );
+#ifdef GPU_DEBUG
+    if (!isValidPartId(bestPartInd)) {
+      std::cout << "    [track " << i << "] WARNING: bestPart=" << bestPartInd
+                << " (invalid); purity=" << purityVal << " (track not matched)\n";
+    } else {
+      std::cout << "    [track " << i << "] bestPart=" << bestPartInd
+                << " occ=" << occurrences << " purity=" << purityVal
+                << " -> " << (good ? "GOOD" : "FAKE/LOW-PURITY") << std::endl;
+    }
+#endif
+
+  bool isDuplicate = false;
+    if (good) { 
+      ++trueTracks_;
+    
     if (simToRecoMap.find(bestPartInd) != simToRecoMap.end())
     {
+      ++simToRecoMap[bestPartInd];
       ++duplicateTracks_;
       isDuplicate = true;
-    }
-    /// TODO: implement a duplicate check
-    // // avoid counting multiple tracks mapped to the same particle in a row
-    // if (bestPartInd == lastMatchedPartInd)
-    //   continue;
-    // lastMatchedPartInd = bestPartInd;
-
-    constexpr auto cutForTriplets = 0.6667;
-
-    const double purity = static_cast<double>(occurrences) / static_cast<double>(nHitsTrk);
-    bool good = (purity >= purity_) or bestPartInd > 0; // (nHits < 4 and purity >= cutForTriplets) and 
-    // 2/3 hits for triplets + bestPartInd < 0 for noise
-    if (good) { 
-      
-
-      ++trueTracks_;
+#ifdef GPU_DEBUG
+      std::cout << "    [track " << i << "] DUPLICATE for particle " << bestPartInd << std::endl;
+#endif
+    } else
+     {
+      simToRecoMap[bestPartInd] = 1;
+     }
 
       if (!isGoodParticle(simpleParts.view(), bestPartInd))
+      {
+#ifdef GPU_DEBUG
+        std::cout << "      [track " << i << "] matched particle failed kinematic/PDG selection" << std::endl;
+#endif
         continue;
+      }
 
       const float partPt  = simpleParts.view().pt(bestPartInd);
       const float partEta = simpleParts.view().eta(bestPartInd);
@@ -375,6 +491,12 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
       // d0 and dz from particle
       const double partD0 = (-partVx * partPy + partVy * partPx) / partPt;
       const double partDZ = (-(partVx * partPx + partVy * partPy) / partPt) * (partPz / partPt);
+
+#ifdef GPU_DEBUG
+      std::cout << "      [track " << i << "] part pt=" << partPt
+                << " eta=" << partEta << " phi=" << partPhi
+                << " d0=" << partD0 << " dz=" << partDZ << std::endl;
+#endif
 
       for (int ib = 0; ib < static_cast<int>(binsPt_.size()) - 1; ++ib) {
         const double ptMin   = binsPt_[ib];
@@ -402,7 +524,7 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
           effPhiNum_[ib] += 1.0;
       }
     } else {
-      // fake track (not pure enough)
+      // fake/low-purity track -> we fill dup* numerators as you had
       for (int ib = 0; ib < static_cast<int>(binsPt_.size()) - 1; ++ib) {
         const double ptMin   = binsPt_[ib];
         const double ptMax   = binsPt_[ib + 1];
@@ -434,9 +556,18 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
       }
     }
   }
+
+#ifdef GPU_DEBUG
+  std::cout << "[produce] Counters so far: matched=" << trueTracks_
+            << " fake=" << fakeTracks_
+            << " dup=" << duplicateTracks_ << std::endl;
+#endif
 }
 
 void SimpleTrackValidation::endJob() {
+#ifdef GPU_DEBUG
+  std::cout << "[endJob] Finalizing, filling trees..." << std::endl;
+#endif
   // Fill efficiencies & fake rates
   auto fillEffOrFake = [&](const std::vector<double>& num,
                            const std::vector<double>& den,
@@ -456,6 +587,11 @@ void SimpleTrackValidation::endJob() {
       num_       = static_cast<float>(n);
       den_       = static_cast<float>(d);
 
+#ifdef GPU_DEBUG
+      std::cout << "  [fillEffOrFake] kind=" << kind_ << " coord=" << coord_
+                << " binCenter=" << binCenter_ << " val=" << value_
+                << " (num=" << num_ << ", den=" << den_ << ")" << std::endl;
+#endif
       ttree_->Fill();
     }
   };
@@ -491,6 +627,12 @@ void SimpleTrackValidation::endJob() {
       num_       = 0.f;
       den_       = 0.f;
 
+#ifdef GPU_DEBUG
+      std::cout << "  [fillResolution] coord=" << coord_
+                << " binCenter=" << binCenter_
+                << " sd=" << value_
+                << " N=" << (it != res.end() ? it->second.size() : 0) << std::endl;
+#endif
       ttree_->Fill();
     }
   };
@@ -501,6 +643,44 @@ void SimpleTrackValidation::endJob() {
   fillResolution(resD0_,  binsEtaPhi_, kCoord::D0);
   fillResolution(resDZ_,  binsEtaPhi_, kCoord::DZ);
 
+  // --------------------------------------------------------------------
+  // NEW: Build and fill the separate 'Counts' tree once
+  // --------------------------------------------------------------------
+  ptCenters_.clear();  ptCounts_.clear();
+  etaCenters_.clear(); etaCounts_.clear();
+  phiCenters_.clear(); phiCounts_.clear();
+  nHitsValues_.clear(); nHitsCounts_.clear();
+
+  for (int i = 0; i < static_cast<int>(fakePtDen_.size()); ++i) {
+    const float c = 0.5f * static_cast<float>(binsPt_[i] + binsPt_[i + 1]);
+    ptCenters_.push_back(c);
+    ptCounts_.push_back(static_cast<float>(fakePtDen_[i]));
+  }
+  for (int i = 0; i < static_cast<int>(fakeEtaDen_.size()); ++i) {
+    const float c = 0.5f * static_cast<float>(binsEtaPhi_[i] + binsEtaPhi_[i + 1]);
+    etaCenters_.push_back(c);
+    etaCounts_.push_back(static_cast<float>(fakeEtaDen_[i]));
+  }
+  for (int i = 0; i < static_cast<int>(fakePhiDen_.size()); ++i) {
+    const float c = 0.5f * static_cast<float>(binsEtaPhi_[i] + binsEtaPhi_[i + 1]);
+    phiCenters_.push_back(c);
+    phiCounts_.push_back(static_cast<float>(fakePhiDen_[i]));
+  }
+  for (auto const& kv : cntNHits_) {
+    nHitsValues_.push_back(static_cast<float>(kv.first));
+    nHitsCounts_.push_back(static_cast<float>(kv.second));
+  }
+
+#ifdef GPU_DEBUG
+  std::cout << "[endJob] Filling Counts tree: "
+            << "ptBins=" << ptCenters_.size()
+            << " etaBins=" << etaCenters_.size()
+            << " phiBins=" << phiCenters_.size()
+            << " nHitsVals=" << nHitsValues_.size() << std::endl;
+#endif
+
+  tcounts_->Fill();
+
   std::cout << "=====================================\n";
   std::cout << "Matched   tracks: " << trueTracks_ << "\n";
   std::cout << "Fake      tracks: " << fakeTracks_ << "\n";
@@ -509,8 +689,13 @@ void SimpleTrackValidation::endJob() {
   std::cout << "Validation written to: " << outputFileName_ << "\n";
 
   outFile_->cd();
-  ttree_->Write();
+  ttree_->Write();     // main 'Validation'
+  tcounts_->Write();   // new  'Counts'
   outFile_->Close();  
+
+#ifdef GPU_DEBUG
+  std::cout << "[endJob] ROOT file closed." << std::endl;
+#endif
 }
 
 // =======================================================================================

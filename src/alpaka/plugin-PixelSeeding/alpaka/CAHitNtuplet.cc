@@ -111,7 +111,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // const ::reco::FormulaEvaluator maxNumberOfDoublets_; //TODO TFormula
     // const ::reco::FormulaEvaluator maxNumberOfTuples_;
     const uint32_t maxNumberOfDoublets_ = 0;
-    const uint32_t maxNumberOfTuples_ = 0;                                
+    const uint32_t maxNumberOfTuples_ = 0;
     Algo deviceAlgo_;
   };
 
@@ -147,7 +147,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TrackerTraits>
   void CAHitNtuplet<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es) {
-    auto bf = 0.0114256972711507; //1. / es.getData(tokenField_).inverseBzAtOriginInGeV();
 
     auto const& hGeometry = es.get<::reco::CAGeometryHost>();//runCache()->get(iEvent.queue());
     auto const& phits = iEvent.get(tokenHit_);
@@ -180,7 +179,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   ctx.emplace(iEvent,
               tokenTrack_,
-              deviceAlgo_.makeTuplesAsync(hits, geometry, bf, maxDoublets, maxTuples, ctx.stream()));
+              deviceAlgo_.makeTuplesAsync(hits, geometry, maxDoublets, maxTuples, ctx.stream()));
 
 #ifdef GPU_DEBUG
   std::cout << "[CAHitNtuplet::GPU_DEBUG] Finished produce() successfully." << std::endl;

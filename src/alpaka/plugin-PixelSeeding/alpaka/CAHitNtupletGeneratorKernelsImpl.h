@@ -125,6 +125,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
         alpaka::atomicAdd(acc, &c.nEvents, 1ull, alpaka::hierarchy::Blocks{});
         alpaka::atomicAdd(acc, &c.nHits, static_cast<unsigned long long>(nHits), alpaka::hierarchy::Blocks{});
         alpaka::atomicAdd(acc, &c.nCells, static_cast<unsigned long long>(*nCells), alpaka::hierarchy::Blocks{});
+        alpaka::atomicAdd(acc, &c.nCellTracks, static_cast<unsigned long long>(*nCellTracks), alpaka::hierarchy::Blocks{});
+        alpaka::atomicAdd(acc, &c.nTrips, static_cast<unsigned long long>(*nTrips), alpaka::hierarchy::Blocks{});
         alpaka::atomicAdd(
             acc, &c.nTuples, static_cast<unsigned long long>(apc->get().first), alpaka::hierarchy::Blocks{});
         alpaka::atomicAdd(acc,
@@ -1093,12 +1095,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
     ALPAKA_FN_ACC void operator()(Acc1D const &acc, Counters const *counters) const {
       auto const &c = *counters;
       printf(
-          "||Counters | nEvents | nHits | nCells | nTuples | nFitTacks  |  nLooseTracks  |  nGoodTracks | nUsedHits | "
+          "||Counters | nEvents | nHits | nCells | nTrips | nCellTracks | nTuples | nFitTacks  |  nLooseTracks  |  nGoodTracks | nUsedHits | "
           "nDupHits | nFishCells | nKilledCells | nUsedCells | nZeroTrackCells ||\n");
-      printf("Counters Raw %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+      printf("CAStats: %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
              c.nEvents,
              c.nHits,
              c.nCells,
+             c.nTrips,
+             c.nCellTracks,
              c.nTuples,
              c.nFitTracks,
              c.nLooseTracks,

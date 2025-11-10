@@ -36,6 +36,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       unsigned long long nHits;
       unsigned long long nCells;
       unsigned long long nTuples;
+      unsigned long long nTrips;
+      unsigned long long nCellTracks;
       unsigned long long nFitTracks;
       unsigned long long nLooseTracks;
       unsigned long long nGoodTracks;
@@ -59,6 +61,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       static constexpr AlgoParams defaultAlgoParams() {
       return {
+          3.8f, // bField
           // Container sizes
           5.0f,   // avgHitsPerTrack_
           25.0f,  // avgCellsPerHit_
@@ -95,6 +98,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       AlgoParams makeAlgoParams(edm::Config const& cfg) const {
         return {
+            static_cast<float>(cfg.value("BField", 3.8f)),
             // Container sizes
             static_cast<float>(cfg.value("avgHitsPerTrack", 5.0f)),
             static_cast<float>(cfg.value("avgCellsPerHit", 25.0f)),
@@ -204,6 +208,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       static constexpr AlgoParams defaultAlgoParams() {
       return {
+          3.8f, // bField
           // ---- Container sizes ----
           7.0f,   // avgHitsPerTrack_
           6.0f,   // avgCellsPerHit_
@@ -240,6 +245,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       AlgoParams makeAlgoParams(edm::Config const& cfg) const {
         return {
+            static_cast<float>(cfg.value("BField", 3.8f)),
             // ---- Container sizes ----
             static_cast<float>(cfg.value("avgHitsPerTrack", 7.0f)),
             static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),

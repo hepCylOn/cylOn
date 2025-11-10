@@ -418,7 +418,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   reco::TracksSoACollection CAHitNtupletGenerator<TrackerTraits>::makeTuplesAsync(HitsOnDevice const& hits_d,
                                                                                   CAGeometryOnDevice const& geometry_d,
-                                                                                  float bfield,
                                                                                   uint32_t nDoublets,
                                                                                   uint32_t nTracks,
                                                                                   Queue& queue) const {
@@ -428,7 +427,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using HitContainer = caStructures::HitContainerT<TrackerTraits>;
 
     const int32_t H = m_params.algoParams_.avgHitsPerTrack_;
-
+    const auto bfield = (m_params.algoParams_.bField_ * 0.29979246f ) / 100.f; // B field in GeV
+    std::cout << "Bfield = " << bfield << std::endl;
     reco::TracksSoACollection tracks({{int(nTracks), int(nTracks * H)}}, queue);
 
     // Don't bother if less than 2 this

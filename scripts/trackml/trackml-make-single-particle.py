@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Skim TrackML events to a single particle (and its hits), per event.
-Adds a requirement on the number of hits in specified "pixel" volumes.
+Converts spatial coordinates read from CSVs (vx, vy, vz, x, y, z) from mm -> cm.
+Binary files are assumed already consistent; no conversion is applied to bins.
 
 Default cuts:
   - pt in (10, 100)
-  - sqrt(vx^2 + vy^2) <= 0.05
+  - sqrt(vx^2 + vy^2) <= 0.05   # in cm after conversion
   - q != 0
   - >= 3 hits in volumes {7, 8, 9}
 
@@ -33,6 +34,8 @@ SPECIES_TO_PDG: Dict[str, int] = {
     "muon": 13, "mu-": 13, "anti-muon": -13, "mu+": -13,
     "pion": 211, "pi+": 211, "anti-pion": -211, "pi-": -211,
 }
+
+MM_TO_CM = 0.1  # apply only when reading CSVs
 
 def parse_species(spec: Optional[str]) -> Optional[int]:
     if not spec:
@@ -85,14 +88,16 @@ def select_particle(particles: pd.DataFrame,
                     hits: pd.DataFrame,
                     pt_min: float,
                     pt_max: float,
-                    vtx_max: float,
+                    vtx_max_cm: float,
                     species_pdg: Optional[int],
                     pixel_vols: Set[int],
                     min_pixel_hits: int) -> pd.Series:
-    """Return a single row (Series) for the chosen particle satisfying all cuts."""
+    """Return a single row (Series) for the chosen particle satisfying all cuts.
+       NOTE: particles (vx,vy,vz) and hits (x,y,z) have been converted to cm already.
+    """
     particles = particles.copy()
-    particles["pt"] = np.sqrt(particles["px"]**2 + particles["py"]**2)
-    particles["rt"] = np.sqrt(particles["vx"]**2 + particles["vy"]**2)
+    particles["pt"] = np.sqrt(particles["px"]**2 + particles["py"]**2)  # momenta unchanged
+    particles["rt"] = np.sqrt(particles["vx"]**2 + particles["vy"]**2)  # cm
 
     # Attach per-particle pixel hit counts
     pix_counts = pixel_hit_counts_per_particle(truth, hits, pixel_vols)
@@ -105,7 +110,7 @@ def select_particle(particles: pd.DataFrame,
     mask = (
         (particles["pt"] > pt_min) &
         (particles["pt"] < pt_max) &
-        (particles["rt"] <= vtx_max) &
+        (particles["rt"] <= vtx_max_cm) &
         (particles["q"] != 0) &
         (particles["pixel_hits"] >= min_pixel_hits)
     )
@@ -163,7 +168,7 @@ def run_binary_builder(builder_path: Path,
     subprocess.run(cmd, check=True)
 
 def main():
-    ap = argparse.ArgumentParser(description="Skim TrackML events to a single particle and its hits; optionally build binaries.")
+    ap = argparse.ArgumentParser(description="Skim TrackML events to a single particle and its hits; optionally build binaries. Converts CSV spatial coords mm -> cm on read.")
     ap.add_argument("--inputdir", default="data/trackml/", help="Directory containing TrackML CSVs.")
     ap.add_argument("--outdir", default=None, help="Output directory. Default: data/trackml/single_{species}/")
     ap.add_argument("--pattern", default="", help="Comma-separated list or glob(s) like 'event000001005,event000001006' or 'event0000010*'. If empty, processes all 'event*-particles.csv'.")
@@ -171,7 +176,7 @@ def main():
                     help="One of: electron, anti-electron (positron), muon, anti-muon, pion, anti-pion.")
     ap.add_argument("--pt-min", type=float, default=10.0)
     ap.add_argument("--pt-max", type=float, default=100.0)
-    ap.add_argument("--vtx-max", type=float, default=0.05, help="Transverse vertex cut on sqrt(vx^2+vy^2). Same units as input CSVs.")
+    ap.add_argument("--vtx-max", type=float, default=0.05, help="Transverse vertex cut on sqrt(vx^2+vy^2), in cm (CSV values converted mm->cm on read).")
     ap.add_argument("--pixel-volumes", default="7,8,9", help="Comma/space-separated list of volume_ids considered 'pixel'.")
     ap.add_argument("--min-pixel-hits", type=int, default=3, help="Require at least this many hits in the pixel volumes.")
     ap.add_argument("--make-binaries", action="store_true", help="If set, invoke your binary builder on the skimmed files.")
@@ -206,12 +211,22 @@ def main():
     print(f"[skim] Output: {outdir}")
     print(f"[skim] Events to process: {len(events)}")
     print(f"[skim] Pixel volumes: {sorted(pixel_vols)} (min hits: {args.min_pixel_hits})")
+    print(f"[skim] NOTE: Converting CSV spatial coords mm -> cm on read; outputs will be in cm.")
 
     selected_summary = []
     for event_id, p_csv, t_csv, h_csv in events:
         particles = pd.read_csv(p_csv)
         truth = pd.read_csv(t_csv)
         hits = pd.read_csv(h_csv)
+
+        # ---- convert spatial coordinates mm -> cm on read ----
+        for c in ("vx","vy","vz"):
+            if c in particles.columns:
+                particles[c] = particles[c] * MM_TO_CM
+        for c in ("x","y","z"):
+            if c in hits.columns:
+                hits[c] = hits[c] * MM_TO_CM
+        # ------------------------------------------------------
 
         try:
             row = select_particle(particles, truth, hits,
@@ -237,6 +252,7 @@ def main():
             "particles_csv": str(p_out),
             "truth_csv": str(t_out),
             "hits_csv": str(h_out),
+            "units": "cm"
         }
         pdg_col = detect_pdg_column(particles)
         if pdg_col and pdg_col in row:
@@ -245,7 +261,7 @@ def main():
 
         print(f"[ok] {event_id}: particle_id={sel['particle_id']} pt={sel['pt']:.2f} q={sel['q']} nhits={sel['nhits']} pixel_hits={sel['pixel_hits']}")
 
-    # Optionally build binaries once at the end (your pattern-forwarding behaviour)
+    # Optionally build binaries once at the end
     if args.make_binaries:
         builder = Path(args.binary_builder).resolve()
         if not builder.exists():

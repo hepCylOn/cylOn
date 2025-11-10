@@ -154,6 +154,10 @@ def main():
                     help="Optional existing config to merge the ES block into (other keys preserved)")
     args = ap.parse_args()
 
+    # ---- units -----------------------------------------------------------
+    MM_TO_CM = 0.1
+    # ---------------------------------------------------------------------
+
     outbin = args.outbin
     outjson = args.outjson
     selected_vols = resolve_volumes(args.volumes)
@@ -194,8 +198,15 @@ def main():
         pick(det, ["rot_zw","rot33","rzz"]),
     ]
 
+    # ---- convert detector centers mm -> cm -------------------------------
+    det[cx] = det[cx] * MM_TO_CM
+    det[cy] = det[cy] * MM_TO_CM
+    det[cz] = det[cz] * MM_TO_CM
+    # rotations are unitless; leave rot_cols unchanged
+    # ---------------------------------------------------------------------
+
     # ------------------------------
-    # Write CAModules binary
+    # Write CAModules binary  (now in cm)
     # ------------------------------
     n_modules = len(det)
     with open(outbin, "wb") as f:
@@ -203,15 +214,15 @@ def main():
         for _, r in det.iterrows():
             vals = [r[cx], r[cy], r[cz]] + [r[c] for c in rot_cols]
             np.asarray(vals, dtype=np.float32).tofile(f)
-    print(f"[OK] CAModules: {n_modules} modules → {outbin}")
+    print(f"[OK] CAModules (cm): {n_modules} modules → {outbin}")
 
     outdir = Path(outbin).parent
     bs_path = outdir / "BSZero.bin"
 
-    # the BS POD has 11 floats
+    # the BS POD has 11 floats (already zeros, units consistent with cm)
     with open(bs_path, "wb") as bf:
         np.zeros(11, dtype=np.float32).tofile(bf)
-    print(f"[OK] BeamSpotPOD (all zeros) → {bs_path}")
+    print(f"[OK] BeamSpotPOD (all zeros, cm) → {bs_path}")
 
     # ------------------------------
     # Build layerStarts (layers = unique (volume_id, layer_id))
@@ -232,15 +243,25 @@ def main():
         h = pd.read_csv(hf)
         if selected_vols is not None:
             h = h[h["volume_id"].isin(selected_vols)].copy()
+
+        # ---- convert hit coordinates mm -> cm ---------------------------
+        for c in ("x","y","z"):
+            if c in h.columns:
+                h[c] = h[c] * MM_TO_CM
+        # ----------------------------------------------------------------
+
         hits_list.append(h)
     hits = pd.concat(hits_list, ignore_index=True)
-    # coordinates are in mm
+
+    # coordinates now in cm
     hits["R"] = np.sqrt(hits["x"]**2 + hits["y"]**2)
 
     # ------------------------------
-    # Build layer boxes from hits per (volume_id, layer_id) with padding ±5 mm
+    # Build layer boxes from hits per (volume_id, layer_id) with padding ±5 mm = 0.5 cm
     # ------------------------------
-    pad = 5.0  # mm
+    pad_mm = 5.0
+    pad = pad_mm * MM_TO_CM   # cm
+
     layer_keys = sorted(hits.groupby(["volume_id", "layer_id"]).groups.keys())
     layer_to_idx = {key: i for i, key in enumerate(layer_keys)}
 
@@ -250,6 +271,7 @@ def main():
         sel = hits[(hits["volume_id"] == v) & (hits["layer_id"] == L)]
         if sel.empty:
             continue
+        # min/max now in cm, pad also in cm
         minZ, maxZ = sel["z"].min() - pad, sel["z"].max() + pad
         minR, maxR = sel["R"].min() - pad, sel["R"].max() + pad
         box_rows.append({
@@ -302,13 +324,14 @@ def main():
             "volumes": chosen_volume_names,
             "skipConnections": bool(args.skip_connections),
             "minSeqBoxes": int(args.min_cells),
+            "units": "cm"
         },
         "sweep": [{"theta_deg": float(a), "seq_box_ids": [int(b) for b in seq]}
                   for (a, seq) in sequences]
     }
     with open(outjson, "w") as jf:
         json.dump(combined, jf, indent=2)
-    print(f"[OK] Combined layer+pairs JSON → {outjson} "
+    print(f"[OK] Combined layer+pairs JSON (cm) → {outjson} "
           f"(layers={combined['nLayers']}, pairs={len(pairs)}, starting={combined['startingPair']})")
 
     # ------------------------------
@@ -326,24 +349,23 @@ def main():
         layer_maxZ = boxes_sorted["maxZ"].to_numpy()
         layer_maxR = boxes_sorted["maxR"].to_numpy()
 
-        # Derive per-pair windows (envelopes of connected boxes)
+        # Derive per-pair windows (envelopes of connected boxes) -- in cm
         minZ_arr = np.empty(nPairs, dtype=np.float32)
         maxZ_arr = np.empty(nPairs, dtype=np.float32)
         maxR_arr = np.empty(nPairs, dtype=np.float32)
         for i, (u, v) in enumerate(pairs):
             minZ_arr[i] = float(min(layer_minZ[u], layer_minZ[v]))
-            maxZ_arr[i] = float(max(layer_maxZ[u], layer_maxZ[v]))
-            maxR_arr[i] = float(max(layer_maxR[u], layer_maxR[v]))
+            maxZ_arr[i] = float(max(layer_maxZ[u], layer_maxZ[v])) 
+            maxR_arr[i] = float(max(layer_maxR[u], layer_maxR[v])) 
 
         # Loose phi, theta, dca cuts
         phiCuts = np.full(nPairs, 600, dtype=np.int16)
-        thetaCuts = np.full(nLayers, 1.0, dtype=np.float)
-        dcaCuts = np.full(nLayers, 1.0, dtype=np.float)
+        thetaCuts = np.full(len(layerStarts) - 1, 1.0, dtype=float)
+        dcaCuts = np.full(len(layerStarts) - 1, 1.0, dtype=float)
         assert(len(pairGraph) == 2 * nPairs)
         assert(len(startingPair) <= nPairs)
-        assert(max(startingPair) < nPairs)
-        assert(len(minZ_arr) == nPairs  and len(maxZ_arr) == nPairs  and len(maxR_arr) == nPairs)
-        assert(len(layerStarts) == nLayers + 1)
+        assert(nPairs == len(minZ_arr) == len(maxZ_arr) == len(maxR_arr))
+        assert(len(layerStarts) == (len(thetaCuts) + 1) == (len(dcaCuts) + 1))
         
         es_block = {}
         es_block["BeamSpotESProducer"] = {
@@ -371,10 +393,10 @@ def main():
 
             "minHitsPerNtuplet": 3,
             "minHitsForSharingCut": 10,
-            "ptmin": 0.9,
+            "ptmin": 1.0,
             "hardCurvCut": 0.0328407225,
             "cellZ0Cut": 7.5,
-            "cellPtCut": 0.85,
+            "cellPtCut": 1.0,
 
             "dzdrFact": 15.2,
             "minYsizeB1": -1,
@@ -430,7 +452,7 @@ def main():
         print(f"[OK] ESProducer config → {args.es_config_out}")
 
     # ------------------------------
-    # Plots
+    # Plots (now in cm)
     # ------------------------------
     # 1) Z–R with hits color-coded by layer
     plt.figure(figsize=(8, 8))
@@ -440,9 +462,9 @@ def main():
         plt.plot([b.minZ, b.maxZ, b.maxZ, b.minZ, b.minZ],
                  [b.minR, b.minR, b.maxR, b.maxR, b.minR],
                  "r-", linewidth=1.0, alpha=0.7)
-    plt.xlabel("Z [mm]")
-    plt.ylabel("R = sqrt(X^2 + Y^2) [mm]")
-    plt.title("Hits in Z–R colored by layer")
+    plt.xlabel("Z [cm]")
+    plt.ylabel("R = sqrt(X^2 + Y^2) [cm]")
+    plt.title("Hits in Z–R (cm) colored by layer")
     plt.grid(True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     plt.savefig(args.zr_png, dpi=160)
@@ -476,9 +498,9 @@ def main():
         plt.scatter([z0], [r0], s=40, c="C0", zorder=3)
         plt.text(z0, r0, f"V{k[0]}-L{k[1]}", fontsize=7, ha="left", va="bottom")
 
-    plt.xlabel("Z [mm]")
-    plt.ylabel("R [mm]")
-    plt.title(f"Layer pair graph in Z–R (η sweep ±{args.eta}, step={args.angle_step}°, "
+    plt.xlabel("Z [cm]")
+    plt.ylabel("R [cm]")
+    plt.title(f"Layer pair graph in Z–R (cm) (η sweep ±{args.eta}, step={args.angle_step}°, "
               f"min-seq={args.min_cells}" +
               (", skip-1" if args.skip_connections else "") + ")")
     plt.grid(True, linestyle="--", alpha=0.4)

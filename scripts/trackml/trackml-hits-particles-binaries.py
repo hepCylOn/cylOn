@@ -2,17 +2,25 @@
 """
 Build SoA-compatible merged binaries (particles / hits / map) from TrackML CSVs.
 
-- Particles -> PAR1 header + uint32 nEvents + [ per-event: uint32 n + columns ]
+Unit policy:
+- CSV inputs (TrackML): spatial coordinates (vx, vy, vz, x, y, z) are in **mm**.
+- This script converts those spatial coordinates to **cm** on write.
+- Momenta (px, py, pz) are left unchanged (GeV/c).
+- Geometry pitches (pitch_u, pitch_v) are read in **mm** and converted to **cm** for per-hit errors.
+- Existing binary format is assumed cm-consistent; we just ensure conversions happen once here.
+
+Outputs:
+- Particles -> PAR1 header + uint32 nEvents + [ per-event: uint32 n + columns (vx,vy,vz,... in cm) ]
 - Hits      -> TRH1 header + uint32 nEvents + [ per-event: (nHits,u32) (nModules,u32) moduleStart[...] + 13 columns ]
 - Map       -> MAP1 header + uint32 nEvents + [ per-event: uint32 n + ids ]
 
 Usage example:
-  python3 trackml-hits-particles-binaries.py \
+  python3 trackml_hits_particles_binaries_cm.py \
     --indir data/trackml \
     --outdir data/trackml \
     --modules data/trackml/detectors.csv \
     --pattern "event000001*" \
-    --volumes pixel strip_short \
+    --volumes pixel strip_short
 """
 
 import argparse
@@ -21,7 +29,10 @@ import numpy as np
 import pandas as pd
 import struct
 import sys
+import math
+from typing import Dict, Tuple
 
+from tqdm import tqdm
 FORMAT_VERSION = 1
 ENDIANNESS = 0x01020304
 MAGIC = {
@@ -30,20 +41,17 @@ MAGIC = {
     "map": b"MAP1",
 }
 
+MM_TO_CM = np.float32(0.1)
+
 def write_header(f, tag: str):
-    """Write 4B magic + uint32 version + uint32 endian marker + placeholder nEvents."""
     f.write(MAGIC[tag])
     f.write(struct.pack("<I", FORMAT_VERSION))
     f.write(struct.pack("<I", ENDIANNESS))
-    # reserve space for nEvents (uint32), will patch later
-    f.write(struct.pack("<I", 0))
+    f.write(struct.pack("<I", 0))  # nEvents placeholder
 
 def patch_nevents(f, n_events: int):
-    """Seek to nEvents slot and patch it."""
-    # magic(4) + version(4) + endian(4) = 12, nEvents at offset 12
     f.seek(12)
     f.write(struct.pack("<I", np.uint32(n_events)))
-    # return to end for good measure if caller keeps writing (usually we're done)
     f.seek(0, 2)
 
 # ============================================================
@@ -56,9 +64,8 @@ VOLUME_SETS = {
 }
 
 def resolve_volumes(volume_names):
-    """Return a set of volume_ids to keep, or None if no filter."""
     if not volume_names:
-        return None  # no selection
+        return None
     vol_ids = set()
     for name in volume_names:
         if name not in VOLUME_SETS:
@@ -71,12 +78,13 @@ def resolve_volumes(volume_names):
 # ============================================================
 # Geometry helpers
 # ============================================================
-def build_module_index(geom_df: pd.DataFrame):
+def build_module_index(geom_df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[Tuple[int,int,int], int]]:
     """
-    Build mapping: (volume_id, layer_id, module_id) -> module_index (0..nModules-1).
-    Rows must correspond to unique modules.
+    Build mapping: (volume_id, layer_id, module_id) -> module_index (0..nModules-1)
+    and return a geometry table carrying per-module pitches.
+    Required columns: volume_id, layer_id, module_id, pitch_u, pitch_v (pitches in mm).
     """
-    needed = {"volume_id", "layer_id", "module_id"}
+    needed = {"volume_id", "layer_id", "module_id", "pitch_u", "pitch_v"}
     if not needed.issubset(geom_df.columns):
         missing = needed - set(geom_df.columns)
         raise RuntimeError(f"detectors.csv missing columns: {sorted(missing)}")
@@ -88,10 +96,30 @@ def build_module_index(geom_df: pd.DataFrame):
                   for _, r in g.iterrows()}
     return g, module_map
 
+def per_module_local_errors_cm(geom_df_sorted: pd.DataFrame):
+    """
+    Compute per-module (sigmaU, sigmaV) in cm from pitch_u/pitch_v (in mm):
+      sigma = (pitch / 2) / sqrt(12)
+    Then convert mm -> cm (×0.1).
+    Returns two float32 arrays of length nModules: sigmaU_cm, sigmaV_cm.
+    """
+    pitch_u_mm = geom_df_sorted["pitch_u"].to_numpy(dtype=np.float32)
+    pitch_v_mm = geom_df_sorted["pitch_v"].to_numpy(dtype=np.float32)
+
+    # sigma = half pitch / sqrt(12)
+    denom = np.float32(math.sqrt(12.0))
+    sigmaU_mm = (pitch_u_mm * 0.5) / denom
+    sigmaV_mm = (pitch_v_mm * 0.5) / denom
+
+    sigmaU_cm = (sigmaU_mm * MM_TO_CM).astype(np.float32)
+    sigmaV_cm = (sigmaV_mm * MM_TO_CM).astype(np.float32)
+
+    # Guard: any NaN/inf -> 0
+    sigmaU_cm = np.nan_to_num(sigmaU_cm, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+    sigmaV_cm = np.nan_to_num(sigmaV_cm, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+    return sigmaU_cm, sigmaV_cm
+
 def assign_modules_to_hits(hits_df: pd.DataFrame, module_map: dict, n_modules: int):
-    """
-    Add 'module_index' column to hits_df from (volume_id, layer_id, module_id).
-    """
     needed = {"hit_id", "x", "y", "z", "volume_id", "layer_id", "module_id"}
     if not needed.issubset(hits_df.columns):
         missing = needed - set(hits_df.columns)
@@ -120,9 +148,6 @@ def assign_modules_to_hits(hits_df: pd.DataFrame, module_map: dict, n_modules: i
     return h
 
 def build_module_start(hits_sorted_by_module: pd.DataFrame, n_modules: int):
-    """
-    Given hits sorted by module_index, build moduleStart of size (n_modules+1).
-    """
     counts = np.bincount(
         hits_sorted_by_module["module_index"].to_numpy(), minlength=n_modules
     ).astype(np.uint32)
@@ -134,7 +159,6 @@ def build_module_start(hits_sorted_by_module: pd.DataFrame, n_modules: int):
 # Physics helpers
 # ============================================================
 def compute_kinematics(df: pd.DataFrame):
-    """Compute pt, eta, phi, energy (|p|), mass=0 for the particles."""
     px = df["px"].to_numpy()
     py = df["py"].to_numpy()
     pz = df["pz"].to_numpy()
@@ -158,48 +182,55 @@ def compute_kinematics(df: pd.DataFrame):
 # Streaming writers (per-event chunks into open files)
 # ============================================================
 def write_particles_chunk(f, parts_df: pd.DataFrame):
-    """Append one event's particles block: uint32 n + column blocks."""
     df = parts_df.sort_values("particle_id").reset_index(drop=True)
     n = len(df)
     need = {"particle_id", "vx", "vy", "vz", "px", "py", "pz", "q"}
     if not need.issubset(df.columns):
-      missing = need - set(df.columns)
-      raise RuntimeError(f"particles.csv missing columns: {sorted(missing)}")
+        missing = need - set(df.columns)
+        raise RuntimeError(f"particles.csv missing columns: {sorted(missing)}")
+
+    # Convert spatial coordinates from mm -> cm in-memory
+    for c in ("vx", "vy", "vz"):
+        df[c] = df[c].astype(np.float32) * MM_TO_CM
 
     compute_kinematics(df)
     f.write(struct.pack("<I", np.uint32(n)))
 
-    # floats (f32)
     cols_f32 = [
-        "vx", "vy", "vz",
-        "px", "py", "pz", "energy",
+        "vx", "vy", "vz",               # now in cm
+        "px", "py", "pz", "energy",     # momenta/energy unchanged
         "pt", "eta", "phi", "mass",
     ]
     for c in cols_f32:
         df[c].to_numpy(dtype=np.float32).tofile(f)
 
-    # charge int16
     df["q"].to_numpy(dtype=np.int16).tofile(f)
-    # pdgID int32 -> unknown here => zeros
-    np.zeros(n, dtype=np.int32).tofile(f)
-    # partInd uint32 -> 0..n-1
-    np.arange(n, dtype=np.uint32).tofile(f)
+    np.zeros(n, dtype=np.int32).tofile(f)           # pdgId (unknown -> 0)
+    np.arange(n, dtype=np.uint32).tofile(f)         # partInd (0..n-1)
 
-    # return mapping info for map stage
     return np.arange(n, dtype=np.uint32), df["particle_id"].to_numpy(dtype=np.int64)
 
-def write_hits_chunk(f, hits_df: pd.DataFrame, n_modules: int):
+def write_hits_chunk(
+    f,
+    hits_df: pd.DataFrame,
+    n_modules: int,
+    sigmaU_cm_per_module: np.ndarray,
+    sigmaV_cm_per_module: np.ndarray,
+):
     """
     Append one event's hits block:
       uint32 nHits, uint32 nModules, moduleStart[nModules+1], then 13 column arrays.
+    xerrLocal / yerrLocal are filled from per-module pitch-derived sigmas (in cm).
     """
     h = hits_df.sort_values(["module_index", "hit_id"]).reset_index(drop=True)
     n_hits = len(h)
 
-    x = h["x"].to_numpy(dtype=np.float32)
-    y = h["y"].to_numpy(dtype=np.float32)
-    z = h["z"].to_numpy(dtype=np.float32)
+    # Convert global positions from mm -> cm
+    x = (h["x"].to_numpy(dtype=np.float32) * MM_TO_CM).astype(np.float32)
+    y = (h["y"].to_numpy(dtype=np.float32) * MM_TO_CM).astype(np.float32)
+    z = (h["z"].to_numpy(dtype=np.float32) * MM_TO_CM).astype(np.float32)
     r = np.sqrt(x**2 + y**2).astype(np.float32)
+
     det = h["module_index"].to_numpy(dtype=np.uint16)
     module_start = build_module_start(h, n_modules)
 
@@ -207,16 +238,26 @@ def write_hits_chunk(f, hits_df: pd.DataFrame, n_modules: int):
     zeros_i16 = np.zeros(n_hits, dtype=np.int16)
     zeros_u32 = np.zeros(n_hits, dtype=np.uint32)
 
+    # Map per-hit via detectorIndex
+    xerrLocal = sigmaU_cm_per_module[det.astype(np.int32)].astype(np.float32)
+    yerrLocal = sigmaV_cm_per_module[det.astype(np.int32)].astype(np.float32)
+
     # per-event header
     f.write(struct.pack("<II", np.uint32(n_hits), np.uint32(n_modules)))
     module_start.tofile(f)
 
-    # xLocal, yLocal, xerrLocal, yerrLocal
-    for _ in range(4):
-        zeros_f.tofile(f)
-    # xGlobal, yGlobal, zGlobal, rGlobal (float32)
+    # xLocal, yLocal (unknown): keep zeros
+    zeros_f.tofile(f)  # xLocal
+    zeros_f.tofile(f)  # yLocal
+
+    # xerrLocal, yerrLocal (now filled, in cm)
+    xerrLocal.tofile(f)
+    yerrLocal.tofile(f)
+
+    # xGlobal, yGlobal, zGlobal, rGlobal (float32, in cm)
     for arr in (x, y, z, r):
         arr.tofile(f)
+
     # iphi (int16)
     zeros_i16.tofile(f)
 
@@ -236,10 +277,6 @@ def write_map_chunk(f, truth_df: pd.DataFrame,
                     hits_sorted: pd.DataFrame,
                     particle_ids_sorted: np.ndarray,
                     partInd_sorted: np.ndarray):
-    """
-    Append one event's map block:
-      uint32 nEntries + ids[uint32].
-    """
     need = {"hit_id", "particle_id"}
     if not need.issubset(truth_df.columns):
         missing = need - set(truth_df.columns)
@@ -269,7 +306,7 @@ def write_map_chunk(f, truth_df: pd.DataFrame,
 # ============================================================
 def main():
     p = argparse.ArgumentParser(
-        description="Create merged SoA-compatible binaries (particles, hits, map) from TrackML CSVs."
+        description="Create merged SoA-compatible binaries (particles, hits, map) from TrackML CSVs; converts CSV spatial coords mm->cm on write."
     )
     p.add_argument("--indir", default="data/trackml/",
                    help="Input directory with *-truth.csv, *-particles.csv, *-hits.csv")
@@ -282,6 +319,7 @@ def main():
     p.add_argument("--volumes", nargs="*",
                    help="Subset of detector volumes to use: pixel, strip_short, strip_long. "
                         "Multiple allowed. If omitted, all volumes are used.")
+    p.add_argument("--max-events", type=int, default=100)
     args = p.parse_args()
 
     indir = Path(args.indir)
@@ -301,9 +339,12 @@ def main():
     if geom_df.empty:
         raise RuntimeError("No modules left after applying volume filter!")
 
-    geom_df, module_map = build_module_index(geom_df)
-    n_modules = int(len(geom_df))
-    print(f"[INFO] Geometry: {n_modules} modules after volume filter.")
+    geom_df_sorted, module_map = build_module_index(geom_df)
+    n_modules = int(len(geom_df_sorted))
+    print(f"[INFO] Geometry: {n_modules} modules after volume filter. (pitches in mm, errors converted to cm)")
+
+    # Per-module local errors (cm) from pitch_u/pitch_v [mm]
+    sigmaU_cm_per_module, sigmaV_cm_per_module = per_module_local_errors_cm(geom_df_sorted)
 
     # --- Prepare merged output files and write headers with placeholder nEvents ---
     parts_path = outdir / "particles.bin"
@@ -319,7 +360,12 @@ def main():
         write_header(map_f,   "map")
 
         n_evt = 0
-        for truth_path in sorted(indir.glob(f"{args.pattern}-truth.csv")):
+        sorted_files = sorted(indir.glob(f"{args.pattern}-truth.csv"))
+        maxEv = min(len(sorted_files),args.max_events)
+        for ip in tqdm(range(maxEv),desc="Events conversion:"):
+            truth_path = sorted_files[ip]
+            if n_evt > args.max_events:
+                continue
             prefix = truth_path.stem.replace("-truth", "")
             part_path = indir / f"{prefix}-particles.csv"
             hit_path  = indir / f"{prefix}-hits.csv"
@@ -328,12 +374,10 @@ def main():
                 print(f"[WARN] Skipping {prefix}: missing particles or hits CSV")
                 continue
 
-            print(f"\n[EVENT] {prefix}")
             truth_df = pd.read_csv(truth_path)
             parts_df = pd.read_csv(part_path)
             hits_df  = pd.read_csv(hit_path)
 
-            # Apply the *same* volume filter to hits as used for geometry
             if selected_vols is not None:
                 hits_df = hits_df[hits_df["volume_id"].isin(selected_vols)].copy()
 
@@ -341,14 +385,20 @@ def main():
                 print(f"[WARN] Event {prefix}: no hits left after volume filter, skipping.")
                 continue
 
-            # Particles (independent of volumes)
+            # Particles (convert spatial coords mm->cm)
             partInd, part_ids = write_particles_chunk(parts_f, parts_df)
 
             # Assign module indices to hits via geometry mapping
             hits_with_idx = assign_modules_to_hits(hits_df, module_map, n_modules)
 
-            # Hits + moduleStart
-            hits_sorted = write_hits_chunk(hits_f, hits_with_idx, n_modules)
+            # Hits + moduleStart (+ local errors from pitches, in cm). Converts x,y,z mm->cm.
+            hits_sorted = write_hits_chunk(
+                hits_f,
+                hits_with_idx,
+                n_modules,
+                sigmaU_cm_per_module,
+                sigmaV_cm_per_module,
+            )
 
             # Map (truth association -> particle index)
             write_map_chunk(map_f, truth_df, hits_sorted, part_ids, partInd)
@@ -358,7 +408,6 @@ def main():
         if n_evt == 0:
             print("[WARN] No events processed — check your --pattern / directory.")
         else:
-            # patch nEvents into the three merged files
             patch_nevents(parts_f, n_evt)
             patch_nevents(hits_f,  n_evt)
             patch_nevents(map_f,   n_evt)
