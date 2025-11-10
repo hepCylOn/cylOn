@@ -336,7 +336,7 @@ def main():
             maxR_arr[i] = float(max(layer_maxR[u], layer_maxR[v]))
 
         # Loose phi, theta, dca cuts
-        phiCuts = np.full(nPairs, 1000, dtype=np.int16)
+        phiCuts = np.full(nPairs, 600, dtype=np.int16)
         thetaCuts = np.full(nLayers, 1.0, dtype=np.float)
         dcaCuts = np.full(nLayers, 1.0, dtype=np.float)
         assert(len(pairGraph) == 2 * nPairs)
@@ -350,7 +350,17 @@ def main():
             "data": str(bs_path)
         }
 
+        es_block["SimpleTrackValidation"] = {
+            "minPt": 1.0,
+            "maxEta": 3.5,
+            "nBins": 40,
+            "minHits": 4,
+            "trackPurity": 0.75,
+            "outputFile": "pixelTrackValidation_ntuple.root"
+        }
+
         es_block["CAHitNtupletUpgrade"] = {
+            "BField" : 2.0,
             "maxNumberOfDoublets": 10000000,
             "maxNumberOfTuples": 500000,
 
