@@ -39,8 +39,8 @@ namespace edm {
         fromHits_(fromHits) {
     
     
-    if(fromHits_ and validation_)
-     throw std::runtime_error("--fromHits and --validation can't work together (yet)");
+    // if(fromHits_ and validation_)
+    //  throw std::runtime_error("--fromHits and --validation can't work together (yet)");
     
     std::ifstream in_file;
       
@@ -63,22 +63,23 @@ namespace edm {
     std::ifstream in_map;
 
     if (validation_) {
-      digiClusterToken_ = reg.produces<DigiClusterCount>();
-      trackToken_ = reg.produces<TrackCount>();
-      vertexToken_ = reg.produces<VertexCount>();
+      // digiClusterToken_ = reg.produces<DigiClusterCount>();
+      // trackToken_ = reg.produces<TrackCount>();
+      // vertexToken_ = reg.produces<VertexCount>();
 
-      in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
-      in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
-      in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+      // in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
+      // in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
+      // in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
       in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
       in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
 
-      in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      // in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      // in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      // in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       
       particleToken_ = reg.produces<sim::ParticleHost>();
+      mapToken_ = reg.produces<utils::SimpleMapHost>();
     }
 
     if(not fromHits_)
@@ -110,11 +111,12 @@ namespace edm {
     }
     else
     {
+      std::cout << "Reading hits from " << (datadir / "hits.bin") << std::endl;
       hitReader::check_header(in_file);
       if (validation)
       {
         particleReader::check_header(in_particles);
-        hitReader::check_header(in_map);
+        mapReader::check_header(in_map);
       }
 
       int32_t nEventsP, nEventsH, nEventsM;
@@ -129,8 +131,8 @@ namespace edm {
 
       if(nEventsH != nEventsP or nEventsH != nEventsM)
         throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
-      assert(nEventsH == nEventsP);
-
+      maxEvents_ = (maxEvents_ < 0) ? nEventsH : std::min(maxEvents_, nEventsH);
+        
 #ifdef INPUT_DEBUG
       std::cout << "File contains " << nEventsH << " events\n";
 #endif
@@ -143,7 +145,10 @@ namespace edm {
         }
           
 #ifdef INPUT_DEBUG
-        std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
+        if (validation)
+          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
+        else
+          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
 #endif
       }
       if (!in_file.good() && !in_file.eof()) {
@@ -239,6 +244,7 @@ namespace edm {
     else if (validation_)
     {
       ev->emplace(particleToken_, std::move(particles_[index]));
+      ev->emplace(mapToken_, std::move(maps_[index]));
     }
 
     return ev;

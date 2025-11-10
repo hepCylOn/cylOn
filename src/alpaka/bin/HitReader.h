@@ -83,6 +83,7 @@ namespace hitReader {
   inline void check_header(std::ifstream& in) {
     char magic[4];
     in.read(magic, 4);
+	std::cout << magic << std::endl;
     if (std::memcmp(magic, kMagic, 4) != 0)
       throw std::runtime_error("Invalid file magic (not a TRH1 binary)");
 
@@ -139,19 +140,33 @@ namespace hitReader {
                 (nModules + 1) * sizeof(uint32_t));
 
     // Read hit columns sequentially (in the same order as written)
+    std::cout << "Reading hit columns for " << nHits << " hits" << std::endl;
     read_column(in, hitsView.xLocal().data(), nHits);
+    std::cout << "Read xLocal" << std::endl;
     read_column(in, hitsView.yLocal().data(), nHits);
+    std::cout << "Read yLocal" << std::endl;
     read_column(in, hitsView.xerrLocal().data(), nHits);
+    std::cout << "Read xerrLocal" << std::endl;
     read_column(in, hitsView.yerrLocal().data(), nHits);
+    std::cout << "Read yerrLocal" << std::endl;
     read_column(in, hitsView.xGlobal().data(), nHits);
+    std::cout << "Read xGlobal" << std::endl;
     read_column(in, hitsView.yGlobal().data(), nHits);
+    std::cout << "Read yGlobal" << std::endl;
     read_column(in, hitsView.zGlobal().data(), nHits);
+    std::cout << "Read zGlobal" << std::endl;
     read_column(in, hitsView.rGlobal().data(), nHits);
+    std::cout << "Read rGlobal" << std::endl;
     read_column(in, hitsView.iphi().data(), nHits);
+    std::cout << "Read iphi" << std::endl;
     read_column(in, hitsView.chargeAndStatus().data(), nHits);
+    std::cout << "Read chargeAndStatus" << std::endl;
     read_column(in, hitsView.clusterSizeX().data(), nHits);
+    std::cout << "Read clusterSizeX" << std::endl;
     read_column(in, hitsView.clusterSizeY().data(), nHits);
+    std::cout << "Read clusterSizeY" << std::endl;
     read_column(in, hitsView.detectorIndex().data(), nHits);
+    std::cout << "Read detectorIndex" << std::endl;
 
 #ifdef INPUT_DEBUG
     if (nHits > 0) {

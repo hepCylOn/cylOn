@@ -126,8 +126,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         tokenTrack_(reg.produces<cms::alpakatools::Product<Queue, TkSoADevice>>()),
         // maxNumberOfDoublets_(iConfig.getParameter<std::string>("maxNumberOfDoublets")),
         // maxNumberOfTuples_(iConfig.getParameter<std::string>("maxNumberOfTuples")),
-        maxNumberOfDoublets_(cfg.value("maxNumberOfDoublets", 500000)),
-        maxNumberOfTuples_(cfg.value("maxNumberOfTuples", 100000)),
+        maxNumberOfDoublets_(cfg.value("maxNumberOfDoublets", 5000000)),
+        maxNumberOfTuples_(cfg.value("maxNumberOfTuples", 500000)),
         deviceAlgo_(Params(cfg)) //default params
         // deviceAlgo_(iConfig) 
   {

@@ -9,8 +9,8 @@
 namespace pixelTopology {
 
   constexpr auto maxNumberOfLadders = 160;
-  constexpr uint8_t maxLayers = 28;
-  constexpr uint8_t maxPairs = 64;
+  constexpr uint8_t maxLayers = 60;
+  constexpr uint8_t maxPairs = 150;
 
   // TODO
   // Once CUDA is dropped this could be wrapped in #ifdef CA_TRIPLETS_HOLE
@@ -436,6 +436,8 @@ namespace pixelTopology {
 
     static constexpr uint8_t const *layerPairs = phase2PixelTopology::layerPairs;
     static constexpr int16_t const *phicuts = phase2PixelTopology::phicuts;
+    static constexpr float const *thetaCuts = phase2PixelTopology::thetaCuts;
+    static constexpr float const *dcaCuts = phase2PixelTopology::dcaCuts;
 
     static constexpr inline bool isBigPixX(uint16_t px) { return false; }
     static constexpr inline bool isBigPixY(uint16_t py) { return false; }
@@ -607,11 +609,23 @@ namespace pixelTopology {
 
   struct GenericUpgrade : public Phase2
   {
+    static constexpr uint32_t numberOfModules = 20000; // this is just a maximum when running from hits
+    static constexpr uint32_t numberOfLayers = 50;
     static constexpr uint32_t maxDepth = 30;
     static constexpr uint32_t maxHitsOnTrack = 30;
     static constexpr uint32_t maxHitsOnTrackForFullFit = 15;
 
     static constexpr char const *nameModifier = "Upgrade";
+
+    static constexpr uint32_t const *layerStart = phase2PixelTopology::layerStart;
+    static constexpr float const *minz = phase2PixelTopology::minz;
+    static constexpr float const *maxz = phase2PixelTopology::maxz;
+    static constexpr float const *maxr = phase2PixelTopology::maxr;
+
+    static constexpr uint8_t const *layerPairs = phase2PixelTopology::layerPairs;
+    static constexpr int16_t const *phicuts = phase2PixelTopology::phicuts;
+    static constexpr float const *thetaCuts = phase2PixelTopology::thetaCuts;
+    static constexpr float const *dcaCuts = phase2PixelTopology::dcaCuts;
   };
 
   template <typename T>

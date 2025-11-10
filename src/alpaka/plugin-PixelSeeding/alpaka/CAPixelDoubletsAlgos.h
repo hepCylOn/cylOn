@@ -314,7 +314,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
             continue;
 
           auto ind = alpaka::atomicAdd(acc, nCells, 1u, alpaka::hierarchy::Blocks{});
-          if (ind >= maxNumOfDoublets) {
+          if (ind >= maxNumOfDoublets or int(ind) >= outerHitHisto->capacity()) {
 #ifdef CA_WARNINGS
             printf("Warning!!!! Too many cells (limit = %d)!\n", maxNumOfDoublets);
 #endif

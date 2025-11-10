@@ -48,7 +48,7 @@ private:
   edm::EDGetTokenT<sim::ParticleHost> tSimpleParticles_;
   edm::EDGetTokenT<reco::TracksHost> tokenTracks_;
   edm::EDGetTokenT<reco::TrackingRecHitHost> tokenHits_;
-  edm::EDGetTokenT<ZVertexHost> tokenVertex_; //TODO: put me under reco::
+  // edm::EDGetTokenT<ZVertexHost> tokenVertex_; //TODO: put me under reco::
   edm::EDGetTokenT<utils::SimpleMapHost> tokenHitMap_;
 
   // === configuration (from JSON) ===
@@ -133,7 +133,7 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
     : tSimpleParticles_(reg.consumes<sim::ParticleHost>()),
       tokenTracks_(reg.consumes<reco::TracksHost>()),
       tokenHits_(reg.consumes<reco::TrackingRecHitHost>()),
-      tokenVertex_(reg.consumes<ZVertexHost>()),
+      // tokenVertex_(reg.consumes<ZVertexHost>()),
       tokenHitMap_(reg.consumes<utils::SimpleMapHost>()),
       minPt_(cfg.value("minPt", -1.0)),          
       maxEta_(cfg.value("maxEta", 999.)),
@@ -252,7 +252,7 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
 
   auto const& tracksHost   = iEvent.get(tokenTracks_);
   auto const& hitsHost     = iEvent.get(tokenHits_);
-  auto const& vertices     = iEvent.get(tokenVertex_); // currently unused
+  // auto const& vertices     = iEvent.get(tokenVertex_); // currently unused
   auto const& simpleParts  = iEvent.get(tSimpleParticles_);
   auto const& hitPartMap      = iEvent.get(tokenHitMap_); 
 

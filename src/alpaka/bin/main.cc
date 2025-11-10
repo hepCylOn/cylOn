@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
 
       // "portable" EDModules
       std::vector<std::string> edmodules;
@@ -306,14 +306,15 @@ int main(int argc, char** argv) {
 
       if (not dumpHits)
       {
-        edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-        edmodules.emplace_back(prefix + "PixelVertexPhase1");
+        edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
+        // edmodules.emplace_back(prefix + "PixelVertexPhase1");
         if (transfer) {
           edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+          // edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
         }
         if (validation) {
-          edmodules.emplace_back(prefix + "CountValidator");
+          // edmodules.emplace_back(prefix + "CountValidator");
+          edmodules.emplace_back("SimpleTrackValidation");
         }
         if (histogram) {
           edmodules.emplace_back(prefix + "HistoValidator");

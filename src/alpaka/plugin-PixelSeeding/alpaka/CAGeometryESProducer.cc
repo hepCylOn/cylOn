@@ -55,7 +55,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   thetaCuts_   = getVectorOrDefault("thetaCuts", TrackerTraits::thetaCuts, nLayers_);
   dcaCuts_     = getVectorOrDefault("dcaCuts", TrackerTraits::dcaCuts, nLayers_);
-  layerStarts_ = getVectorOrDefault("layerStarts", TrackerTraits::layerStart, nLayers_);
+  layerStarts_ = getVectorOrDefault("layerStarts", TrackerTraits::layerStart, nLayers_ + 1);
   phiCuts_     = getVectorOrDefault("phiCuts", TrackerTraits::phicuts, nPairs_);
   minZ_        = getVectorOrDefault("minZ", TrackerTraits::minz, nPairs_);
   maxZ_        = getVectorOrDefault("maxZ", TrackerTraits::maxz, nPairs_);
@@ -176,13 +176,12 @@ auto maxVal = std::ranges::max(startingPairs_);
     int nModulesInFile = 0;
     in.read(reinterpret_cast<char*>(&nModulesInFile), sizeof(int));
 
-    const int nModulesExpected = static_cast<int>(TrackerTraits::numberOfModules);
 
-    if (nModulesInFile < nModulesExpected) {
+    if (nModulesInFile < nModules_) {
       std::ostringstream msg;
       msg << "[CAGeometryHostESProducer ERROR] Module count mismatch when reading file:\n"
           << "  File: " << data_ << "\n"
-          << "  Expected (TrackerTraits::numberOfModules) = " << nModulesExpected << "\n"
+          << "  Expected (TrackerTraits::numberOfModules) = " << nModules_ << "\n"
           << "  Found in file = " << nModulesInFile << " (too few!)\n";
     #ifdef GPU_DEBUG
       std::cerr << msg.str();
@@ -190,20 +189,20 @@ auto maxVal = std::ranges::max(startingPairs_);
       throw std::runtime_error(msg.str());
     }
 
-    if (nModulesInFile > nModulesExpected) {
+    if (nModulesInFile > nModules_) {
       std::ostringstream msg;
       msg << "[CAGeometryHostESProducer WARNING] File contains more modules than expected.\n"
           << "  File: " << data_ << "\n"
-          << "  Expected = " << nModulesExpected << ", Found = " << nModulesInFile << "\n"
-          << "  Will load only the first " << nModulesExpected << " modules.\n";
+          << "  Expected = " << nModules_ << ", Found = " << nModulesInFile << "\n"
+          << "  Will load only the first " << nModules_ << " modules.\n";
     #ifdef GPU_DEBUG
       std::cerr << msg.str();
     #else
       // Print at least once even without GPU_DEBUG
       std::cerr << msg.str();
     #endif
-      // Continue loading, but only up to nModulesExpected
-      nModulesInFile = nModulesExpected;
+      // Continue loading, but only up to nModules_
+      nModulesInFile = nModules_;
     }
 
     #ifdef GPU_DEBUG
@@ -246,8 +245,14 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::Phase1>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerGenericUpgrade : public CAGeometryHostESProducer<pixelTopology::GenericUpgrade> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::GenericUpgrade>::CAGeometryHostESProducer;
+  };
+
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
   // ---------- Explicit instantiation and registration ----------
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
