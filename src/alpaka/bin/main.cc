@@ -38,7 +38,7 @@ namespace {
         << "[--hip] "
 #endif
         << "[--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--warmupEvents WE] [--data PATH] "
-           "[--transfer] [--validation] [--histogram] [--fromHits] [--isPhase2] [--simDoublets]\n\n"
+           "[--transfer] [--validation] [--histogram] [--fromHits] [--isPhase2] [--simPixelTrack]\n\n"
         << "Options\n"
 #ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
         << " --serial            Use CPU Serial backend\n"
@@ -64,7 +64,7 @@ namespace {
         << " --histogram         Produce histograms at the end (implies --transfer)\n"
         << " --fromHits          Selects input file as coming from hits.txt or CMSPhase1-like .bin\n"
         << " --isPhase2          Choose which geometry to use (default is CMS Phase1)\n"
-        << " --simDoublets       Run simDoublets producer (very slow!!!)\n"
+        << " --simPixelTrack       Run simPixelTrack producer (very slow!!!)\n"
         << " --empty             Ignore all producers (for testing only)\n"
         << std::endl;
   }
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
   bool isPhase2 = false;
   bool empty = false;
   bool fromHits = false;
-  bool simDoublets = false;
+  bool simPixelTrack = false;
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
       print_help(args.front());
@@ -189,8 +189,8 @@ int main(int argc, char** argv) {
       histogram = true;
     } else if (*i == "--isPhase2") {
       isPhase2 = true;
-    } else if (*i == "--simDoublets") {
-      simDoublets = true;
+    } else if (*i == "--simPixelTrack") {
+      simPixelTrack = true;
     } else if (*i == "--empty") {
       empty = true;
     } else {
@@ -306,8 +306,10 @@ int main(int argc, char** argv) {
           if (not isPhase2) edmodules.emplace_back("CountValidatorFromHits");
           else{
             edmodules.emplace_back("PixelTrackValidatorFromHits");
-            if (simDoublets) edmodules.emplace_back("SimDoubletsProducer");
-            if (simDoublets) edmodules.emplace_back("SimDoubletsAnalyzer");
+            // if (simPixelTrack) edmodules.emplace_back("SimDoubletsProducer");
+            // if (simPixelTrack) edmodules.emplace_back("SimDoubletsAnalyzer");
+            if (simPixelTrack) edmodules.emplace_back("SimPixelTrackProducer");
+            if (simPixelTrack) edmodules.emplace_back("SimPixelTrackAnalyzer");
           }
         }
       }
