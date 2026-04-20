@@ -32,7 +32,6 @@ namespace edm {
       auto esp = ESPluginFactory::create(name, cfg);
       esp->produce(eventSetup_);
     }
-
     // normalise the total weight to the number of streams
     float total = 0.;
     for (auto const& alternative : alternatives) {

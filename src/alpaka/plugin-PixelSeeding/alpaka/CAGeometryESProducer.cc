@@ -174,7 +174,7 @@ auto maxVal = std::ranges::max(startingPairs_);
 
     // read number of modules (and check consistency)
     int nModulesInFile = 0;
-    in.read(reinterpret_cast<char*>(&nModulesInFile), sizeof(int));
+    in.read(reinterpret_cast<char*>(&nModulesInFile), sizeof(uint16_t));
 
 
     if (nModulesInFile < nModules_) {

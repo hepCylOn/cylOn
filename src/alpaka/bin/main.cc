@@ -293,7 +293,8 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
+      // if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
+      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
 
       // "portable" EDModules
       std::vector<std::string> edmodules;
@@ -307,14 +308,14 @@ int main(int argc, char** argv) {
       if (not dumpHits)
       {
         edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
-        // edmodules.emplace_back(prefix + "PixelVertexPhase1");
+        edmodules.emplace_back(prefix + "PixelVertexPhase1");
         if (transfer) {
           edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-          // edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
         }
         if (validation) {
-          // edmodules.emplace_back(prefix + "CountValidator");
-          edmodules.emplace_back("SimpleTrackValidation");
+          edmodules.emplace_back(prefix + "CountValidator");
+          // edmodules.emplace_back("SimpleTrackValidation");
         }
         if (histogram) {
           edmodules.emplace_back(prefix + "HistoValidator");
@@ -323,7 +324,7 @@ int main(int argc, char** argv) {
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
-  
+
   edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
 
   edm::EventProcessor processor(cfg, 

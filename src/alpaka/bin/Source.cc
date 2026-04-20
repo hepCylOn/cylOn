@@ -37,13 +37,12 @@ namespace edm {
         runForMinutes_(runForMinutes),
         validation_(validation),
         fromHits_(fromHits) {
-    
-    
+
     // if(fromHits_ and validation_)
     //  throw std::runtime_error("--fromHits and --validation can't work together (yet)");
     
     std::ifstream in_file;
-      
+
     if (not fromHits_)
     {
       in_file.open(datadir / "raw.bin", std::ios::binary);
@@ -52,6 +51,7 @@ namespace edm {
     else
     {
       in_file.open(datadir / "hits.bin");
+      // in_file.open("/data/user/borzari/cmssw/pixeltrack-standalone_withData/data/hits.txt");
       // TODO: remember to set this back to something more general
       // in_file.open(datadir / "hitsTest.txt", std::ios::binary);
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
@@ -63,23 +63,23 @@ namespace edm {
     std::ifstream in_map;
 
     if (validation_) {
-      // digiClusterToken_ = reg.produces<DigiClusterCount>();
-      // trackToken_ = reg.produces<TrackCount>();
-      // vertexToken_ = reg.produces<VertexCount>();
+      digiClusterToken_ = reg.produces<DigiClusterCount>();
+      trackToken_ = reg.produces<TrackCount>();
+      vertexToken_ = reg.produces<VertexCount>();
 
-      // in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
-      // in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
-      // in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
-      in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
-      in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
+      in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
+      in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
+      in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+      // in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
+      // in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
 
-      // in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      // in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      // in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      // in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
       
-      particleToken_ = reg.produces<sim::ParticleHost>();
-      mapToken_ = reg.produces<utils::SimpleMapHost>();
+      // particleToken_ = reg.produces<sim::ParticleHost>();
+      // mapToken_ = reg.produces<utils::SimpleMapHost>();
     }
 
     if(not fromHits_)
@@ -112,6 +112,7 @@ namespace edm {
     else
     {
       std::cout << "Reading hits from " << (datadir / "hits.bin") << std::endl;
+      // std::cout << "Reading hits from /data/user/borzari/cmssw/pixeltrack-standalone_withData/data/hits.txt" << std::endl;
       hitReader::check_header(in_file);
       if (validation)
       {
@@ -129,8 +130,8 @@ namespace edm {
         in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
       }
 
-      if(nEventsH != nEventsP or nEventsH != nEventsM)
-        throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
+      // if(nEventsH != nEventsP or nEventsH != nEventsM)
+      //   throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
       maxEvents_ = (maxEvents_ < 0) ? nEventsH : std::min(maxEvents_, nEventsH);
         
 #ifdef INPUT_DEBUG
