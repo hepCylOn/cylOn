@@ -12,7 +12,7 @@
 #include "Framework/ConfigRegistry.h"
 #include "Framework/StreamFileUtils.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 class BeamSpotESProducer : public edm::ESProducer {
 public:

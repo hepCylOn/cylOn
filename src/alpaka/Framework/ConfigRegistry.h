@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <stdexcept>
 
-#define INPUT_DEBUG
+// #define INPUT_DEBUG
 
 #ifdef INPUT_DEBUG
 #include <iostream>  // for debug prints

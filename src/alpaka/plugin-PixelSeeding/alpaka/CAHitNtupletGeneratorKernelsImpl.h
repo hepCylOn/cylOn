@@ -1,8 +1,8 @@
 #ifndef PixelSeeding_alpaka_CAHitNtupletGeneratorKernelsImpl_h
 #define PixelSeeding_alpaka_CAHitNtupletGeneratorKernelsImpl_h
 
-#define GPU_DEBUG
-#define NTUPLE_DEBUG
+// #define GPU_DEBUG
+// #define NTUPLE_DEBUG
 // #define CA_DEBUG
 // #define CA_WARNINGS
 
@@ -366,13 +366,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
         *apc = 0;
       }  // ready for next kernel
 
+      // printf("AAAAAAAAAAAAAAAAAAA\n");
+
       // loop on outer cells
       for (uint32_t cellIndex : cms::alpakatools::uniform_elements_y(acc, *nCells)) {
+
+        // printf("AAAAAAAAAAAAAAAAAAA\n");
         auto &thisCell = cells[cellIndex];
         auto innerHitId = thisCell.inner_hit_id() - hh.offsetBPIX2();
 
+        // printf("thisCell.inner_hit_id(): %u -- hh.offsetBPIX2(): %u\n",thisCell.inner_hit_id(),hh.offsetBPIX2());
+
         if (int(innerHitId) < 0)
           continue;
+
+        // printf("AAAAAAAAAAAAAAAAAAA\n");
 
         auto const *__restrict__ outerHitCells = outerHitHisto->begin(innerHitId);
         auto const numberOfPossibleNeighbors = outerHitHisto->size(innerHitId);

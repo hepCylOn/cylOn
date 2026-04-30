@@ -53,7 +53,7 @@ class PixelCPEFast {
       m_detParamsGPU.resize(ndetParams);
       in.read(reinterpret_cast<char *>(m_detParamsGPU.data()), ndetParams * sizeof(DetParams));
 
-      std::ofstream out(outputPath + "/AdHocCMSPhase1Modules.bin", std::ios::binary);
+      std::ofstream out(outputPath + "/CMSPhase1ModulesFromHits.bin", std::ios::binary);
       if (!out) throw std::runtime_error("Cannot open file for writing");
 
       std::cout << "=== Writing " <<  ndetParams << " modules" << std::endl;
@@ -64,7 +64,7 @@ class PixelCPEFast {
       }
 
       out.close();
-      std::cout << "AdHocCMSPhase1Modules.bin written.\n";
+      std::cout << "CMSPhase1ModulesFromHits.bin written.\n";
 
     }
 
@@ -84,9 +84,9 @@ constexpr uint16_t nLayers  = 10;
 constexpr uint16_t nPairs   = 19;
 
 // phi cut constants
-constexpr int16_t phi0p05 = 10*522;
-constexpr int16_t phi0p06 = 10*626;
-constexpr int16_t phi0p07 = 10*730;
+constexpr int16_t phi0p05 = 522;
+constexpr int16_t phi0p06 = 626;
+constexpr int16_t phi0p07 = 730;
 
 constexpr int16_t phicuts[nPairs]{
     phi0p05, phi0p07, phi0p07, phi0p05, phi0p06, phi0p06, phi0p05, phi0p05, phi0p06, phi0p06,
@@ -94,14 +94,13 @@ constexpr int16_t phicuts[nPairs]{
 };
 
 constexpr float minz_vals[nPairs]{
-    10.*-20., 10.*0., 10.*-30., 10.*-22., 10.*10., 10.*-30., 10.*-70., 10.*-70., 10.*-22., 10.*15., 10.*-30., 10.*-70., 10.*-70., 10.*-20., 10.*-22., 10.*0, 10.*-30., 10.*-70., 10.*-70.
+    -20., 0., -30., -22., 10., -30., -70., -70., -22., 15., -30., -70., -70., -20., -22., 0, -30., -70., -70.
 };
 constexpr float maxz_vals[nPairs]{
-    10.*20., 10.*30., 10.*0., 10.*22., 10.*30., 10.*-10., 10.*70., 10.*70., 10.*22., 10.*30., 10.*-15., 10.*70., 10.*70., 10.*20., 10.*22., 10.*30., 10.*0., 10.*70., 10.*70.
+    20., 30., 0., 22., 30., -10., 70., 70., 22., 30., -15., 70., 70., 20., 22., 30., 0., 70., 70.
 };
 constexpr float maxr_vals[nPairs]{
-    // 20., 9., 9., 20., 7., 7., 5., 5., 20., 6., 6., 5., 5., 20., 20., 9., 9., 9., 9.
-    10.*20., 10.*9., 10.*9., 10.*20., 10.*7., 10.*7., 10.*5., 10.*5., 10.*20., 10.*6., 10.*6., 10.*5., 10.*5., 10.*20., 10.*20., 10.*9., 10.*9., 10.*9., 10.*9.
+    20., 9., 9., 20., 7., 7., 5., 5., 20., 6., 6., 5., 5., 20., 20., 9., 9., 9., 9.
 };
 
 // Layer pairs
@@ -137,12 +136,12 @@ constexpr uint32_t layerStart[nLayers + 1] = {
 
 // caThetaCuts and caDCACuts
 constexpr float caDCACuts_vals[nLayers] = {
-    10*0.15, 10*0.25, 10*0.25, 10*0.25, 10*0.25,
-    10*0.25, 10*0.25, 10*0.25, 10*0.25, 10*0.25
+    0.15, 0.25, 0.25, 0.25, 0.25,
+    0.25, 0.25, 0.25, 0.25, 0.25
 };
 constexpr float caThetaCuts_vals[nLayers] = {
-    1.2*0.002, 1.2*0.002, 1.2*0.002, 1.2*0.002, 1.2*0.003,
-    1.2*0.003, 1.2*0.003, 1.2*0.003, 1.2*0.003, 1.2*0.003
+    0.002, 0.002, 0.002, 0.002, 0.003,
+    0.003, 0.003, 0.003, 0.003, 0.003
 };
 
 int writeModules(std::string dataDir) {
@@ -151,9 +150,9 @@ int writeModules(std::string dataDir) {
 }
 
 int write(std::string dataDir) {
-    std::ifstream ifs(dataDir + "/AdHocCMSPhase1Modules.bin", std::ios::binary);
+    std::ifstream ifs(dataDir + "/CMSPhase1ModulesFromHits.bin", std::ios::binary);
     if (!ifs) {
-        std::cerr << "Error: cannot open AdHocCMSPhase1Modules.bin for reading.\n";
+        std::cerr << "Error: cannot open CMSPhase1ModulesFromHits.bin for reading.\n";
         return 1;
     }
 
@@ -196,7 +195,7 @@ int write(std::string dataDir) {
     geo.m_layers   = layers.data();
     geo.m_pairs    = pairs.data();
 
-    std::ofstream ofs(dataDir + "/AdHocCMSPhase1Geometry.bin", std::ios::binary);
+    std::ofstream ofs(dataDir + "/CMSPhase1GeometryFromHits.bin", std::ios::binary);
     ofs.write(reinterpret_cast<const char*>(&geo.m_nModules), sizeof(geo.m_nModules));
     ofs.write(reinterpret_cast<const char*>(&geo.m_nLayers),  sizeof(geo.m_nLayers));
     ofs.write(reinterpret_cast<const char*>(&geo.m_nPairs),   sizeof(geo.m_nPairs));
@@ -206,16 +205,16 @@ int write(std::string dataDir) {
     ofs.write(reinterpret_cast<const char*>(pairs.data()),   pairs.size()   * sizeof(CAPair));
 
     ofs.close();
-    std::cout << "AdHocCMSPhase1Geometry.bin written.\n";
+    std::cout << "CMSPhase1GeometryFromHits.bin written.\n";
 
     return 0;
 }
 
 int verify(std::string dataDir) {
-    std::ifstream ifs(dataDir + "/AdHocCMSPhase1Geometry.bin", std::ios::binary);
+    std::ifstream ifs(dataDir + "/CMSPhase1GeometryFromHits.bin", std::ios::binary);
 
     if (!ifs) {
-        std::cerr << "Error opening AdHocCMSPhase1Geometry.bin\n";
+        std::cerr << "Error opening CMSPhase1GeometryFromHits.bin\n";
         return 1;
     }
 

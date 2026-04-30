@@ -70,7 +70,7 @@
 
 // }  // namespace reco
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -126,8 +126,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         tokenTrack_(reg.produces<cms::alpakatools::Product<Queue, TkSoADevice>>()),
         // maxNumberOfDoublets_(iConfig.getParameter<std::string>("maxNumberOfDoublets")),
         // maxNumberOfTuples_(iConfig.getParameter<std::string>("maxNumberOfTuples")),
-        maxNumberOfDoublets_(cfg.value("maxNumberOfDoublets", 5000000)),
-        maxNumberOfTuples_(cfg.value("maxNumberOfTuples", 500000)),
+        maxNumberOfDoublets_(cfg.value("maxNumberOfDoublets", 12000000)),
+        maxNumberOfTuples_(cfg.value("maxNumberOfTuples", 1200000)),
         deviceAlgo_(Params(cfg)) //default params
         // deviceAlgo_(iConfig) 
   {
@@ -147,6 +147,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TrackerTraits>
   void CAHitNtuplet<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es) {
+
+    // std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 
     auto const& hGeometry = es.get<::reco::CAGeometryHost>();//runCache()->get(iEvent.queue());
     auto const& phits = iEvent.get(tokenHit_);
@@ -177,6 +179,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             << " maxDoublets=" << maxDoublets << std::endl;
 #endif
 
+  // // Lines below are used to write input files to be used with fromHits;
+  // // Remember to also uncomment lines 210-213 in CAHitNtupletGeneratorKernels.cc
+  // auto const& hits_h = hits.view();
+  // std::cout << "hits:" << hits_h.metadata().size() << std::endl;
+  // std::cout << "module:10" << std::endl;
+  // for(int i = 0; i < hits_h.metadata().size(); ++i){
+  //   std::cout << hits_h.xLocal(i) << "," << hits_h.yLocal(i) << "," << hits_h.xerrLocal(i) << "," << hits_h.yerrLocal(i) << "," << hits_h.xGlobal(i) << "," << hits_h.yGlobal(i) << "," << hits_h.zGlobal(i) << "," << hits_h.rGlobal(i) << "," << hits_h.iphi(i) << "," << hits_h.chargeAndStatus(i).charge << "," << hits_h.clusterSizeX(i) << "," << hits_h.clusterSizeY(i) << ",0" << std::endl; // Without "particleId"
+  //   // std::cout << hits_h.xLocal(i) << "," << hits_h.yLocal(i) << "," << hits_h.xerrLocal(i) << "," << hits_h.yerrLocal(i) << "," << hits_h.xGlobal(i) << "," << hits_h.yGlobal(i) << "," << hits_h.zGlobal(i) << "," << hits_h.rGlobal(i) << "," << hits_h.iphi(i) << "," << hits_h.chargeAndStatus(i).charge << "," << hits_h.clusterSizeX(i) << "," << hits_h.clusterSizeY(i) << "," << hits_h.detectorIndex(i) << "," << i << std::endl; // With "particleId"
+  // }
+
   ctx.emplace(iEvent,
               tokenTrack_,
               deviceAlgo_.makeTuplesAsync(hits, geometry, maxDoublets, maxTuples, ctx.stream()));
@@ -199,6 +211,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using CAHitNtuplet<pixelTopology::Phase1>::CAHitNtuplet;
   };
 
+  class CAHitNtupletPhase1FromHits : public CAHitNtuplet<pixelTopology::Phase1FromHits> {
+  public:
+    using CAHitNtuplet<pixelTopology::Phase1FromHits>::CAHitNtuplet;
+  };
+
   class CAHitNtupletHIonPhase1 : public CAHitNtuplet<pixelTopology::HIonPhase1> {
   public:
     using CAHitNtuplet<pixelTopology::HIonPhase1>::CAHitNtuplet;
@@ -213,10 +230,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     using CAHitNtuplet<pixelTopology::GenericUpgrade>::CAHitNtuplet;
   };
+
+  class CAHitNtupletColliderMLPhase1 : public CAHitNtuplet<pixelTopology::ColliderMLPhase1> {
+  public:
+    using CAHitNtuplet<pixelTopology::ColliderMLPhase1>::CAHitNtuplet;
+  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1FromHits);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletUpgrade);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPhase1);

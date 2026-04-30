@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <TH1F.h>
+
 class SimpleAtomicHisto {
 public:
   SimpleAtomicHisto() = default;
@@ -48,6 +50,8 @@ public:
       os << " " << item;
     }
   };
+
+
 
 private:
   std::vector<std::atomic<int>> data_;

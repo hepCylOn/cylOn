@@ -39,8 +39,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
     void endJob() override;
 
-    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>> digiToken_;
-    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>> clusterToken_;
+    // edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>> digiToken_;
+    // edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>> clusterToken_;
     edm::EDGetTokenT<cms::alpakatools::Product<Queue, reco::TrackingRecHitsSoACollection>> hitToken_;
     edm::EDGetTokenT<cms::alpakatools::Product<Queue, reco::TracksSoACollection>> trackToken_;
     edm::EDGetTokenT<cms::alpakatools::Product<Queue, ZVertexSoACollection>> vertexToken_;
@@ -54,11 +54,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   std::map<std::string, SimpleAtomicHisto> HistoValidator::histos = {
-      {"digi_n", SimpleAtomicHisto(100, 0, 1e5)},
-      {"digi_adc", SimpleAtomicHisto(250, 0, 5e4)},
-      {"module_n", SimpleAtomicHisto(100, 1500, 2000)},
-      {"cluster_n", SimpleAtomicHisto(200, 5000, 25000)},
-      {"cluster_per_module_n", SimpleAtomicHisto(110, 0, 110)},
+      // {"digi_n", SimpleAtomicHisto(100, 0, 1e5)},
+      // {"digi_adc", SimpleAtomicHisto(250, 0, 5e4)},
+      // {"module_n", SimpleAtomicHisto(100, 1500, 2000)},
+      // {"cluster_n", SimpleAtomicHisto(200, 5000, 25000)},
+      // {"cluster_per_module_n", SimpleAtomicHisto(110, 0, 110)},
       {"hit_n", SimpleAtomicHisto(200, 5000, 25000)},
       {"hit_lx", SimpleAtomicHisto(200, -1, 1)},
       {"hit_ly", SimpleAtomicHisto(800, -4, 4)},
@@ -89,50 +89,56 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       {"vertex_pt2", SimpleAtomicHisto(100, 0, 4000)}};
 
   HistoValidator::HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
-      : digiToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()},
-        clusterToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()},
-        hitToken_{reg.consumes<cms::alpakatools::Product<Queue, reco::TrackingRecHitsSoACollection>>()},
+      // : digiToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()},
+      //   clusterToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()},
+      : hitToken_{reg.consumes<cms::alpakatools::Product<Queue, reco::TrackingRecHitsSoACollection>>()},
         trackToken_{reg.consumes<cms::alpakatools::Product<Queue, reco::TracksSoACollection>>()},
         vertexToken_{reg.consumes<cms::alpakatools::Product<Queue, ZVertexSoACollection>>()} {}
 
   void HistoValidator::acquire(const edm::Event& iEvent,
                                const edm::EventSetup& iSetup,
                                edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
-    auto const& pdigis = iEvent.get(digiToken_);
-    cms::alpakatools::ScopedContextAcquire ctx{pdigis, std::move(waitingTaskHolder)};
-    auto const& digis = ctx.get(pdigis);
-    auto const& clusters = ctx.get(iEvent, clusterToken_);
-    auto const& hits = ctx.get(iEvent, hitToken_);
+    // auto const& pdigis = iEvent.get(digiToken_);
+    // cms::alpakatools::ScopedContextAcquire ctx{pdigis, std::move(waitingTaskHolder)};
+    // auto const& digis = ctx.get(pdigis);
+    // auto const& clusters = ctx.get(iEvent, clusterToken_);
+    // auto const& hits = ctx.get(iEvent, hitToken_);
+    auto const& phits = iEvent.get(hitToken_);
+    cms::alpakatools::ScopedContextAcquire ctx{phits, std::move(waitingTaskHolder)};
+    auto const& hits = ctx.get(phits);
 
-    nDigis_ = digis.nDigis();
-    nModules_ = digis.nModules();
+    // nDigis_ = digis.nDigis();
+    // nModules_ = digis.nModules();
 
-    nClusters_ = clusters.nClusters();
+    // nClusters_ = clusters.nClusters();
 
     nHits_ = hits.nHits();
 
   }
 
   void HistoValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-    auto const& pdigis = iEvent.get(digiToken_);
-    cms::alpakatools::ScopedContextProduce<Queue> ctx{pdigis};
-    auto const& digis = ctx.get(iEvent, digiToken_);
-#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
-      SiPixelDigisHost const& digis_host = digis;
-#else
-      SiPixelDigisHost const& digis_host =
-          cms::alpakatools::CopyToHost<SiPixelDigisDevice<Device>>::copyAsync(ctx.stream(), digis);
-      alpaka::wait(ctx.stream());
-#endif
-    auto const& clusters = ctx.get(iEvent, clusterToken_);
-#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
-      SiPixelClustersHost const& clusters_host = clusters;
-#else
-      SiPixelClustersHost const& clusters_host =
-          cms::alpakatools::CopyToHost<SiPixelClustersDevice<Device>>::copyAsync(ctx.stream(), clusters);
-      alpaka::wait(ctx.stream());
-#endif
-    auto const& hits = ctx.get(iEvent, hitToken_);
+//     auto const& pdigis = iEvent.get(digiToken_);
+//     cms::alpakatools::ScopedContextProduce<Queue> ctx{pdigis};
+//     auto const& digis = ctx.get(iEvent, digiToken_);
+// #if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+//       SiPixelDigisHost const& digis_host = digis;
+// #else
+//       SiPixelDigisHost const& digis_host =
+//           cms::alpakatools::CopyToHost<SiPixelDigisDevice<Device>>::copyAsync(ctx.stream(), digis);
+//       alpaka::wait(ctx.stream());
+// #endif
+//     auto const& clusters = ctx.get(iEvent, clusterToken_);
+// #if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+//       SiPixelClustersHost const& clusters_host = clusters;
+// #else
+//       SiPixelClustersHost const& clusters_host =
+//           cms::alpakatools::CopyToHost<SiPixelClustersDevice<Device>>::copyAsync(ctx.stream(), clusters);
+//       alpaka::wait(ctx.stream());
+// #endif
+//     auto const& hits = ctx.get(iEvent, hitToken_);
+      auto const& phits = iEvent.get(hitToken_);
+      cms::alpakatools::ScopedContextProduce<Queue> ctx{phits};
+      auto const& hits = ctx.get(phits);
 #if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
       ::reco::TrackingRecHitHost const& hits_host = hits;
 #else
@@ -140,16 +146,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           cms::alpakatools::CopyToHost<::reco::TrackingRecHitDevice<Device>>::copyAsync(ctx.stream(), hits);
       alpaka::wait(ctx.stream());
 #endif
-    histos["module_n"].fill(nModules_);
-    histos["digi_n"].fill(nDigis_);
-    for (uint32_t i = 0; i < nDigis_; ++i) {
-      histos["digi_adc"].fill(digis_host.view()[i].adc());
-    }
+    // histos["module_n"].fill(nModules_);
+    // histos["digi_n"].fill(nDigis_);
+    // for (uint32_t i = 0; i < nDigis_; ++i) {
+    //   histos["digi_adc"].fill(digis_host.view()[i].adc());
+    // }
 
-    histos["cluster_n"].fill(nClusters_);
-    for (uint32_t i = 0; i < nModules_; ++i) {
-      histos["cluster_per_module_n"].fill(clusters_host.view()[i].clusInModule());
-    }
+    // histos["cluster_n"].fill(nClusters_);
+    // for (uint32_t i = 0; i < nModules_; ++i) {
+    //   histos["cluster_per_module_n"].fill(clusters_host.view()[i].clusInModule());
+    // }
 
     histos["hit_n"].fill(nHits_);
     for (uint32_t i = 0; i < nHits_; ++i) {

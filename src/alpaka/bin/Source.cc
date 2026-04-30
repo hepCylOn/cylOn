@@ -11,7 +11,7 @@
 #include "ParticleReader.h"
 #include "HitReader.h"
 
-#define INPUT_DEBUG
+// #define INPUT_DEBUG
 
 namespace {
   FEDRawDataCollection readRaw(std::ifstream &is, unsigned int nfeds) {
@@ -32,11 +32,12 @@ namespace {
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits)
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2) // Change to work with Phase-2
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
-        fromHits_(fromHits) {
+        fromHits_(fromHits),
+        isPhase2_(isPhase2) {
 
     // if(fromHits_ and validation_)
     //  throw std::runtime_error("--fromHits and --validation can't work together (yet)");
@@ -50,8 +51,11 @@ namespace edm {
     }
     else
     {
-      in_file.open(datadir / "hits.bin");
-      // in_file.open("/data/user/borzari/cmssw/pixeltrack-standalone_withData/data/hits.txt");
+      if (not isPhase2_) in_file.open(datadir / "hitsCMSPhase1.txt");
+      // else in_file.open(datadir / "hits.bin");
+      else in_file.open(datadir / "hitsWithoutParticleId.txt");
+      // std::cout << "Reading hits from " << datadir << "/hitsWithoutParticleId.txt" << std::endl;
+      std::cout << "Reading hits from " << datadir << "/hitsCMSPhase1.txt" << std::endl;
       // TODO: remember to set this back to something more general
       // in_file.open(datadir / "hitsTest.txt", std::ios::binary);
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
@@ -63,23 +67,36 @@ namespace edm {
     std::ifstream in_map;
 
     if (validation_) {
-      digiClusterToken_ = reg.produces<DigiClusterCount>();
-      trackToken_ = reg.produces<TrackCount>();
-      vertexToken_ = reg.produces<VertexCount>();
+      if (not fromHits_){
 
-      in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
-      in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
-      in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
-      // in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
-      // in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
+        digiClusterToken_ = reg.produces<DigiClusterCount>();
+        trackToken_ = reg.produces<TrackCount>();
+        vertexToken_ = reg.produces<VertexCount>();
 
-      in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-      // in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        in_digiclusters = std::ifstream(datadir / "digicluster.bin", std::ios::binary);
+        in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
+        in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+        
+
+        in_digiclusters.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+
+      }
+
+      else{
+
+        in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
+        in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
+
+        in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        in_map.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+
+        particleToken_ = reg.produces<sim::ParticleHost>();
+        mapToken_ = reg.produces<utils::SimpleMapHost>();
+
+      }
       
-      // particleToken_ = reg.produces<sim::ParticleHost>();
-      // mapToken_ = reg.produces<utils::SimpleMapHost>();
     }
 
     if(not fromHits_)
@@ -111,17 +128,24 @@ namespace edm {
     }
     else
     {
-      std::cout << "Reading hits from " << (datadir / "hits.bin") << std::endl;
-      // std::cout << "Reading hits from /data/user/borzari/cmssw/pixeltrack-standalone_withData/data/hits.txt" << std::endl;
-      hitReader::check_header(in_file);
+      // std::cout << "Reading hits from " << (datadir / "hits.bin") << std::endl;
+      std::cout << "Reading hits from /data/user/borzari/cmssw/cylOn/data/hitsWithoutParticleId.txt" << std::endl;
+      // hitReader::check_header(in_file);
       if (validation)
       {
         particleReader::check_header(in_particles);
         mapReader::check_header(in_map);
       }
+      // hitReader::check_header_fromText(in_file);
+      // if (validation)
+      // {
+      //   particleReader::check_header_fromText(in_particles);
+      //   mapReader::check_header_fromText(in_map);
+      // }
 
       int32_t nEventsP, nEventsH, nEventsM;
-      in_file.read(reinterpret_cast<char*>(&nEventsH), sizeof(nEventsH));
+      // in_file.read(reinterpret_cast<char*>(&nEventsH), sizeof(nEventsH));
+      nEventsH = 1;
       nEventsP = nEventsM = nEventsH;
 
       if (validation)
@@ -133,16 +157,18 @@ namespace edm {
       // if(nEventsH != nEventsP or nEventsH != nEventsM)
       //   throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
       maxEvents_ = (maxEvents_ < 0) ? nEventsH : std::min(maxEvents_, nEventsH);
-        
+
 #ifdef INPUT_DEBUG
       std::cout << "File contains " << nEventsH << " events\n";
 #endif
-      for (int32_t ev = 0; ev < nEventsH && ev < maxEvents; ++ev) {
-        hits_.emplace_back(hitReader::read_single_event(in_file));
+      for (int32_t ev = 0; ev < nEventsH && ev < maxEvents_; ++ev) {
+        // hits_.emplace_back(hitReader::read_single_event(in_file));
+
+        hits_.emplace_back(hitReader::read_single_event_fromText(in_file));
         if (validation)
         {
           particles_.emplace_back(particleReader::read_single_event(in_particles));
-          maps_.emplace_back(mapReader::read_single_event(in_map));
+          map_.emplace_back(mapReader::read_single_event(in_map));
         }
           
 #ifdef INPUT_DEBUG
@@ -152,9 +178,9 @@ namespace edm {
           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
 #endif
       }
-      if (!in_file.good() && !in_file.eof()) {
-        throw std::runtime_error("I/O error while reading input file");
-    }
+      // if (!in_file.good() && !in_file.eof()) {
+      //   throw std::runtime_error("I/O error while reading input file");
+      // }
 
       if (validation){
         if (!in_particles.good() && !in_particles.eof()) 
@@ -174,6 +200,7 @@ namespace edm {
     else if (validation_)
     {
       assert(hits_.size() == particles_.size());
+      assert(hits_.size() == map_.size());
     }
 
     if (runForMinutes_ < 0 and maxEvents_ < 0) {
@@ -245,7 +272,7 @@ namespace edm {
     else if (validation_)
     {
       ev->emplace(particleToken_, std::move(particles_[index]));
-      ev->emplace(mapToken_, std::move(maps_[index]));
+      ev->emplace(mapToken_, std::move(map_[index]));
     }
 
     return ev;

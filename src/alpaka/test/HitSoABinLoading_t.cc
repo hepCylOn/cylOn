@@ -13,7 +13,7 @@
 
 using namespace reco;
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 namespace {
 
@@ -108,15 +108,15 @@ int main(int argc, char** argv) {
     read_column(in, hitView.clusterSizeY(), nHits);
     read_column(in, hitView.detectorIndex(), nHits);
 
-#ifdef GPU_DEBUG
-    std::cout << "Event " << ev << ": " << nHits << " hits, " << nModules << " modules\n";
-    std::cout << "  First hit global: ("
-              << hitView.xGlobal()[0] << ", "
-              << hitView.yGlobal()[0] << ", "
-              << hitView.zGlobal()[0] << "), "
-              << "r=" << hitView.rGlobal()[0]
-              << ", detIdx=" << hitView.detectorIndex()[0] << '\n';
-#endif
+// #ifdef GPU_DEBUG
+//     std::cout << "Event " << ev << ": " << nHits << " hits, " << nModules << " modules\n";
+//     std::cout << "  First hit global: ("
+//               << hitView.xGlobal()[0] << ", "
+//               << hitView.yGlobal()[0] << ", "
+//               << hitView.zGlobal()[0] << "), "
+//               << "r=" << hitView.rGlobal()[0]
+//               << ", detIdx=" << hitView.detectorIndex()[0] << '\n';
+// #endif
   }
 
   if (!in.good() && !in.eof()) {

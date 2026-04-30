@@ -23,7 +23,7 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 class SimpleTrackValidation : public edm::EDProducer {
 public:

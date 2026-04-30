@@ -12,7 +12,7 @@
 #include "AlpakaDataFormats/TrackingRecHitsHost.h"
 #include "AlpakaDataFormats/SimpleMapSoA.h"
 
-#define INPUT_DEBUG
+// #define INPUT_DEBUG
 
 namespace mapReader {
 
@@ -168,17 +168,149 @@ namespace hitReader {
     read_column(in, hitsView.detectorIndex().data(), nHits);
     std::cout << "Read detectorIndex" << std::endl;
 
-#ifdef INPUT_DEBUG
-    if (nHits > 0) {
-      std::cout << "  First hit global: ("
-                << hitsView.xGlobal()[0] << ", "
-                << hitsView.yGlobal()[0] << ", "
-                << hitsView.zGlobal()[0]
-                << ")  r=" << hitsView.rGlobal()[0]
-                << " detIdx=" << hitsView.detectorIndex()[0]
-                << std::endl;
+// #ifdef INPUT_DEBUG
+//     if (nHits > 0) {
+//       std::cout << "  First hit global: ("
+//                 << hitsView.xGlobal()[0] << ", "
+//                 << hitsView.yGlobal()[0] << ", "
+//                 << hitsView.zGlobal()[0]
+//                 << ")  r=" << hitsView.rGlobal()[0]
+//                 << " detIdx=" << hitsView.detectorIndex()[0]
+//                 << std::endl;
+//     }
+// #endif
+
+    return recHitHost;
+  }
+
+  // Split a line by delimiter (default = comma)
+  std::vector<std::string> split(const std::string &line, char delimiter = ',') {
+      std::vector<std::string> tokens;
+      std::stringstream ss(line);
+      std::string item;
+      while (std::getline(ss, item, delimiter)) {
+          if (!item.empty()) tokens.push_back(item);
+      }
+      return tokens;
+  }
+
+  // --- header check ---
+  inline void check_header_fromText(std::ifstream& file) {
+    std::string line;
+    // skip empty lines
+    while (std::getline(file, line)) {
+        std::cout << line << std::endl;
+        if (!line.empty()) break;
     }
+    if (file.eof()) return;
+
+    if (line.rfind("hits:", 0) != 0) {
+        std::cerr << "Expected 'hits:NHITS', got: " << line << "\n";
+        return;
+    }
+
+#ifdef INPUT_DEBUG
+    std::cout << "[hitReader] Input file header OK" << std::endl;
 #endif
+  }
+
+  inline reco::TrackingRecHitHost read_single_event_fromText(std::ifstream& file) {
+
+    std::string line;
+
+    // Used to indicate something broke when reading file
+    reco::TrackingRecHitHost auxRecHitHost(cms::alpakatools::host(), 0, 0);
+
+    // skip empty lines
+    while (std::getline(file, line)) {
+        if (!line.empty()) break;
+    }
+    if (file.eof()) return auxRecHitHost;
+
+     if (line.rfind("hits:", 0) != 0) {
+        std::cerr << "Expected 'hits:NHITS', got: " << line << "\n";
+        return auxRecHitHost;
+    }
+
+    uint32_t nHits, nModules;
+
+    nHits = std::stoul(line.substr(5)); // after "hits:"
+
+    // --- read module header ---
+    if (!std::getline(file, line)) {
+        std::cerr << "Missing module header.\n";
+        return auxRecHitHost;
+    }
+    if (line.rfind("module:", 0) != 0) {
+        std::cerr << "Expected 'module:NMODULES' header, got: " << line << "\n";
+        return auxRecHitHost;
+    }
+    nModules = std::stoul(line.substr(7)); // after "module:"
+
+    // Construct the host collection (nHits, nModules)
+    reco::TrackingRecHitHost recHitHost(cms::alpakatools::host(), nHits, nModules);
+
+    auto hitsView = recHitHost.view<reco::TrackingRecHitSoA>();
+    auto modsView = recHitHost.view<reco::HitModuleSoA>();
+
+    for (size_t i = 0; i < nHits; ++i) {
+        if (!std::getline(file, line)) {
+            std::cerr << "Unexpected end of file while reading hits.\n";
+            return auxRecHitHost;
+        }
+        auto tokens = split(line);
+        if (tokens.size() != 13) {
+            std::cerr << "Hit row " << i << " has " << tokens.size()
+                      << " columns, expected 13.\n";
+            return auxRecHitHost;
+        }
+
+        hitsView[i].xLocal() = std::stof(tokens[0]);
+        hitsView[i].yLocal() = std::stof(tokens[1]);
+        hitsView[i].xerrLocal() = std::stof(tokens[2]);
+        hitsView[i].yerrLocal() = std::stof(tokens[3]);
+        hitsView[i].xGlobal() = std::stof(tokens[4]);
+        hitsView[i].yGlobal() = std::stof(tokens[5]);
+        hitsView[i].zGlobal() = std::stof(tokens[6]);
+        hitsView[i].rGlobal() = std::stof(tokens[7]);
+        hitsView[i].iphi() = static_cast<int16_t>(std::stoi(tokens[8]));
+        hitsView[i].chargeAndStatus().charge = std::stof(tokens[9]);
+        hitsView[i].clusterSizeX() = static_cast<int16_t>(std::stoi(tokens[10]));
+        hitsView[i].clusterSizeY() = static_cast<int16_t>(std::stoi(tokens[11]));
+        hitsView[i].detectorIndex() = static_cast<int16_t>(std::stoi(tokens[12]));
+
+    }
+
+    // --- read one line with NMODULES+1 entries ---
+    if (!std::getline(file, line)) {
+        std::cerr << "Missing module start line.\n";
+        return auxRecHitHost;
+    }
+    auto tokens = split(line);
+    if (tokens.size() != nModules + 1) {
+        std::cerr << "Module start line has " << tokens.size()
+                  << " entries, expected " << (nModules + 1) << ".\n";
+        return auxRecHitHost;
+    }
+
+    hitsView.offsetBPIX2() = static_cast<uint32_t>(std::stoul(tokens[1]));
+    int auxId = 0;
+    for (auto &tok : tokens) {
+        modsView[auxId].moduleStart() =  static_cast<uint32_t>(std::stoul(tok));
+        ++auxId;
+    }
+
+// #ifdef INPUT_DEBUG
+//     if (nHits > 0) {
+//       std::cout << "  First hit global: ("
+//                 << hitsView.xGlobal()[0] << ", "
+//                 << hitsView.yGlobal()[0] << ", "
+//                 << hitsView.zGlobal()[0]
+//                 << ")  r=" << hitsView.rGlobal()[0]
+//                 << " detIdx=" << hitsView.detectorIndex()[0]
+//                 << std::endl;
+//     }
+// #endif
 
     return recHitHost;
   }

@@ -18,7 +18,7 @@
 #include "Framework/PluginFactory.h"
 #include "Framework/EventSetup.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 

@@ -21,7 +21,7 @@ namespace edm {
   class Source {
   public:
     explicit Source(
-        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits);
+        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2);
 
     void reconfigure(int maxEvents, int runForMinutes);
     void startProcessing();
@@ -58,7 +58,7 @@ namespace edm {
     std::vector<FEDRawDataCollection> raw_;
     std::vector<reco::TrackingRecHitHost> hits_;
     std::vector<sim::ParticleHost> particles_;
-    std::vector<utils::SimpleMapHost> maps_;
+    std::vector<utils::SimpleMapHost> map_;
 
     std::vector<DigiClusterCount> digiclusters_;
     std::vector<TrackCount> tracks_;
@@ -67,6 +67,7 @@ namespace edm {
     bool const validation_;
     // boostrapping
     bool const fromHits_;
+    bool const isPhase2_;
 
   };
 }  // namespace edm

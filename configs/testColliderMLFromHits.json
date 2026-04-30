@@ -1,0 +1,35 @@
+{
+  "SiPixelRawToClusterPhase1": {
+    "includeErrors": true,
+    "useQuality": true,
+    "verbose": false,
+    "clusterThreshold_layer1": 4500,
+    "clusterThreshold_otherLayers": 4000,
+    "VCaltoElectronGain": 47.0,
+    "VCaltoElectronGain_L1": 50.0,
+    "VCaltoElectronOffset": -60.0,
+    "VCaltoElectronOffset_L1": -670.0
+  },
+  "BeamSpotESProducer": {
+    "data": "data/beamspot.bin"
+  },
+  "PixelCPEFastESProducerPhase1": {
+    "data": "data/PixelCPEFastRun2.bin"
+  },
+  "SiPixelGainCalibrationForHLTHostESProducer": {
+    "data": "data/SiPixelGainCalibrationForHLTHostRun2.bin"
+  },
+  "CAGeometryHostESProducerColliderMLPhase1": {
+    "data": "data/CMSPhase1GeometryFromHits.bin"
+  },
+  "SiPixelFedIdsESProducer": {
+    "data": "data/fedIds.bin"
+  },
+  "SiPixelFedCablingMapESProducer": {
+    "data": "data/cablingMap.bin"
+  },
+  "SiPixelMappingHostESProducer": {
+    "data": "data/SiPixelMappingHost.bin"
+  }
+}
+

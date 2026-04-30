@@ -17,7 +17,7 @@
 #include "Source.h"
 #include "StreamSchedule.h"
 
-#define FW_DEBUG
+// #define FW_DEBUG
 
 namespace edm {
   StreamSchedule::StreamSchedule(ProductRegistry reg,

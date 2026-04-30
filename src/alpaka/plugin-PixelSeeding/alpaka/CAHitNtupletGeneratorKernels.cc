@@ -17,7 +17,7 @@
 #include "CAHitNtupletGeneratorKernels.h"
 #include "CAHitNtupletGeneratorKernelsImpl.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 // #define NTUPLE_DEBUG
 // #define CA_STATS
 
@@ -204,6 +204,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     const auto workDiv1D = cms::alpakatools::make_workdiv<Acc1D>(1, ll.metadata().size() - 1);
     alpaka::exec<Acc1D>(queue, workDiv1D, SetHitsLayerStart{}, mm, ll, this->device_layerStarts_->data());
+
+    // // Lines below are used to write input files to be used with fromHits;
+    // // Remember to also uncomment lines 182-188 in CAHitNtupletAlpaka.cc
+    // for(uint32_t i = 0; i < 11; ++i){
+    //   if(i < 10) std::cout << this->device_layerStarts_->data()[i] << ",";
+    //   else std::cout << this->device_layerStarts_->data()[i] << std::endl;
+    // }
 
     cms::alpakatools::fillManyFromVector<Acc1D>(device_hitPhiHist_->data(),
                                                 device_hitPhiView_,
@@ -808,8 +815,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   */
 
   template class CAHitNtupletGeneratorKernels<pixelTopology::Phase1>;
+  template class CAHitNtupletGeneratorKernels<pixelTopology::Phase1FromHits>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::Phase2>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::GenericUpgrade>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::HIonPhase1>;
+  template class CAHitNtupletGeneratorKernels<pixelTopology::ColliderMLPhase1>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

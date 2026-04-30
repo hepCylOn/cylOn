@@ -22,7 +22,7 @@ namespace pixelTrack {
 
     using Quality = trackQuality::Quality;
     using hindex_type = uint32_t;
-    using HitContainer = cms::alpakatools::OneToManyAssocBase<hindex_type, S, 5 * S>;
+    using HitContainer = cms::alpakatools::OneToManyAssocBase<hindex_type, S, 8 * S>; // Change to work with extended tracks
 
     // Always check quality is at least loose!
     // CUDA does not support enums  in __lgc ...
@@ -62,7 +62,7 @@ namespace pixelTrack {
 #ifdef GPU_SMALL_EVENTS
   constexpr uint32_t maxNumber() { return 2 * 1024; }
 #else
-  constexpr uint32_t maxNumber() { return 128 * 1024; }
+  constexpr uint32_t maxNumber() { return 1024 * 1024; } // Change to work with PU 200
 #endif
 
   using TrackSoA = TrackSoAT<maxNumber()>;

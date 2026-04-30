@@ -142,7 +142,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
                                                         AlgoParams const& params) {
     const bool doClusterCut = params.minYsizeB1_ > 0 or params.minYsizeB2_ > 0;
     const bool doZSizeCut = params.maxDYsize12_ > 0 or params.maxDYsize_ > 0 or params.maxDYPred_ > 0;
- 
+
     // r ~ pT / (0.3 x B) in meters
     const float minRadius = (100.0f * params.cellPtCut_) / ( 0.29979246f * params.bField_); ///TODO put c somewhere
     const float minRadius2T4 = 4.f * minRadius * minRadius;
@@ -206,8 +206,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
       auto i = (0 == pairLayerId) ? j : j - innerLayerCumulativeSize[pairLayerId - 1];
       i += offsets[inner];
 
+      // printf("inner: %u -- offsets[inner]: %u -- i: %u\n",inner,offsets[inner],i);
+
       ALPAKA_ASSERT_ACC(i >= offsets[inner]);
       ALPAKA_ASSERT_ACC(i < offsets[inner + 1]);
+      // printf("AAAAAAAAAAAAAAAAAA\n");
 #ifdef DOUBLETS_DEBUG
       printf("pairLayerId = %d i = %d inner = %d outer = %d offsets[inner] = %d offsets[inner + 1] = %d\n",
              pairLayerId,
@@ -221,11 +224,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
       if (hh[i].detectorIndex() > ll.layerStarts()[ll.metadata().size() - 1])  //TODO use cc
         continue;                                                              // invalid
 
+      // printf("=============================================== i: %u\n",i);
       /* maybe clever, not effective when zoCut is on
       auto bpos = (mi%8)/4;  // if barrel is 1 for z>0
       auto fpos = (outer>3) & (outer<7);
       if ( ((inner<3) & (outer>3)) && bpos!=fpos) continue;
       */
+
+      // printf("AAAAAAAAAAAAAAAAAA\n");
 
       auto mez = hh[i].zGlobal();
 
@@ -235,6 +241,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
       if (doClusterCut && outer > pixelTopology::last_barrel_layer)
         printf("clustCut: %d %d \n", i, clusterCut<TAcc>(acc, hh, ll, params, i));
 #endif
+
+        // printf("AAAAAAAAAAAAAAAAAA\n");
 
       if (doClusterCut && outer > pixelTopology::last_barrel_layer && clusterCut<TAcc>(acc, hh, ll, params, i))
         continue;
@@ -257,13 +265,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
         return dr > cc.maxr()[pairLayerId] || dr < 0 || std::abs((mez * ro - mer * zo)) > params.cellZ0Cut_ * dr;
       };
 
+      // printf("AAAAAAAAAAAAAAAAAA\n");
+
       auto iphicut = cc.phiCuts()[pairLayerId];
 
       auto kl = PhiHisto::bin(int16_t(mep - iphicut));
       auto kh = PhiHisto::bin(int16_t(mep + iphicut));
       auto incr = [](auto& k) { return k = (k + 1) % PhiHisto::nbins(); };
 
-#ifdef GPU_DEGBU
+#ifdef GPU_DEBUG
       printf("pairLayerId %d %d %.2f %.2f %.2f \n",
              pairLayerId,
              cc.phiCuts()[pairLayerId],
@@ -274,6 +284,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
 
       auto khh = kh;
       incr(khh);
+
+      // printf("AAAAAAAAAAAAAAAAAA\n");
       for (auto kk = kl; kk != khh; incr(kk)) {
         //#ifdef GPU_DEBUG
         //        if (kk != kl && kk != kh)
@@ -284,20 +296,34 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
         auto const* __restrict__ e = phiBinner->end(kk + hoff);
         auto const maxpIndex = e - p;
 
+        // printf("AAAAAAAAAAAAAAAAAA\n");
+
+        // printf("maxpIndex: %ld -- kk: %d -- hoff: %d\n",maxpIndex,kk,hoff);
+        
+        // printf("p[0]: %u -- p[1]: %u -- p[2]: %u -- p[3]: %u -- p[4]: %u -- p[5]: %u -- p[6]: %u -- p[7]: %u -- p[8]: %u\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8]);
+        // printf("e[0]: %u -- e[1]: %u -- e[2]: %u -- e[3]: %u -- e[4]: %u -- e[5]: %u -- e[6]: %u -- e[7]: %u -- e[8]: %u\n",e[0],e[1],e[2],e[3],e[4],e[5],e[6],e[7],e[8]);
+
         // innermost parallel loop, using the block elements along the faster dimension (X or 1 in a 2D grid)
         for (uint32_t pIndex : cms::alpakatools::independent_group_elements_x(acc, maxpIndex)) {
+          // printf("AAAAAAAAAAAAAAAAAA\n");
           // FIXME implement alpaka::ldg and use it here? or is it const* __restrict__ enough?
           auto oi = p[pIndex];
           ALPAKA_ASSERT_ACC(oi >= offsets[outer]);
           ALPAKA_ASSERT_ACC(oi < offsets[outer + 1]);
           auto mo = hh[oi].detectorIndex();
 
+          // printf("AAAAAAAAAAAAAAAAAA\n");
+
           // invalid
           if (mo > pixelClustering::maxNumModules)  //FIXME use cc?
             continue;
 
+          // printf("AAAAAAAAAAAAAAAAAA\n");
+
           if (params.cellZ0Cut_ > 0. && z0cutoff(oi))
             continue;
+
+          // printf("AAAAAAAAAAAAAAAAAA\n");
 
           auto mop = hh[oi].iphi();
           uint16_t idphi = std::min(std::abs(int16_t(mop - mep)), std::abs(int16_t(mep - mop)));
@@ -310,8 +336,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
           if (doZSizeCut && zSizeCut<TAcc>(acc, hh, ll, params, i, oi))
             continue;
 
+          // printf("AAAAAAAAAAAAAAAAAA\n");
+
+          // printf("params.cellPtCut_: %f -- ptcut(oi, idphi): %d\n",params.cellPtCut_,ptcut(oi, idphi));
+
           if (params.cellPtCut_ > 0. && ptcut(oi, idphi))
             continue;
+
+          // printf("AAAAAAAAAAAAAAAAAA\n");
 
           auto ind = alpaka::atomicAdd(acc, nCells, 1u, alpaka::hierarchy::Blocks{});
           if (ind >= maxNumOfDoublets or int(ind) >= outerHitHisto->capacity()) {
@@ -321,6 +353,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
             alpaka::atomicSub(acc, nCells, 1u, alpaka::hierarchy::Blocks{});
             break;
           }
+
+          // printf("AAAAAAAAAAAAAAAAAA\n");
+
+          // printf("=============================================== i: %u\n",i);
+
+          // if (i > 2229) printf("=============================================== i: %u\n",i);
 
           outerHitHisto->count(acc, oi - hh.offsetBPIX2());
           cells[ind].init(hh, pairLayerId, inner, outer, i, oi);

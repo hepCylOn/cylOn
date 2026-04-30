@@ -2,7 +2,7 @@
 TARGET_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 CATCH_DIR := $(BASE_DIR)/external/alpaka/thirdParty/catch2/install
 CATCH_INC := $(CATCH_DIR)/include
-CATCH_LIB := $(CATCH_DIR)/lib64
+CATCH_LIB := $(CATCH_DIR)/lib
 
 BOOST_DIR := $(BASE_DIR)/external/boost/
 BOOST_INC := $(BOOST_DIR)/include

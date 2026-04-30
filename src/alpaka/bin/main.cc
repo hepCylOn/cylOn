@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
   bool histogram = false;
   bool empty = false;
   bool fromHits = false;
+  bool isPhase2 = false;
   bool dumpHits = false;
 
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
@@ -188,6 +189,8 @@ int main(int argc, char** argv) {
       validation = true;
     } else if (*i == "--fromHits") {
       fromHits = true;
+    } else if (*i == "--isPhase2") {
+      isPhase2 = true;
     } else if (*i == "--dumpHits") {
       dumpHits = true;
     } else if (*i == "--histogram") {
@@ -294,7 +297,13 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
       // if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
-      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+      if (not dumpHits) {
+        if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+        else {
+          if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1FromHits");
+          else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase1");
+        }
+      }
 
       // "portable" EDModules
       std::vector<std::string> edmodules;
@@ -303,19 +312,26 @@ int main(int argc, char** argv) {
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
       if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
-      if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
+      // if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
+      if (fromHits) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
 
       if (not dumpHits)
       {
-        edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
+        // edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
+        // edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+        if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+        else {
+          if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1FromHits");
+          else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
+        }
         edmodules.emplace_back(prefix + "PixelVertexPhase1");
         if (transfer) {
           edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
           edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
         }
         if (validation) {
-          edmodules.emplace_back(prefix + "CountValidator");
-          // edmodules.emplace_back("SimpleTrackValidation");
+          if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
+          else edmodules.emplace_back("SimpleTrackValidation");
         }
         if (histogram) {
           edmodules.emplace_back(prefix + "HistoValidator");
@@ -336,7 +352,8 @@ int main(int argc, char** argv) {
                                 std::move(esmodules),
                                 datadir,
                                 validation,
-                                fromHits);
+                                fromHits,
+                                isPhase2);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

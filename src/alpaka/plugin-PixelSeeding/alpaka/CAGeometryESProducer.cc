@@ -16,7 +16,7 @@
 #include "Geometry/SimplePixelTopology.h"
 #include "Framework/StreamFileUtils.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TrackerTraits>
@@ -140,7 +140,7 @@ auto maxVal = std::ranges::max(startingPairs_);
       layers.caDCACut(i) = static_cast<float>(dcaCuts_[i]);
     }
 
-    layers.layerStarts(thetaCuts_.size()) = nModules_;
+    layers.layerStarts(thetaCuts_.size()) = layerStarts_[thetaCuts_.size()];
 
 #ifdef GPU_DEBUG
     std::cout << "[GPU_DEBUG] Filled " << nLayers_ << " layers with theta/DCACuts." << std::endl;
@@ -245,14 +245,25 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::Phase1>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerPhase1FromHits : public CAGeometryHostESProducer<pixelTopology::Phase1FromHits> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::Phase1FromHits>::CAGeometryHostESProducer;
+  };
+
   class CAGeometryHostESProducerGenericUpgrade : public CAGeometryHostESProducer<pixelTopology::GenericUpgrade> {
   public:
     using CAGeometryHostESProducer<pixelTopology::GenericUpgrade>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerColliderMLPhase1 : public CAGeometryHostESProducer<pixelTopology::ColliderMLPhase1> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::ColliderMLPhase1>::CAGeometryHostESProducer;
+  };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
   // ---------- Explicit instantiation and registration ----------
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1FromHits);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase1);

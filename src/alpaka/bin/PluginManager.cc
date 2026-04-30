@@ -13,7 +13,7 @@
 #define STR_EXPAND(x) #x
 #define STR(x) STR_EXPAND(x)
 
-#define FW_DEBUG
+// #define FW_DEBUG
 
 namespace edmplugin {
   PluginManager::PluginManager() {

@@ -428,7 +428,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     const int32_t H = m_params.algoParams_.avgHitsPerTrack_;
     const auto bfield = (m_params.algoParams_.bField_ * 0.29979246f ) / 100.f; // B field in GeV
-    std::cout << "Bfield = " << bfield << std::endl;
+    // std::cout << "Bfield = " << bfield << std::endl;
     reco::TracksSoACollection tracks({{int(nTracks), int(nTracks * H)}}, queue);
 
     // Don't bother if less than 2 this
@@ -440,6 +440,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
     GPUKernels kernels(
         m_params, hits_d.nHits(), hits_d.offsetBPIX2(), nDoublets, nTracks, geometry_d.view().metadata().size(), queue);
+
+  //     auto const& hits_h = hits_d.view<::reco::HitModuleSoA>();
+  // for(int i = 0; i < hits_h.metadata().size(); ++i){
+  //   std::cout << hits_h[i].moduleStart() << std::endl;
+  // }
 
     kernels.prepareHits(hits_d.view(), hits_d.view<::reco::HitModuleSoA>(), geometry_d.view(), queue);
     kernels.buildDoublets(hits_d.view(),
@@ -481,7 +486,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template class CAHitNtupletGenerator<pixelTopology::Phase1>;
+  template class CAHitNtupletGenerator<pixelTopology::Phase1FromHits>;
   template class CAHitNtupletGenerator<pixelTopology::Phase2>;
   template class CAHitNtupletGenerator<pixelTopology::HIonPhase1>;
   template class CAHitNtupletGenerator<pixelTopology::GenericUpgrade>;
+  template class CAHitNtupletGenerator<pixelTopology::ColliderMLPhase1>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

@@ -547,10 +547,31 @@ else ifeq ($(OPENMP_COMPILER), NVIDIA)
 endif
 
 ## Catch2 build (using the alpaka one for the moment)
-CATCH2_BUILD:=$(EXTERNAL_BASE)/alpaka/thirdParty/catch2
-$(CATCH2_BUILD)/lib/libCatch2WithMain.a:
-	cd $(CATCH2_DIR) && $(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+# CATCH2_BUILD:=$(EXTERNAL_BASE)/alpaka/thirdParty/catch2
+# $(CATCH2_BUILD)/lib/libCatch2WithMain.a:
+# 	cd $(CATCH2_DIR) && $(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+# 	$(CMAKE) --build $(CATCH2_BUILD) --target install
+
+CATCH2_DIR := $(EXTERNAL_BASE)/alpaka/thirdParty/catch2
+CATCH2_BUILD := $(CATCH2_DIR)/build
+CATCH2_INSTALL := $(CATCH2_DIR)/install
+
+# Regra principal: cria o arquivo libCatch2Main.a como indicador de build
+$(CATCH2_INSTALL)/lib/libCatch2Main.a:
+	@echo "📦 Building and installing Catch2..."
+	@mkdir -p $(CATCH2_BUILD) $(CATCH2_INSTALL)
+	$(CMAKE) -S $(CATCH2_DIR) -B $(CATCH2_BUILD) \
+	    -DCMAKE_INSTALL_PREFIX=$(CATCH2_INSTALL) \
+	    -DCMAKE_INSTALL_LIBDIR=lib
 	$(CMAKE) --build $(CATCH2_BUILD) --target install
+	@echo "✅ Catch2 installed in $(CATCH2_INSTALL)/lib"
+
+# Target “all” ou qualquer outro que precise de Catch2 deve depender disso
+all: $(CATCH2_INSTALL)/lib/libCatch2Main.a
+
+# Exemplo de linkagem correta em outra regra
+# Lembre-se de linkar em lib, não em lib64
+LIBS += -L$(CATCH2_INSTALL)/lib -lCatch2Main -lCatch2
 
 # force the recreation of the environment file any time the Makefile is updated, before building any other target
 -include environment
@@ -773,7 +794,7 @@ $(DATA_DEPS): $(DATA_TAR_GZ) | $(DATA_BASE)/md5.txt
 	touch $(DATA_DEPS)
 
 $(DATA_TAR_GZ): | $(DATA_BASE)/url.txt
-	curl -x $(MYPROXY) -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
+	curl -x socks5://localhost:18080 -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
 
 # External rules
 $(EXTERNAL_BASE):
@@ -819,7 +840,7 @@ external_boost: $(BOOST_BASE)
 $(BOOST_BASE): CXXFLAGS:=
 $(BOOST_BASE):
 	$(eval BOOST_TMP := $(shell mktemp -d))
-	curl -x $(MYPROXY) -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
+	curl -x socks5://localhost:18080 -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
 	cd $(BOOST_TMP)/boost_1_78_0 && ./bootstrap.sh && ./b2 install --prefix=$@ --without-graph_parallel --without-mpi --without-python
 	@rm -rf $(BOOST_TMP)
 	$(eval undefine BOOST_TMP)
@@ -847,7 +868,7 @@ external_hwloc: $(HWLOC_BASE)
 $(HWLOC_BASE): CXXFLAGS:=
 $(HWLOC_BASE):
 	$(eval HWLOC_TMP := $(shell mktemp -d))
-	curl -x $(MYPROXY) -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
+	curl -x socks5://localhost:18080 -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
 	cd $(HWLOC_TMP)/ && ./configure --prefix=$@ --enable-shared
 	$(MAKE) -C $(HWLOC_TMP)
 	$(MAKE) -C $(HWLOC_TMP) install
@@ -898,4 +919,4 @@ $(JULIA_BASE):
 
 # Json
 $(JSON_BASE):
-	mkdir -p $@ && curl -x $(MYPROXY) wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp > external/nlohmann/json.hpp   
+	mkdir -p $@ && curl -x socks5://localhost:18080 wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp > external/nlohmann/json.hpp   

@@ -25,6 +25,7 @@ namespace cms::alpakatools {
                                   T const *__restrict__ v,
                                   uint32_t const *__restrict__ offsets) const {
       const uint32_t nt = offsets[nh];
+      // printf("offsets[0]: %u -- offsets[1]: %u -- offsets[2]: %u -- offsets[3]: %u -- offsets[4]: %u -- offsets[5]: %u -- offsets[6]: %u -- offsets[7]: %u -- offsets[8]: %u -- offsets[9]: %u -- offsets[10]: %u\n",offsets[0],offsets[1],offsets[2],offsets[3],offsets[4],offsets[5],offsets[6],offsets[7],offsets[8],offsets[9],offsets[10]);
       for (uint32_t i : uniform_elements(acc, nt)) {
         auto off = alpaka_std::upper_bound(offsets, offsets + nh + 1, i);
         ALPAKA_ASSERT_ACC((*off) > 0);

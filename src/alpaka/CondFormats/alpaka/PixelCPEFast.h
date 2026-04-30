@@ -10,7 +10,7 @@
 #include "AlpakaCore/memory.h"
 #include "CondFormats/pixelCPEforDevice.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 // #define DUMPDETS
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
