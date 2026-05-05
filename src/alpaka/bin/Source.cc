@@ -88,11 +88,10 @@ namespace edm {
 
       else{
 
-        in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
-        in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
-
-        in_particles.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-        in_map.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        // in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
+        // in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
+        in_particles    = std::ifstream(datadir / "particles.txt");
+        in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
 
         particleToken_ = reg.produces<sim::ParticleHost>();
         mapToken_ = reg.produces<utils::SimpleMapHost>();
@@ -130,12 +129,6 @@ namespace edm {
     }
     else
     {
-      if (validation)
-      {
-        particleReader::check_header(in_particles);
-        mapReader::check_header(in_map);
-      }
-
       int32_t nEventsP, nEventsH, nEventsM;
 
       std::string line;
@@ -149,11 +142,11 @@ namespace edm {
       nEventsH = std::stoul(line.substr(7)); // after "events:"
       nEventsP = nEventsM = nEventsH;
 
-      if (validation)
-      {
-        in_particles.read(reinterpret_cast<char*>(&nEventsP), sizeof(nEventsP));
-        in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
-      }
+      // if (validation)
+      // {
+      //   in_particles.read(reinterpret_cast<char*>(&nEventsP), sizeof(nEventsP));
+      //   in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
+      // }
 
       if(nEventsH != nEventsP or nEventsH != nEventsM)
         throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
@@ -168,8 +161,8 @@ namespace edm {
         hits_.emplace_back(hitReader::read_single_event_fromText(in_file));
         if (validation)
         {
-          particles_.emplace_back(particleReader::read_single_event(in_particles));
-          map_.emplace_back(mapReader::read_single_event(in_map));
+          particles_.emplace_back(particleReader::read_single_event_fromText(in_particles));
+          map_.emplace_back(mapReader::read_single_event_fromText(in_map));
         }
           
 #ifdef INPUT_DEBUG
@@ -183,12 +176,12 @@ namespace edm {
       //   throw std::runtime_error("I/O error while reading input file");
       // }
 
-      if (validation){
-        if (!in_particles.good() && !in_particles.eof()) 
-          throw std::runtime_error("I/O error while reading particles file");
-        if (!in_map.good() && !in_map.eof()) 
-          throw std::runtime_error("I/O error while reading hit-map file");
-      }
+      // if (validation){
+      //   if (!in_particles.good() && !in_particles.eof()) 
+      //     throw std::runtime_error("I/O error while reading particles file");
+      //   if (!in_map.good() && !in_map.eof()) 
+      //     throw std::runtime_error("I/O error while reading hit-map file");
+      // }
 
     // std::cout << "Successfully read all events from " << filename << std::endl;
     }

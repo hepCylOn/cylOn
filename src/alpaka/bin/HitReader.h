@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "AlpakaDataFormats/TrackingRecHitsHost.h"
-#include "AlpakaDataFormats/SimpleMapSoA.h"
+#include "AlpakaDataFormats/SimpleMapHost.h"
 
 // #define INPUT_DEBUG
 
@@ -68,6 +68,70 @@ namespace mapReader {
 #endif
 
     return host;
+  }
+
+  // Split a line by delimiter (default = comma)
+  std::vector<std::string> split(const std::string &line, char delimiter = ',') {
+      std::vector<std::string> tokens;
+      std::stringstream ss(line);
+      std::string item;
+      while (std::getline(ss, item, delimiter)) {
+          if (!item.empty()) tokens.push_back(item);
+      }
+      return tokens;
+  }
+
+  // --- read one event into a SimpleMapHost ---
+  inline utils::SimpleMapHost read_single_event_fromText(std::ifstream& file) {
+
+    std::string line;
+
+    // Used to indicate something broke when reading file
+    utils::SimpleMapHost auxMapHost(0, cms::alpakatools::host());
+
+    // skip empty lines
+    while (std::getline(file, line)) {
+        if (!line.empty()) break;
+    }
+    if (file.eof()) return auxMapHost;
+
+     if (line.rfind("hits:", 0) != 0) {
+        std::cerr << "Expected 'hits:NHITS', got: " << line << "\n";
+        return auxMapHost;
+    }
+
+    uint32_t nHits;
+
+    nHits = std::stoul(line.substr(5)); // after "hits:"
+
+    // Construct the host collection (nHits, nModules)
+    utils::SimpleMapHost simpleMapHost(static_cast<int>(nHits), cms::alpakatools::host());
+
+    auto simpleMapView = simpleMapHost.view();
+
+    std::cout << nHits << std::endl;
+
+    std::cout << __LINE__ << " -- " << __FILE__ << std::endl;
+
+    for (size_t i = 0; i < nHits; ++i) {
+        if (!std::getline(file, line)) {
+            std::cerr << "Unexpected end of file while reading hits.\n";
+            return auxMapHost;
+        }
+        auto tokens = split(line);
+        if (tokens.size() != 1) {
+            std::cerr << "Hit row " << i << " has " << tokens.size()
+                      << " columns, expected 1.\n";
+            return auxMapHost;
+        }
+
+        simpleMapView[i].id() = static_cast<uint32_t>(std::stoi(tokens[0]));
+
+    }
+
+    std::cout << __LINE__ << " -- " << __FILE__ << std::endl;
+
+    return simpleMapHost;
   }
 
 }

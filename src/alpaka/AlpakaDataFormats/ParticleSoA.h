@@ -1,6 +1,8 @@
 #ifndef AlpakaDataFormats_ParticleSoA_h
 #define AlpakaDataFormats_ParticleSoA_h
 
+#include <Eigen/Core>
+
 #include <alpaka/alpaka.hpp>
 #include "SoATemplate/SoALayout.h"
 

@@ -328,7 +328,8 @@ int main(int argc, char** argv) {
         }
         if (validation) {
           if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
-          else edmodules.emplace_back("SimpleTrackValidation");
+          // else edmodules.emplace_back("SimpleTrackValidation");
+          else edmodules.emplace_back("PixelTrackValidatorFromHits");
         }
         if (histogram) {
           edmodules.emplace_back(prefix + "HistoValidator");

@@ -98,6 +98,75 @@ namespace particleReader {
     return particleHost;
   }
 
+  // Split a line by delimiter (default = comma)
+  std::vector<std::string> split(const std::string &line, char delimiter = ',') {
+      std::vector<std::string> tokens;
+      std::stringstream ss(line);
+      std::string item;
+      while (std::getline(ss, item, delimiter)) {
+          if (!item.empty()) tokens.push_back(item);
+      }
+      return tokens;
+  }
+inline sim::ParticleHost read_single_event_fromText(std::ifstream& file) {
+
+    std::string line;
+
+    // Used to indicate something broke when reading file
+    sim::ParticleHost auxParticleHost(0, cms::alpakatools::host());
+
+    // skip empty lines
+    while (std::getline(file, line)) {
+        if (!line.empty()) break;
+    }
+    if (file.eof()) return auxParticleHost;
+
+     if (line.rfind("particles:", 0) != 0) {
+        std::cerr << "Expected 'particles:NPARTICLES', got: " << line << "\n";
+        return auxParticleHost;
+    }
+
+    uint32_t nParticles;
+
+    nParticles = std::stoul(line.substr(10)); // after "particles:"
+
+    // Construct the host collection (nParticles, nModules)
+    sim::ParticleHost particlesHost(static_cast<int>(nParticles), cms::alpakatools::host());
+
+    auto particlesView = particlesHost.view();
+
+    for (size_t i = 0; i < nParticles; ++i) {
+        if (!std::getline(file, line)) {
+            std::cerr << "Unexpected end of file while reading particles.\n";
+            return auxParticleHost;
+        }
+        auto tokens = split(line);
+        if (tokens.size() != 14) {
+            std::cerr << "Hit row " << i << " has " << tokens.size()
+                      << " columns, expected 14.\n";
+            return auxParticleHost;
+        }
+
+        particlesView[i].vx() = std::stof(tokens[0]);
+        particlesView[i].vy() = std::stof(tokens[1]);
+        particlesView[i].vz() = std::stof(tokens[2]);
+        particlesView[i].px() = std::stof(tokens[3]);
+        particlesView[i].py() = std::stof(tokens[4]);
+        particlesView[i].pz() = std::stof(tokens[5]);
+        particlesView[i].energy() = std::stof(tokens[6]);
+        particlesView[i].pt() = std::stof(tokens[7]);
+        particlesView[i].eta() = std::stof(tokens[8]);
+        particlesView[i].phi() = std::stof(tokens[9]);
+        particlesView[i].mass() = std::stof(tokens[10]);
+        particlesView[i].charge() = static_cast<int16_t>(std::stoi(tokens[11]));
+        particlesView[i].pdgID() = static_cast<int32_t>(std::stoi(tokens[12]));
+        particlesView[i].partInd() = static_cast<uint32_t>(std::stoi(tokens[13]));
+
+    }
+
+    return particlesHost;
+  }
+
 }  // namespace particleReader
 
 #endif  // bin_particleReader_h
