@@ -65,6 +65,8 @@ namespace reco {
 
     int32_t offsetBPIX2() const { return offsetBPIX2_; }
 
+    void setOffsetBPIX2(int32_t offsetBPIX2) { offsetBPIX2_ = offsetBPIX2; }
+
     // asynchronously update the information cached within the class itself from the information on the device
     template <typename TQueue>
     void updateFromDevice(TQueue queue) {

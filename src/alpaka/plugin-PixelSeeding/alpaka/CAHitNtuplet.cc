@@ -38,6 +38,7 @@
 #include "AlpakaDataFormats/CAGeometryHost.h"
 
 // #define GPU_DEBUG
+// #define DUMP_HITS
 
 // namespace reco {
 //   struct CAGeometryParams {
@@ -179,15 +180,19 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             << " maxDoublets=" << maxDoublets << std::endl;
 #endif
 
-  // // Lines below are used to write input files to be used with fromHits;
-  // // Remember to also uncomment lines 210-213 in CAHitNtupletGeneratorKernels.cc
-  // auto const& hits_h = hits.view();
-  // std::cout << "hits:" << hits_h.metadata().size() << std::endl;
-  // std::cout << "module:10" << std::endl;
-  // for(int i = 0; i < hits_h.metadata().size(); ++i){
-  //   std::cout << hits_h.xLocal(i) << "," << hits_h.yLocal(i) << "," << hits_h.xerrLocal(i) << "," << hits_h.yerrLocal(i) << "," << hits_h.xGlobal(i) << "," << hits_h.yGlobal(i) << "," << hits_h.zGlobal(i) << "," << hits_h.rGlobal(i) << "," << hits_h.iphi(i) << "," << hits_h.chargeAndStatus(i).charge << "," << hits_h.clusterSizeX(i) << "," << hits_h.clusterSizeY(i) << ",0" << std::endl; // Without "particleId"
-  //   // std::cout << hits_h.xLocal(i) << "," << hits_h.yLocal(i) << "," << hits_h.xerrLocal(i) << "," << hits_h.yerrLocal(i) << "," << hits_h.xGlobal(i) << "," << hits_h.yGlobal(i) << "," << hits_h.zGlobal(i) << "," << hits_h.rGlobal(i) << "," << hits_h.iphi(i) << "," << hits_h.chargeAndStatus(i).charge << "," << hits_h.clusterSizeX(i) << "," << hits_h.clusterSizeY(i) << "," << hits_h.detectorIndex(i) << "," << i << std::endl; // With "particleId"
-  // }
+#if defined DUMP_HITS and defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+  // Lines below are used to write input files to be used with fromHits
+  auto const& hits_h = hits.view();
+  std::cout << "hits:" << hits_h.metadata().size() << std::endl;
+  std::cout << "module:" << hits.view<::reco::HitModuleSoA>().metadata().size() - 1 << std::endl;
+  for(int i = 0; i < hits_h.metadata().size(); ++i){
+    std::cout << hits_h.xLocal(i) << "," << hits_h.yLocal(i) << "," << hits_h.xerrLocal(i) << "," << hits_h.yerrLocal(i) << "," << hits_h.xGlobal(i) << "," << hits_h.yGlobal(i) << "," << hits_h.zGlobal(i) << "," << hits_h.rGlobal(i) << "," << hits_h.iphi(i) << "," << hits_h.chargeAndStatus(i).charge << "," << hits_h.clusterSizeX(i) << "," << hits_h.clusterSizeY(i) << "," << hits_h.detectorIndex(i) << "," << hits_h.offsetBPIX2() << std::endl;
+  }
+  for(int i = 0; i < int(hits.view<::reco::HitModuleSoA>().metadata().size()); ++i){
+    if (i < int(hits.view<::reco::HitModuleSoA>().metadata().size()) - 1) std::cout << hits.view<::reco::HitModuleSoA>()[i].moduleStart() << ",";
+    else std::cout << hits.view<::reco::HitModuleSoA>()[i].moduleStart() << std::endl;
+  }
+#endif
 
   ctx.emplace(iEvent,
               tokenTrack_,
@@ -209,11 +214,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class CAHitNtupletPhase1 : public CAHitNtuplet<pixelTopology::Phase1> {
   public:
     using CAHitNtuplet<pixelTopology::Phase1>::CAHitNtuplet;
-  };
-
-  class CAHitNtupletPhase1FromHits : public CAHitNtuplet<pixelTopology::Phase1FromHits> {
-  public:
-    using CAHitNtuplet<pixelTopology::Phase1FromHits>::CAHitNtuplet;
   };
 
   class CAHitNtupletHIonPhase1 : public CAHitNtuplet<pixelTopology::HIonPhase1> {
@@ -239,7 +239,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
 
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase1FromHits);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletUpgrade);

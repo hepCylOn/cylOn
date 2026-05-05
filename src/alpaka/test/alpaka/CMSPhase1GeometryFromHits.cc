@@ -79,7 +79,7 @@ class PixelCPEFast {
 };
 
 // --- Constants ---
-constexpr uint16_t nModules = 1856;
+constexpr uint16_t nModules = 10;
 constexpr uint16_t nLayers  = 10;
 constexpr uint16_t nPairs   = 19;
 

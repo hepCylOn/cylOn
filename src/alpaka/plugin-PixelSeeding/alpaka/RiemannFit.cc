@@ -388,7 +388,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template class HelixFit<pixelTopology::Phase1>;
-  template class HelixFit<pixelTopology::Phase1FromHits>;
   template class HelixFit<pixelTopology::Phase2>;
   template class HelixFit<pixelTopology::GenericUpgrade>;
   template class HelixFit<pixelTopology::HIonPhase1>;

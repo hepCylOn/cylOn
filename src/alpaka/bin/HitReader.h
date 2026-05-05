@@ -259,9 +259,9 @@ namespace hitReader {
             return auxRecHitHost;
         }
         auto tokens = split(line);
-        if (tokens.size() != 13) {
+        if (tokens.size() != 14) {
             std::cerr << "Hit row " << i << " has " << tokens.size()
-                      << " columns, expected 13.\n";
+                      << " columns, expected 14.\n";
             return auxRecHitHost;
         }
 
@@ -277,7 +277,8 @@ namespace hitReader {
         hitsView[i].chargeAndStatus().charge = std::stof(tokens[9]);
         hitsView[i].clusterSizeX() = static_cast<int16_t>(std::stoi(tokens[10]));
         hitsView[i].clusterSizeY() = static_cast<int16_t>(std::stoi(tokens[11]));
-        hitsView[i].detectorIndex() = static_cast<int16_t>(std::stoi(tokens[12]));
+        hitsView[i].detectorIndex() = static_cast<uint16_t>(std::stoi(tokens[12]));
+        hitsView.offsetBPIX2() = static_cast<int32_t>(std::stoi(tokens[13]));
 
     }
 
@@ -293,7 +294,6 @@ namespace hitReader {
         return auxRecHitHost;
     }
 
-    hitsView.offsetBPIX2() = static_cast<uint32_t>(std::stoul(tokens[1]));
     int auxId = 0;
     for (auto &tok : tokens) {
         modsView[auxId].moduleStart() =  static_cast<uint32_t>(std::stoul(tok));

@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
       if (not dumpHits) {
         if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
         else {
-          if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1FromHits");
+          if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
           else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase1");
         }
       }
@@ -312,16 +312,13 @@ int main(int argc, char** argv) {
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
       if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
       if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
-      // if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
       if (fromHits) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
 
       if (not dumpHits)
       {
-        // edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
-        // edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
         if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
         else {
-          if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1FromHits");
+          if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
           else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
         }
         edmodules.emplace_back(prefix + "PixelVertexPhase1");

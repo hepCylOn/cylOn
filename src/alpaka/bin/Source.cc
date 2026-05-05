@@ -44,22 +44,24 @@ namespace edm {
     
     std::ifstream in_file;
 
+    std::string in_fileName;
+
     if (not fromHits_)
     {
-      in_file.open(datadir / "raw.bin", std::ios::binary);
+      in_fileName = "raw.bin";
+      in_file.open(datadir / in_fileName, std::ios::binary);
+      std::cout << "Reading bin from " << datadir / in_fileName << std::endl;
       rawToken_ = reg.produces<FEDRawDataCollection>();
     }
     else
     {
-      if (not isPhase2_) in_file.open(datadir / "hitsCMSPhase1.txt");
-      // else in_file.open(datadir / "hits.bin");
-      else in_file.open(datadir / "hitsWithoutParticleId.txt");
-      // std::cout << "Reading hits from " << datadir << "/hitsWithoutParticleId.txt" << std::endl;
-      std::cout << "Reading hits from " << datadir << "/hitsCMSPhase1.txt" << std::endl;
-      // TODO: remember to set this back to something more general
-      // in_file.open(datadir / "hitsTest.txt", std::ios::binary);
+      if (not isPhase2_) in_fileName =  "hitsCMSPhase1.txt";
+      else in_fileName = "hitsWithoutParticleId.txt";
+      in_file.open(datadir / in_fileName);
+      std::cout << "Reading hits from " << datadir / in_fileName  << std::endl;
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
     }
+
     std::ifstream in_digiclusters;
     std::ifstream in_tracks;
     std::ifstream in_vertices;
@@ -128,24 +130,23 @@ namespace edm {
     }
     else
     {
-      // std::cout << "Reading hits from " << (datadir / "hits.bin") << std::endl;
-      std::cout << "Reading hits from /data/user/borzari/cmssw/cylOn/data/hitsWithoutParticleId.txt" << std::endl;
-      // hitReader::check_header(in_file);
       if (validation)
       {
         particleReader::check_header(in_particles);
         mapReader::check_header(in_map);
       }
-      // hitReader::check_header_fromText(in_file);
-      // if (validation)
-      // {
-      //   particleReader::check_header_fromText(in_particles);
-      //   mapReader::check_header_fromText(in_map);
-      // }
 
       int32_t nEventsP, nEventsH, nEventsM;
-      // in_file.read(reinterpret_cast<char*>(&nEventsH), sizeof(nEventsH));
-      nEventsH = 1;
+
+      std::string line;
+      while (std::getline(in_file, line)) {
+        if (!line.empty()) break;
+      }
+      if (line.rfind("events:", 0) != 0) {
+        std::cerr << "Expected 'events:NEVENTS', got: " << line << "\n";
+      }
+
+      nEventsH = std::stoul(line.substr(7)); // after "events:"
       nEventsP = nEventsM = nEventsH;
 
       if (validation)
@@ -154,8 +155,8 @@ namespace edm {
         in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
       }
 
-      // if(nEventsH != nEventsP or nEventsH != nEventsM)
-      //   throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
+      if(nEventsH != nEventsP or nEventsH != nEventsM)
+        throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
       maxEvents_ = (maxEvents_ < 0) ? nEventsH : std::min(maxEvents_, nEventsH);
 
 #ifdef INPUT_DEBUG

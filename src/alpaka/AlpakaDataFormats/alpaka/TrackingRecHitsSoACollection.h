@@ -75,6 +75,8 @@ namespace cms::alpakatools {
 
       alpaka::memcpy(queue, deviceData.buffer(), hostData.buffer());
 
+      deviceData.setOffsetBPIX2(hostData.offsetBPIX2());
+
 #ifdef GPU_DEBUG
       printf("TrackingRecHitsSoACollection: I'm copying to device.\n");
       alpaka::wait(queue);

@@ -30,7 +30,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   void SiPixelGainCalibrationForHLTHostESProducer::produce(edm::EventSetup& eventSetup) {
-    std::cout << "produce" << std::endl;
+    // std::cout << "produce" << std::endl;
     auto in = edm::utils::openInputFile(data_);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit);
 

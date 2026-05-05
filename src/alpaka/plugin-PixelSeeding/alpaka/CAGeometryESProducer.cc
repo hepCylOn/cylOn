@@ -245,11 +245,6 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::Phase1>::CAGeometryHostESProducer;
   };
 
-  class CAGeometryHostESProducerPhase1FromHits : public CAGeometryHostESProducer<pixelTopology::Phase1FromHits> {
-  public:
-    using CAGeometryHostESProducer<pixelTopology::Phase1FromHits>::CAGeometryHostESProducer;
-  };
-
   class CAGeometryHostESProducerGenericUpgrade : public CAGeometryHostESProducer<pixelTopology::GenericUpgrade> {
   public:
     using CAGeometryHostESProducer<pixelTopology::GenericUpgrade>::CAGeometryHostESProducer;
@@ -264,6 +259,5 @@ auto maxVal = std::ranges::max(startingPairs_);
 
   // ---------- Explicit instantiation and registration ----------
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1);
-  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1FromHits);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase1);
