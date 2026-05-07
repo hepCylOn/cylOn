@@ -21,9 +21,10 @@ namespace edm {
                                  std::filesystem::path const& datadir,
                                  bool validation,
                                  bool fromHits,
-                                 bool isPhase2) // Change to work with Phase-2
+                                 bool isPhase2,
+                                 bool runSimTracks)
       : config_(config), 
-        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2),
+        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {

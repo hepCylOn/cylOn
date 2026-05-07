@@ -378,36 +378,56 @@ namespace colliderMLPhase1PixelTopology {
       4, 6, 7, 9                     // Jumping Forward (19)
   };
 
-  HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{phi0p05,
-                                               phi0p07,
-                                               phi0p07,
-                                               phi0p05,
-                                               phi0p06,
-                                               phi0p06,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p06,
-                                               phi0p06,
-                                               phi0p06,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05,
-                                               phi0p05};
+  // ------ Begin for SimPixelTracks geometry ------
+  HOST_DEVICE_CONSTANT uint8_t startingPairs[nPairs] = {
+    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  };
+
+  HOST_DEVICE_CONSTANT bool isBarrel[numberOfLayers] = {
+    1, 1, 1, 1, 0, 0, 0, 0, 0, 0
+  };
+
+  HOST_DEVICE_CONSTANT float ptCuts[nPairs] = {
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5
+  };
+  // ------ End for SimPixelTracks geometry ------
+
+  // Using values from simPixelTracksAnalyser
+  HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{250,
+                                               330,
+                                               330,
+                                               270,
+                                               370,
+                                               370,
+                                               130,
+                                               130,
+                                               310,
+                                               290,
+                                               290,
+                                               130,
+                                               130,
+                                               450,
+                                               550,
+                                               190,
+                                               190,
+                                               110,
+                                               110};
+
+  // Using values from simPixelTracksAnalyser
   HOST_DEVICE_CONSTANT float minz[nPairs] = {
-      -20., 0., -30., -22., 10., -30., -70., -70., -22., 15., -30, -70., -70., -20., -22., 0, -30., -70., -70.};
+      -25., 20., -50., -32., 28., -50., 60., -70., -34., 38., -50, 70., -72., -20., -25., 45, -52., -72., -72.};
   HOST_DEVICE_CONSTANT float maxz[nPairs] = {
-      20., 30., 0., 22., 30., -10., 70., 70., 22., 30., -15., 70., 70., 20., 22., 30., 0., 70., 70.};
+      25., 50., -20., 32., 50., -28., 70., -60., 34., 50., -38., 72., -70., 20., 25., 52., -45., -70., -70.};
   HOST_DEVICE_CONSTANT float maxr[nPairs] = {
-      20., 9., 9., 20., 7., 7., 5., 5., 20., 6., 6., 5., 5., 20., 20., 9., 9., 9., 9.};
+      4., 5., 5., 5., 7., 7., 3., 3., 6., 6., 6., 3., 3., 9., 11., 2., 2., 2., 2.};
 
-  HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.15, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25};
+  // Using values from simPixelTracksAnalyser
+  HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.11, 0.14, 0.23, 0.0, 0.25, 0.0, 0.0, 0.25, 0.0, 0.0};
 
+  // Using values from simPixelTracksAnalyser
   HOST_DEVICE_CONSTANT float thetaCuts[numberOfLayers] = {
-      0.002, 0.002, 0.002, 0.002, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003};
+      0.0, 0.002, 0.002, 0.0, 0.002, 0.002, 0.0, 0.002, 0.002, 0.0};
 
   static constexpr uint32_t layerStart[numberOfLayers + 1] = {0,
                                                               1,

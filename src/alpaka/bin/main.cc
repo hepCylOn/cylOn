@@ -139,6 +139,7 @@ int main(int argc, char** argv) {
   bool fromHits = false;
   bool isPhase2 = false;
   bool dumpHits = false;
+  bool runSimTracks = false;
 
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
@@ -191,6 +192,8 @@ int main(int argc, char** argv) {
       fromHits = true;
     } else if (*i == "--isPhase2") {
       isPhase2 = true;
+    } else if (*i == "--runSimTracks") {
+      runSimTracks = true;
     } else if (*i == "--dumpHits") {
       dumpHits = true;
     } else if (*i == "--histogram") {
@@ -314,26 +317,34 @@ int main(int argc, char** argv) {
       if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
       if (fromHits) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
 
-      if (not dumpHits)
+      if (not runSimTracks)
       {
-        if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-        else {
-          if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-          else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
+        if (not dumpHits)
+        {
+          if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+          else {
+            if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+            else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
+          }
+          edmodules.emplace_back(prefix + "PixelVertexPhase1");
+          if (transfer) {
+            edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+            edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+          }
+          if (validation) {
+            if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
+            else edmodules.emplace_back("SimpleTrackValidation");
+            // else edmodules.emplace_back("PixelTrackValidatorFromHits");
+          }
+          if (histogram) {
+            edmodules.emplace_back(prefix + "HistoValidator");
+          }
         }
-        edmodules.emplace_back(prefix + "PixelVertexPhase1");
-        if (transfer) {
-          edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
-        }
-        if (validation) {
-          if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
-          // else edmodules.emplace_back("SimpleTrackValidation");
-          else edmodules.emplace_back("PixelTrackValidatorFromHits");
-        }
-        if (histogram) {
-          edmodules.emplace_back(prefix + "HistoValidator");
-        }
+      }
+      else 
+      {
+        edmodules.emplace_back("SimPixelTrackProducer");
+        edmodules.emplace_back("SimPixelTrackAnalyzer");
       }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
@@ -351,7 +362,8 @@ int main(int argc, char** argv) {
                                 datadir,
                                 validation,
                                 fromHits,
-                                isPhase2);
+                                isPhase2,
+                                runSimTracks);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

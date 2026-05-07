@@ -109,10 +109,6 @@ namespace mapReader {
 
     auto simpleMapView = simpleMapHost.view();
 
-    std::cout << nHits << std::endl;
-
-    std::cout << __LINE__ << " -- " << __FILE__ << std::endl;
-
     for (size_t i = 0; i < nHits; ++i) {
         if (!std::getline(file, line)) {
             std::cerr << "Unexpected end of file while reading hits.\n";
@@ -128,8 +124,6 @@ namespace mapReader {
         simpleMapView[i].id() = static_cast<uint32_t>(std::stoi(tokens[0]));
 
     }
-
-    std::cout << __LINE__ << " -- " << __FILE__ << std::endl;
 
     return simpleMapHost;
   }

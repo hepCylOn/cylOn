@@ -32,12 +32,13 @@ namespace {
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2) // Change to work with Phase-2
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks) // Change to work with Phase-2
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
         fromHits_(fromHits),
-        isPhase2_(isPhase2) {
+        isPhase2_(isPhase2),
+        runSimTracks_(runSimTracks) {
 
     // if(fromHits_ and validation_)
     //  throw std::runtime_error("--fromHits and --validation can't work together (yet)");
@@ -165,12 +166,12 @@ namespace edm {
           map_.emplace_back(mapReader::read_single_event_fromText(in_map));
         }
           
-#ifdef INPUT_DEBUG
-        if (validation)
-          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
-        else
-          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
-#endif
+// #ifdef INPUT_DEBUG
+//         if (validation)
+//           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
+//         else
+//           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
+// #endif
       }
       // if (!in_file.good() && !in_file.eof()) {
       //   throw std::runtime_error("I/O error while reading input file");
