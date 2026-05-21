@@ -393,41 +393,73 @@ namespace colliderMLPhase1PixelTopology {
   };
   // ------ End for SimPixelTracks geometry ------
 
-  // Using values from simPixelTracksAnalyser
-  HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{250,
-                                               330,
-                                               330,
+  // // Using values from simPixelTracksAnalyser 99.5%
+  // HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{250,
+  //                                              330,
+  //                                              330,
+  //                                              270,
+  //                                              370,
+  //                                              370,
+  //                                              130,
+  //                                              130,
+  //                                              310,
+  //                                              290,
+  //                                              290,
+  //                                              130,
+  //                                              130,
+  //                                              450,
+  //                                              550,
+  //                                              190,
+  //                                              190,
+  //                                              110,
+  //                                              110};
+  // Using values from simPixelTracksAnalyser 90%
+  HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{170,
+                                               190,
+                                               190,
+                                               230,
+                                               250,
+                                               250,
+                                               90,
+                                               90,
                                                270,
-                                               370,
-                                               370,
-                                               130,
-                                               130,
-                                               310,
-                                               290,
-                                               290,
-                                               130,
-                                               130,
-                                               450,
-                                               550,
-                                               190,
-                                               190,
-                                               110,
-                                               110};
+                                               230,
+                                               230,
+                                               90,
+                                               90,
+                                               0,
+                                               0,
+                                               0,
+                                               0,
+                                               0,
+                                               0};
 
-  // Using values from simPixelTracksAnalyser
-  HOST_DEVICE_CONSTANT float minz[nPairs] = {
-      -25., 20., -50., -32., 28., -50., 60., -70., -34., 38., -50, 70., -72., -20., -25., 45, -52., -72., -72.};
-  HOST_DEVICE_CONSTANT float maxz[nPairs] = {
-      25., 50., -20., 32., 50., -28., 70., -60., 34., 50., -38., 72., -70., 20., 25., 52., -45., -70., -70.};
+  // // Using values from simPixelTracksAnalyser 99.5%
+  // HOST_DEVICE_CONSTANT float minz[nPairs] = {
+  //     -25., 20., -50., -32., 28., -50., 60., -70., -34., 38., -50, 70., -72., -20., -25., 45, -52., -72., -72.};
+  // HOST_DEVICE_CONSTANT float maxz[nPairs] = {
+  //     25., 50., -20., 32., 50., -28., 70., -60., 34., 50., -38., 72., -70., 20., 25., 52., -45., -70., -70.};
   HOST_DEVICE_CONSTANT float maxr[nPairs] = {
       4., 5., 5., 5., 7., 7., 3., 3., 6., 6., 6., 3., 3., 9., 11., 2., 2., 2., 2.};
+  // Using values from simPixelTracksAnalyser 90%
+  HOST_DEVICE_CONSTANT float minz[nPairs] = {
+      -19.5427, 23.8853, -44.1519, -22.4379, 31.1233, -49.9423, 61.5229, -62.9707, -28.2283, 39.8089, -49.9423, 71.6561, -71.6563, 10.8569, -49.9423, -71.6563, -71.6563, -71.6563, -71.6563};
+  HOST_DEVICE_CONSTANT float maxz[nPairs] = {
+      19.5425, 44.1517, -23.8855, 22.4377, 49.9421, -31.1235, 62.9705, -61.5231, 28.2281, 49.9421, -39.8091, 71.6561, -71.6563, 12.3045, 13.7521, -71.6563, -71.6563, -71.6563, -71.6563};
+  // HOST_DEVICE_CONSTANT float maxr[nPairs] = {
+  //     3.6492, 4.5743, 4.5743, 4.6771, 6.4246, 6.4246, 2.1073, 2.1073, 5.7051, 5.4995, 5.4995, 2.2101, 2.2101, 8.2749, 10.2280, 0.0514, 0.0514, 0.0514, 0.0514};
 
-  // Using values from simPixelTracksAnalyser
-  HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.11, 0.14, 0.23, 0.0, 0.25, 0.0, 0.0, 0.25, 0.0, 0.0};
+  // // Using values from simPixelTracksAnalyser 99.5%
+  // HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.11, 0.14, 0.23, 0.0, 0.25, 0.0, 0.0, 0.25, 0.0, 0.0};
+  // Using values from simPixelTracksAnalyser 90%
+  HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.0225, 0.0405, 0.1305, 0.0, 0.1515, 0.0, 0.0, 0.1515, 0.0, 0.0};
 
-  // Using values from simPixelTracksAnalyser
+  // Using values from simPixelTracksAnalyser 99.5%
   HOST_DEVICE_CONSTANT float thetaCuts[numberOfLayers] = {
       0.0, 0.002, 0.002, 0.0, 0.002, 0.002, 0.0, 0.002, 0.002, 0.0};
+  // // Using values from simPixelTracksAnalyser 90%
+  // HOST_DEVICE_CONSTANT float thetaCuts[numberOfLayers] = {
+  //     0.0, 0.0007, 0.0007, 0.0, 0.0009, 0.0013, 0.0, 0.0009, 0.0013, 0.0};
 
   static constexpr uint32_t layerStart[numberOfLayers + 1] = {0,
                                                               1,

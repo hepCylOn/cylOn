@@ -294,7 +294,7 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
 
   auto nParticles = simpleParts.view().metadata().size();
   auto isValidPartId = [&](uint32_t id) {
-    return id != std::numeric_limits<uint32_t>::max() && int(id) < nParticles; // TODO: share sentinel
+    return id != std::numeric_limits<uint32_t>::max(); // TODO: share sentinel
   };
 
 #ifdef GPU_DEBUG
@@ -366,7 +366,7 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
 
     // quality cut: BAD / DUP are rejected
     const auto q = tracksView[i].quality();
-    if (not bypassbad_ and (q == pixelTrack::Quality::bad || q == pixelTrack::Quality::dup)) {
+    if (not bypassbad_ and (q == pixelTrack::Quality::bad || q == pixelTrack::Quality::dup || q == pixelTrack::Quality::edup)) {
 #ifdef GPU_DEBUG
       std::cout << "  [track " << i << "] skip: quality=" << int(q) << std::endl;
 #endif
@@ -437,6 +437,11 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
 
     auto [occurrences, bestPartInd] = getMostRepeatingPart(partIndices);
 
+    // Find the index in the particles SoA that corresponds to the most repeeating particle
+    bool foundPart = false;
+    for(int i = 0; i < int(simpleParts.view().metadata().size()); ++i)
+      if(simpleParts.view()[i].partInd() == bestPartInd) {bestPartInd = i; foundPart = true; break;}
+
     constexpr double cutForTriplets = 2.0/3.0;
     const bool isTriplet = (nHitsTrk == 3);
 
@@ -453,6 +458,8 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
                 << " -> " << (good ? "GOOD" : "FAKE/LOW-PURITY") << std::endl;
     }
 #endif
+
+    if(!foundPart) good = false;
 
   bool isDuplicate = false;
     if (good) { 

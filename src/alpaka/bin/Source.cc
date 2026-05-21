@@ -57,7 +57,8 @@ namespace edm {
     else
     {
       if (not isPhase2_) in_fileName =  "hitsCMSPhase1.txt";
-      else in_fileName = "hitsWithoutParticleId.txt";
+      // else in_fileName = "hitsWithoutParticleId.txt";
+      else in_fileName = "hitsMuonsOnlyMinLayers.txt";
       in_file.open(datadir / in_fileName);
       std::cout << "Reading hits from " << datadir / in_fileName  << std::endl;
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
@@ -91,8 +92,12 @@ namespace edm {
 
         // in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
         // in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
-        in_particles    = std::ifstream(datadir / "particles.txt");
-        in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
+        // in_particles    = std::ifstream(datadir / "particles.txt");
+
+        // in_particles    = std::ifstream(datadir / "particlesFilter.txt");
+        // in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
+        in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt");
+        in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt");
 
         particleToken_ = reg.produces<sim::ParticleHost>();
         mapToken_ = reg.produces<utils::SimpleMapHost>();
@@ -132,16 +137,25 @@ namespace edm {
     {
       int32_t nEventsP, nEventsH, nEventsM;
 
-      std::string line;
-      while (std::getline(in_file, line)) {
-        if (!line.empty()) break;
+      std::string line_hits;
+      while (std::getline(in_file, line_hits)) {
+        if (!line_hits.empty()) break;
       }
-      if (line.rfind("events:", 0) != 0) {
-        std::cerr << "Expected 'events:NEVENTS', got: " << line << "\n";
+      if (line_hits.rfind("events:", 0) != 0) {
+        std::cerr << "Hits check -- Expected 'events:NEVENTS', got: " << line_hits << "\n";
       }
 
-      nEventsH = std::stoul(line.substr(7)); // after "events:"
-      nEventsP = nEventsM = nEventsH;
+      std::string line_map;
+      while (std::getline(in_map, line_map)) {
+        if (!line_map.empty()) break;
+      }
+      if (line_map.rfind("events:", 0) != 0) {
+        std::cerr << "Map check -- Expected 'events:NEVENTS', got: " << line_map << "\n";
+      }
+
+      nEventsH = std::stoul(line_hits.substr(7)); // after "events:"
+      nEventsM = std::stoul(line_map.substr(7)); // after "events:"
+      nEventsP = nEventsH;
 
       // if (validation)
       // {
@@ -156,6 +170,7 @@ namespace edm {
 #ifdef INPUT_DEBUG
       std::cout << "File contains " << nEventsH << " events\n";
 #endif
+      auto beginReadingTime = std::chrono::steady_clock::now();
       for (int32_t ev = 0; ev < nEventsH && ev < maxEvents_; ++ev) {
         // hits_.emplace_back(hitReader::read_single_event(in_file));
 
@@ -173,6 +188,9 @@ namespace edm {
 //           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
 // #endif
       }
+      auto endReadingTime = std::chrono::steady_clock::now();
+      auto readingTime = std::chrono::duration_cast<std::chrono::seconds>(endReadingTime - beginReadingTime);
+      std::cout << "It took " << readingTime.count() << " seconds to read the input hits file" << std::endl;
       // if (!in_file.good() && !in_file.eof()) {
       //   throw std::runtime_error("I/O error while reading input file");
       // }

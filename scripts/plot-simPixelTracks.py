@@ -3,7 +3,7 @@ import numpy as np
 
 eventsStr = 'SimDoublets'
 inputFile = 'output' + eventsStr + '.txt'
-outDir = 'plots_simPixelTracks'
+outDir = 'plots_simPixelTracks90percent'
 
 # Read non-empty lines
 with open(inputFile, "r") as f:
@@ -34,15 +34,25 @@ while i < len(lines):
         cdf = np.cumsum(y)
         cdf = cdf / cdf[-1]
 
+        # # Interval depends on the name of the variable
+        # if "INNER Z" in label.upper():
+        #     q_low, q_high = 0.005, 0.995
+        # elif "DPHI" in label.upper() and "IDPHI" not in label.upper():
+        #     q_low, q_high = 0.005, 0.995
+        # elif "DZ" in label.upper():
+        #     q_low, q_high = 0.005, 0.995
+        # else:
+        #     q_low, q_high = 0.0, 0.99
+
         # Interval depends on the name of the variable
         if "INNER Z" in label.upper():
-            q_low, q_high = 0.005, 0.995
+            q_low, q_high = 0.05, 0.95
         elif "DPHI" in label.upper() and "IDPHI" not in label.upper():
-            q_low, q_high = 0.005, 0.995
+            q_low, q_high = 0.05, 0.95
         elif "DZ" in label.upper():
-            q_low, q_high = 0.005, 0.995
+            q_low, q_high = 0.05, 0.95
         else:
-            q_low, q_high = 0.0, 0.99
+            q_low, q_high = 0.0, 0.9
 
         low_idx = np.searchsorted(cdf, q_low)
         high_idx = np.searchsorted(cdf, q_high)
@@ -58,7 +68,7 @@ while i < len(lines):
             weights=y,
             color='steelblue',
             alpha=0.7,
-            label=f"{label}\n[{q_low:.3f}, {q_high:.3f}] → [{x_low:.2f}, {x_high:.2f}]"
+            label=f"{label}\n[{q_low:.2f}, {q_high:.2f}] → [{x_low:.4f}, {x_high:.4f}]"
         )
 
         # Lines from interval

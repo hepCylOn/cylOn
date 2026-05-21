@@ -1541,7 +1541,7 @@ void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& i
     // clear SimDoublets and SimNtuplets of the SimParticle
     simPixelTrack.clearMutables();
   }
-  std::cout << totalDoublets << " -- " << passCuts[0] << " -- " << passCuts[1] << " -- " << passCuts[2] << " -- " << passCuts[3] << std::endl;
+  std::cout << numSimDoublets << " -- " << passCuts[0] << " -- " << passCuts[1] << " -- " << passCuts[2] << " -- " << passCuts[3] << std::endl;
 }
 
 // // booking the histograms

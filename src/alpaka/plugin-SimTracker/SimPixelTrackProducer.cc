@@ -129,18 +129,15 @@ void SimPixelTrackProducer::produce(edm::Event& event, const edm::EventSetup& ev
       continue;
     }
 
-    // auto it = std::find(particles.partIndVector().begin(), particles.partIndVector().end(), hits.partInd(hitId));
-    // auto it = std::find(partIndVector.begin(), partIndVector.end(), hits.partInd(hitId));
     auto it = std::find(partIndVector.begin(), partIndVector.end(), mapView[hitId].id());
     uint32_t assocSimParticle = 0;
-    // if (it != particles.partIndVector().end()) {
+    bool changedAssocSimParticle = false;
     if (it != partIndVector.end()) {
-      // size_t index = std::distance(particles.partIndVector().begin(), it);
       size_t index = std::distance(partIndVector.begin(), it);
       assocSimParticle = index;
-    //   std::cout << assocSimParticle << std::endl;
+      changedAssocSimParticle = true;
     }
-    if (assocSimParticle != 0 && assocSimParticle < 2000000){
+    if (changedAssocSimParticle && assocSimParticle < 2000000){
       count_associatedRecHits++;
       // loop over collection of SimDoublets and find the one of the associated TrackingParticle
       for (auto& simPixelTrack : simPixelTrackCollection) {
