@@ -10,6 +10,7 @@
 #include "Source.h"
 #include "ParticleReader.h"
 #include "HitReader.h"
+#include "HitReaderTest.h"
 
 // #define INPUT_DEBUG
 
@@ -32,17 +33,15 @@ namespace {
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks) // Change to work with Phase-2
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML) // Change to work with Phase-2
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
         fromHits_(fromHits),
         isPhase2_(isPhase2),
-        runSimTracks_(runSimTracks) {
+        runSimTracks_(runSimTracks),
+        isColliderML_(isColliderML) {
 
-    // if(fromHits_ and validation_)
-    //  throw std::runtime_error("--fromHits and --validation can't work together (yet)");
-    
     std::ifstream in_file;
 
     std::string in_fileName;
@@ -56,9 +55,15 @@ namespace edm {
     }
     else
     {
-      if (not isPhase2_) in_fileName =  "hitsCMSPhase1.txt";
-      // else in_fileName = "hitsWithoutParticleId.txt";
-      else in_fileName = "hitsMuonsOnlyMinLayers.txt";
+      if (not isPhase2_) {
+        if (not isColliderML) in_fileName =  "hitsCMSPhase1.txt";
+        else in_fileName = "hitsWithoutParticleId.txt";
+      }
+      else {
+        if (not isColliderML) in_fileName =  "hitsCMSPhase2.txt";
+        else in_fileName = "hitsWithoutParticleIdPhase2.txt";
+      }
+      // else in_fileName = "hitsMuonsOnlyMinLayers.txt"; // Just for testing with muons only
       in_file.open(datadir / in_fileName);
       std::cout << "Reading hits from " << datadir / in_fileName  << std::endl;
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
@@ -90,14 +95,30 @@ namespace edm {
 
       else{
 
-        // in_particles    = std::ifstream(datadir / "particles.bin", std::ios::binary);
-        // in_map = std::ifstream(datadir / "map.bin", std::ios::binary);
-        // in_particles    = std::ifstream(datadir / "particles.txt");
+        if (not isColliderML) {
+          trackToken_ = reg.produces<TrackCount>();
+          vertexToken_ = reg.produces<VertexCount>();
 
-        // in_particles    = std::ifstream(datadir / "particlesFilter.txt");
-        // in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
-        in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt");
-        in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt");
+          in_tracks = std::ifstream(datadir / "tracks.bin", std::ios::binary);
+          in_vertices = std::ifstream(datadir / "vertices.bin", std::ios::binary);
+          
+          in_tracks.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+          in_vertices.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+        }
+        
+        else {
+          if (not isPhase2) {
+            in_particles    = std::ifstream(datadir / "particlesFilter.txt");
+            in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
+          }
+          else {
+            in_particles    = std::ifstream(datadir / "particlesFilterPhase2.txt");
+            in_map = std::ifstream(datadir / "mapHitsToParticlesPhase2.txt");
+          } 
+          // in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt"); // Just for testing with muons only
+          // in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt"); // Just for testing with muons only
+
+        }
 
         particleToken_ = reg.produces<sim::ParticleHost>();
         mapToken_ = reg.produces<utils::SimpleMapHost>();
@@ -145,26 +166,23 @@ namespace edm {
         std::cerr << "Hits check -- Expected 'events:NEVENTS', got: " << line_hits << "\n";
       }
 
-      std::string line_map;
-      while (std::getline(in_map, line_map)) {
-        if (!line_map.empty()) break;
-      }
-      if (line_map.rfind("events:", 0) != 0) {
-        std::cerr << "Map check -- Expected 'events:NEVENTS', got: " << line_map << "\n";
-      }
-
       nEventsH = std::stoul(line_hits.substr(7)); // after "events:"
-      nEventsM = std::stoul(line_map.substr(7)); // after "events:"
-      nEventsP = nEventsH;
 
-      // if (validation)
-      // {
-      //   in_particles.read(reinterpret_cast<char*>(&nEventsP), sizeof(nEventsP));
-      //   in_map.read(reinterpret_cast<char*>(&nEventsM), sizeof(nEventsM));
-      // }
+      if (isColliderML) {
+        std::string line_map;
+        while (std::getline(in_map, line_map)) {
+          if (!line_map.empty()) break;
+        }
+        if (line_map.rfind("events:", 0) != 0) {
+          std::cerr << "Map check -- Expected 'events:NEVENTS', got: " << line_map << "\n";
+        }
 
-      if(nEventsH != nEventsP or nEventsH != nEventsM)
-        throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
+        nEventsM = std::stoul(line_map.substr(7)); // after "events:"
+        nEventsP = nEventsH;
+
+        if(nEventsH != nEventsP or nEventsH != nEventsM)
+          throw std::runtime_error("Error nEvents differs in the hits file and the particles file!");
+      }
       maxEvents_ = (maxEvents_ < 0) ? nEventsH : std::min(maxEvents_, nEventsH);
 
 #ifdef INPUT_DEBUG
@@ -174,35 +192,29 @@ namespace edm {
       for (int32_t ev = 0; ev < nEventsH && ev < maxEvents_; ++ev) {
         // hits_.emplace_back(hitReader::read_single_event(in_file));
 
-        hits_.emplace_back(hitReader::read_single_event_fromText(in_file));
-        if (validation)
+        // hits_.emplace_back(hitReader::read_single_event_fromText(in_file));
+        hits_.emplace_back(hitReaderTest::readEvent(in_file));
+        if (validation and isColliderML)
         {
           particles_.emplace_back(particleReader::read_single_event_fromText(in_particles));
-          map_.emplace_back(mapReader::read_single_event_fromText(in_map));
+          // map_.emplace_back(mapReader::read_single_event_fromText(in_map));
+          map_.emplace_back(mapReaderTest::readEvent(in_map));
         }
           
-// #ifdef INPUT_DEBUG
-//         if (validation)
-//           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
-//         else
-//           std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
-// #endif
+#ifdef INPUT_DEBUG
+        if (validation and isColliderML)
+          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules - n. particles = " << particles_[ev].view().metadata().size() << std::endl;
+        else
+          std::cout << "Event " << ev << ": " << hits_[ev].nHits() << " hits, " << hits_[ev].nModules() << " modules\n";
+#endif
       }
       auto endReadingTime = std::chrono::steady_clock::now();
       auto readingTime = std::chrono::duration_cast<std::chrono::seconds>(endReadingTime - beginReadingTime);
-      std::cout << "It took " << readingTime.count() << " seconds to read the input hits file" << std::endl;
-      // if (!in_file.good() && !in_file.eof()) {
-      //   throw std::runtime_error("I/O error while reading input file");
-      // }
-
-      // if (validation){
-      //   if (!in_particles.good() && !in_particles.eof()) 
-      //     throw std::runtime_error("I/O error while reading particles file");
-      //   if (!in_map.good() && !in_map.eof()) 
-      //     throw std::runtime_error("I/O error while reading hit-map file");
-      // }
-
-    // std::cout << "Successfully read all events from " << filename << std::endl;
+      std::cout << "It took " << readingTime.count() << " seconds to read the input files" << std::endl;
+      
+#ifdef INPUT_DEBUG
+      std::cout << "Successfully read all events from " << in_fileName << std::endl;
+#endif
     }
 
     if (validation_ and not fromHits_) { //TODO allow for fromHits validation
@@ -210,7 +222,7 @@ namespace edm {
       assert(raw_.size() == tracks_.size());
       assert(raw_.size() == vertices_.size());
     } 
-    else if (validation_)
+    else if (validation_ and isColliderML_)
     {
       assert(hits_.size() == particles_.size());
       assert(hits_.size() == map_.size());
@@ -277,12 +289,12 @@ namespace edm {
       ev->emplace(rawToken_, raw_[index]);
     else 
       ev->emplace(hitToken_, std::move(hits_[index]));
-    if (validation_ and not fromHits_) {
-      ev->emplace(digiClusterToken_, digiclusters_[index]);
+    if (validation_ and not isColliderML_) {
+      if (not fromHits_) ev->emplace(digiClusterToken_, digiclusters_[index]);
       ev->emplace(trackToken_, tracks_[index]);
       ev->emplace(vertexToken_, vertices_[index]);
     }
-    else if (validation_)
+    else if (validation_ and isColliderML_)
     {
       ev->emplace(particleToken_, std::move(particles_[index]));
       ev->emplace(mapToken_, std::move(map_[index]));

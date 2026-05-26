@@ -3,7 +3,7 @@ import numpy as np
 
 eventsStr = 'SimDoublets'
 inputFile = 'output' + eventsStr + '.txt'
-outDir = 'plots_simPixelTracks90percent'
+outDir = 'plots_simPixelTracksColliderMLPhase1_afterChanges'
 
 # Read non-empty lines
 with open(inputFile, "r") as f:

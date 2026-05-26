@@ -235,6 +235,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     using CAHitNtuplet<pixelTopology::ColliderMLPhase1>::CAHitNtuplet;
   };
+
+  class CAHitNtupletColliderMLPhase2 : public CAHitNtuplet<pixelTopology::ColliderMLPhase2> {
+  public:
+    using CAHitNtuplet<pixelTopology::ColliderMLPhase2>::CAHitNtuplet;
+  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 
@@ -243,3 +248,4 @@ DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletUpgrade);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPhase1);
+DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPhase2);

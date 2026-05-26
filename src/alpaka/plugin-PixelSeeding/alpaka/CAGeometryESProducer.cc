@@ -255,9 +255,15 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::ColliderMLPhase1>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerColliderMLPhase2 : public CAGeometryHostESProducer<pixelTopology::ColliderMLPhase2> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::ColliderMLPhase2>::CAGeometryHostESProducer;
+  };
+
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
   // ---------- Explicit instantiation and registration ----------
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase1);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase2);

@@ -22,9 +22,10 @@ namespace edm {
                                  bool validation,
                                  bool fromHits,
                                  bool isPhase2,
-                                 bool runSimTracks)
+                                 bool runSimTracks,
+                                 bool isColliderML)
       : config_(config), 
-        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks),
+        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks, isColliderML),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {

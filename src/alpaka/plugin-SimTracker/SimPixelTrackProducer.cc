@@ -44,6 +44,7 @@
  * @author Jan Schulz (jan.gerrit.schulz@cern.ch)
  * @date January 2025
  */
+template<typename TrackerTraits>
 class SimPixelTrackProducer : public edm::EDProducer {
 public:
   explicit SimPixelTrackProducer(edm::ProductRegistry& reg, edm::Config const& cfg);
@@ -59,19 +60,21 @@ private:
   edm::EDGetTokenT<utils::SimpleMapHost> tSimpleMap_;
   edm::EDGetTokenT<sim::ParticleHost> tSimplePart_;
 
-  const edm::EDPutTokenT<SimPixelTrackCollection> simPixelTracks_putToken_;
+  const edm::EDPutTokenT<SimPixelTrackCollection<TrackerTraits>> simPixelTracks_putToken_;
 
 };
 
 // constructor
-SimPixelTrackProducer::SimPixelTrackProducer(edm::ProductRegistry& reg, edm::Config const& cfg)
+template<typename TrackerTraits>
+SimPixelTrackProducer<TrackerTraits>::SimPixelTrackProducer(edm::ProductRegistry& reg, edm::Config const& cfg)
       : bs_{BeamSpotPOD()},
         tSimpleHits_(reg.consumes<reco::TrackingRecHitHost>()),
         tSimpleMap_(reg.consumes<utils::SimpleMapHost>()),
         tSimplePart_(reg.consumes<sim::ParticleHost>()),
-        simPixelTracks_putToken_(reg.produces<SimPixelTrackCollection>()) {}
+        simPixelTracks_putToken_(reg.produces<SimPixelTrackCollection<TrackerTraits>>()) {}
 
-void SimPixelTrackProducer::produce(edm::Event& event, const edm::EventSetup& eventSetup) {
+template<typename TrackerTraits>
+void SimPixelTrackProducer<TrackerTraits>::produce(edm::Event& event, const edm::EventSetup& eventSetup) {
 
   // get information from the event
   bs_ = eventSetup.get<BeamSpotPOD>();
@@ -85,14 +88,14 @@ void SimPixelTrackProducer::produce(edm::Event& event, const edm::EventSetup& ev
 
   // create collection of SimPixelTrack
   // each element will correspond to one selected TrackingParticle
-  SimPixelTrackCollection simPixelTrackCollection;
+  SimPixelTrackCollection<TrackerTraits> simPixelTrackCollection;
 
   // loop over SimParticles
   // for (size_t i = 0; i < particles.nParticles(); ++i) {
   for (size_t i = 0; i < size_t(partView.metadata().size()); ++i) {
 
     // select reasonable SimParticles for the study (e.g., only signal)
-    simPixelTrackCollection.push_back(SimPixelTrack(i, bs_));
+    simPixelTrackCollection.push_back(SimPixelTrack<TrackerTraits>(i, bs_));
   }
 
 //   // create a set of the keys of the selected SimParticles
@@ -169,4 +172,17 @@ void SimPixelTrackProducer::produce(edm::Event& event, const edm::EventSetup& ev
   event.emplace(simPixelTracks_putToken_, std::move(simPixelTrackCollection));
 }
 
-DEFINE_FWK_MODULE(SimPixelTrackProducer);
+class SimPixelTrackProducerColliderMLPhase1 : public SimPixelTrackProducer<pixelTopology::ColliderMLPhase1> {
+public:
+  using SimPixelTrackProducer<pixelTopology::ColliderMLPhase1>::SimPixelTrackProducer;
+};
+
+class SimPixelTrackProducerColliderMLPhase2 : public SimPixelTrackProducer<pixelTopology::ColliderMLPhase2> {
+public:
+  using SimPixelTrackProducer<pixelTopology::ColliderMLPhase2>::SimPixelTrackProducer;
+};
+
+// DEFINE_FWK_MODULE(SimPixelTrackProducer);
+
+DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLPhase1);
+DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLPhase2);

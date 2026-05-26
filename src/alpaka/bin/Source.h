@@ -21,7 +21,7 @@ namespace edm {
   class Source {
   public:
     explicit Source(
-        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks);
+        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML);
 
     void reconfigure(int maxEvents, int runForMinutes);
     void startProcessing();
@@ -69,6 +69,7 @@ namespace edm {
     bool const fromHits_;
     bool const isPhase2_;
     bool const runSimTracks_;
+    bool const isColliderML_;
 
   };
 }  // namespace edm

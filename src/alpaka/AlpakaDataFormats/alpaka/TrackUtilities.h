@@ -158,6 +158,25 @@ namespace pixelTrack {
     }
   };
 
+  template <typename TrackerTraits>
+  struct QualityCutsT<TrackerTraits, pixelTopology::isColliderMLPhase2Topology<TrackerTraits>> {
+    using TrackSoAView = reco::TrackSoAView;
+    using TrackSoAConstView = reco::TrackSoAConstView;
+
+    float maxChi2;
+    float minPt;
+    float maxTip;
+    float maxZip;
+
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE bool isHP(const TrackSoAConstView &tracks, int nHits, int it) const {
+      return (std::abs(reco::tip(tracks, it)) < maxTip) and (tracks.pt(it) > minPt) and
+             (std::abs(reco::zip(tracks, it)) < maxZip);
+    }
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE bool strictCut(const TrackSoAConstView &tracks, int it) const {
+      return tracks.chi2(it) >= maxChi2;
+    }
+  };
+
 }  // namespace pixelTrack
 
 #endif  // AlpakaDataFormats_TrackUtilities_h

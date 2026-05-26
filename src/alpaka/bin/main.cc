@@ -64,6 +64,11 @@ namespace {
         << " --validation        Run (rudimentary) validation at the end (implies --transfer)\n"
         << " --histogram         Produce histograms at the end (implies --transfer)\n"
         << " --empty             Ignore all producers (for testing only)\n"
+        << " --fromHits          Run from text files containing hits information\n" 
+        << " --isPhase2          Executes phase 2 reconstruction\n"
+        << " --runSimTracks      Run SimPixelTracks producer and analyzer to check cuts\n"
+        << " --dumpHits          Dump hits information (not working yet!)\n"
+        << " --isColliderML      Run with colliderML data and geometry\n"
         << std::endl;
   }
 }  // namespace
@@ -140,6 +145,7 @@ int main(int argc, char** argv) {
   bool isPhase2 = false;
   bool dumpHits = false;
   bool runSimTracks = false;
+  bool isColliderML = false;
 
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
@@ -194,6 +200,8 @@ int main(int argc, char** argv) {
       isPhase2 = true;
     } else if (*i == "--runSimTracks") {
       runSimTracks = true;
+    } else if (*i == "--isColliderML") {
+      isColliderML = true;
     } else if (*i == "--dumpHits") {
       dumpHits = true;
     } else if (*i == "--histogram") {
@@ -220,16 +228,8 @@ int main(int argc, char** argv) {
   if (datadir.empty()) {
     datadir = std::filesystem::path(args[0]).parent_path() / "data";
   }
-  if (config.empty()) {
-    config = std::filesystem::path(args[0]).parent_path() / "configs/test.json";
-  }
-
   if (not std::filesystem::exists(datadir)) {
     std::cout << "Data directory '" << datadir << "' does not exist" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (not std::filesystem::exists(config)) {
-    std::cout << "Config file '" << config << "' does not exist" << std::endl;
     return EXIT_FAILURE;
   }
   if (backends.empty()) {
@@ -303,8 +303,14 @@ int main(int argc, char** argv) {
       if (not dumpHits) {
         if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
         else {
-          if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
-          else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase1");
+          if (not isPhase2) {
+            if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase1");
+          }
+          else {
+            if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase2");
+            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
+          }
         }
       }
 
@@ -323,8 +329,14 @@ int main(int argc, char** argv) {
         {
           if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
           else {
-            if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-            else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
+            if (not isPhase2) {
+              if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
+            }
+            else {
+              if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase2");
+              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
+            }
           }
           edmodules.emplace_back(prefix + "PixelVertexPhase1");
           if (transfer) {
@@ -333,8 +345,10 @@ int main(int argc, char** argv) {
           }
           if (validation) {
             if (not fromHits) edmodules.emplace_back(prefix + "CountValidator");
-            else edmodules.emplace_back("SimpleTrackValidation");
-            // else edmodules.emplace_back("PixelTrackValidatorFromHits");
+            else {
+              if (not isColliderML) edmodules.emplace_back("CountValidatorFromHits");
+              else edmodules.emplace_back("SimpleTrackValidation");
+            }
           }
           if (histogram) {
             edmodules.emplace_back(prefix + "HistoValidator");
@@ -343,11 +357,39 @@ int main(int argc, char** argv) {
       }
       else 
       {
-        edmodules.emplace_back("SimPixelTrackProducer");
-        edmodules.emplace_back("SimPixelTrackAnalyzer");
+        if (isColliderML) {
+          if (not isPhase2) {
+            edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase1");
+            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase1");
+          }
+          else {
+            edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
+            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
+          }
+        }
       }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
+  }
+
+  if (config.empty()) {
+    if (fromHits) {
+      if (isColliderML) {
+        if (not isPhase2) config = "configs/testColliderMLFromHits.json";
+        else config = "configs/testColliderMLPhase2FromHits.json";
+      }
+      else {
+        config = "configs/test.json";
+      }
+    }
+    else {
+      config = "configs/test.json";
+    }
+  }
+  
+  if (not std::filesystem::exists(config)) {
+    std::cout << "Config file '" << config << "' does not exist" << std::endl;
+    return EXIT_FAILURE;
   }
 
   edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
@@ -363,7 +405,8 @@ int main(int argc, char** argv) {
                                 validation,
                                 fromHits,
                                 isPhase2,
-                                runSimTracks);
+                                runSimTracks,
+                                isColliderML);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

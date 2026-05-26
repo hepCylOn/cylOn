@@ -474,6 +474,277 @@ namespace colliderMLPhase1PixelTopology {
                                                               10};
 }  // namespace colliderMLPhase1PixelTopology
 
+namespace colliderMLPhase2PixelTopology {
+
+  using pixelTopology::phi0p05;
+  using pixelTopology::phi0p06;
+  using pixelTopology::phi0p07;
+  using pixelTopology::phi0p09;
+
+  constexpr uint32_t numberOfLayers = 18;
+  constexpr int nPairs = 19 + 12 + 10;  // include far forward layer pairs
+  constexpr uint16_t numberOfModules = 18;
+
+  constexpr uint32_t maxNumClustersPerModules = 1024;
+
+  HOST_DEVICE_CONSTANT uint8_t layerPairs[2 * nPairs] = {
+
+      0,  1,  0,  4,  0,  11,  // BPIX1 (3)
+      1,  2,  1,  4,  1,  11,  // BPIX2 (6)
+      2,  3,  2,  4,  2,  11,  // BPIX3 (9)
+
+      4,  5,  5,  6,  6,  7,  7,  8,  8,  9,  9,  10,  // POS (15)
+      11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17,  // NEG (21)
+
+      0,  2,  0,  5,  0,  12, 0,  6,  0,  13,  // BPIX1 Jump (26)
+      1,  3,  1,  5,  1,  12, 1,  6,  1,  13,  // BPIX2 Jump (31)
+
+      4,  6,  5,  7,  6,  8,  7,  9,  8,  10,  // POS Jump (36)
+      11, 13, 12, 14, 13, 15, 14, 16, 15, 17,  // NEG Jump (41)
+  };
+
+  // ------ Begin for SimPixelTracks geometry ------
+  HOST_DEVICE_CONSTANT uint8_t startingPairs[nPairs] = {
+    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  };
+
+  HOST_DEVICE_CONSTANT bool isBarrel[numberOfLayers] = {
+    1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  };
+
+  HOST_DEVICE_CONSTANT float ptCuts[nPairs] = {
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+    0.5
+  };
+  // ------ End for SimPixelTracks geometry ------
+
+  HOST_DEVICE_CONSTANT uint32_t layerStart[numberOfLayers + 1] = {0,
+                                                                  1,
+                                                                  2,
+                                                                  3, // Barrel
+                                                                  4,
+                                                                  5,
+                                                                  6,
+                                                                  7,
+                                                                  8,
+                                                                  9,
+                                                                  10, // Fp
+                                                                  11,
+                                                                  12,
+                                                                  13,
+                                                                  14,
+                                                                  15,
+                                                                  16,
+                                                                  17, // Np
+                                                                  numberOfModules};
+
+  // 99% simPixelTracks
+  HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{
+      //0,  1    0,  4    0,  11
+      250, 330, 330, 
+    //1,  2    1,  4    1,  11
+      250, 370, 370,
+    //2,  3    2,  4    2,  11
+      310, 290, 290, 
+      
+    //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
+      130, 130, 130, 110, 130, 130, 
+    //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
+      130, 130, 130, 110, 130, 130,
+      
+    //0,  2    0,  5    0,  12   0,  6    0,  13
+      0, 0, 0, 0, 0,
+    //1,  3    1,  5    1,  12   1,  6    1,  13 
+      0, 0, 0, 0, 0, 
+      
+    //4,  6    5,  7    6,  8    7,  9    8,  10
+      0, 0, 0, 0, 0, 
+    //11, 13   12, 14   13, 15   14, 16   15, 17
+      0, 0, 0, 0, 0};
+
+  // // 90% simPixelTracks
+  // HOST_DEVICE_CONSTANT int16_t phicuts[nPairs]{
+  //     //0,  1    0,  4    0,  11
+  //     170, 190, 190, 
+  //   //1,  2    1,  4    1,  11
+  //     230, 250, 250,
+  //   //2,  3    2,  4    2,  11
+  //     270, 230, 230, 
+      
+  //   //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
+  //     90, 90, 90, 90, 110, 90, 
+  //   //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
+  //     90, 90, 90, 90, 110, 90,
+      
+  //   //0,  2    0,  5    0,  12   0,  6    0,  13
+  //     0, 0, 0, 0, 0,
+  //   //1,  3    1,  5    1,  12   1,  6    1,  13 
+  //     0, 0, 0, 0, 0, 
+      
+  //   //4,  6    5,  7    6,  8    7,  9    8,  10
+  //     0, 0, 0, 0, 0, 
+  //   //11, 13   12, 14   13, 15   14, 16   15, 17
+  //     0, 0, 0, 0, 0};
+
+  // 99% simPixelTracks
+  HOST_DEVICE_CONSTANT float minz[nPairs] = {
+    //0,  1    0,  4    0,  11
+      -25.1522,    19.8570,      -48.9806, 
+    //1,  2     1,  4     1,  11      
+      -30.4474,    27.7998,      -51.6282, 
+    //2,  3     2,  4     2,  11      
+      -35.7426,    38.3902,     -51.6282,
+      
+    //4,  5     5,  6     6,  7    7,  8    8,  9    9,  10      
+      61.2186,     71.8090,     82.3994,    96.6374,    111.5230,    130.0560, 
+    //11, 12    12, 13    13, 14   14, 15   15, 16   16, 17      
+      -63.2186,    -73.8090,   -84.3994,  -99.2850,  -113.5230,  -132.0560, 
+      
+    //0,  2     0,  5   0,  12    0,  6    0,  13      
+      -0.0,    0.0,    -0.0,    0.0,    -0.0,
+    //1,  3     1,  5   1,  12    1,  6    1,  13       
+      -0.0,    0.0,    -0.0,    0.0,    -0.0, 
+      
+    //4,  6     5,  7    6,  8    7,  9    8,  10      
+      0.0,     0.0,    0.0,    0.0,    0.0, 
+    //11, 13    12, 14   13, 15   14, 16   15, 17      
+      -0.0,    -0.0,  -0.0,  -0.0,  -0.0};
+  HOST_DEVICE_CONSTANT float maxz[nPairs] = {
+
+    //0,  1    0,  4    0,  11
+      25.1522,     48.9806,     -19.8570,
+    //1,  2     1,  4     1,  11
+      30.4474,     51.6282,     -27.7998,
+    //2,  3     2,  4     2,  11
+      35.7426,     51.6282,     -38.3902,
+      
+    //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
+      63.2186,    73.8090,   84.3994,   99.2850,   113.5230,   132.0560, 
+    //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
+      -61.2186,   -71.8090,   -82.3994,   -96.6374,   -111.5230,   -130.0560,
+      
+    //0,  2    0,  5    0,  12   0,  6    0,  13 
+      0.0,    0.0,    -0.0,    0.0,    -0.0,
+    //1,  3    1,  5    1,  12   1,  6    1,  13
+      0.0,    0.0,    -0.0,    0.0,    -0.0,
+      
+    //4,  6    5,  7    6,  8    7,  9    8,  10
+      0.0,    0.0,   0.0,   0.0,   0.0,
+    //11, 13   12, 14   13, 15   14, 16   15, 17
+      -0.0,   -0.0,   -0.0,   -0.0,   -0.0};
+
+  // // 90% simPixelTracks
+  // HOST_DEVICE_CONSTANT float minz[nPairs] = {
+  //   //0,  1    0,  4    0,  11
+  //     -19.8570,    22.5046,      -43.6854, 
+  //   //1,  2     1,  4     1,  11      
+  //     -22.5046,    30.4474,      -48.9806, 
+  //   //2,  3     2,  4     2,  11      
+  //     -27.7998,    41.0378,     -48.9806,
+      
+  //   //4,  5     5,  6     6,  7    7,  8    8,  9    9,  10      
+  //     61.2186,     71.8090,     82.3994,    96.6374,    111.5230,    130.0560, 
+  //   //11, 12    12, 13    13, 14   14, 15   15, 16   16, 17      
+  //     -63.2186,    -73.8090,   -84.3994,  -99.2850,  -113.5230,  -132.0560, 
+      
+  //   //0,  2     0,  5   0,  12    0,  6    0,  13      
+  //     -0.0,    0.0,    -0.0,    0.0,    -0.0,
+  //   //1,  3     1,  5   1,  12    1,  6    1,  13       
+  //     -0.0,    0.0,    -0.0,    0.0,    -0.0, 
+      
+  //   //4,  6     5,  7    6,  8    7,  9    8,  10      
+  //     0.0,     0.0,    0.0,    0.0,    0.0, 
+  //   //11, 13    12, 14   13, 15   14, 16   15, 17      
+  //     -0.0,    -0.0,  -0.0,  -0.0,  -0.0};
+  // HOST_DEVICE_CONSTANT float maxz[nPairs] = {
+
+  //   //0,  1    0,  4    0,  11
+  //     19.8570,     43.6854,     -22.5046,
+  //   //1,  2     1,  4     1,  11
+  //     22.5046,     48.9806,     -30.4474,
+  //   //2,  3     2,  4     2,  11
+  //     27.7998,     48.9806,     -41.0378,
+      
+  //   //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
+  //     63.2186,    73.8090,   84.3994,   99.2850,   113.5230,   132.0560, 
+  //   //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
+  //     -61.2186,   -71.8090,   -82.3994,   -96.6374,   -111.5230,   -130.0560,
+      
+  //   //0,  2    0,  5    0,  12   0,  6    0,  13 
+  //     0.0,    0.0,    -0.0,    0.0,    -0.0,
+  //   //1,  3    1,  5    1,  12   1,  6    1,  13
+  //     0.0,    0.0,    -0.0,    0.0,    -0.0,
+      
+  //   //4,  6    5,  7    6,  8    7,  9    8,  10
+  //     0.0,    0.0,   0.0,   0.0,   0.0,
+  //   //11, 13   12, 14   13, 15   14, 16   15, 17
+  //     -0.0,   -0.0,   -0.0,   -0.0,   -0.0};
+
+  // 99% simPixelTracks
+  HOST_DEVICE_CONSTANT float maxr[nPairs] = {
+    //0,  1    0,  4    0,  11
+    3.7237,    5.0873,    5.0873,
+  //1,  2   1,  4   1,  11
+    // 5.0,    7.0,    7.0,
+    4.7727,    7.2901,    7.2901,
+  //2,  3   2,  4   2,  11
+    5.8216,    5.9265,    5.9265,
+
+  //4,  5   5,  6   6,  7   7,  8   8,  9   9,  10
+    2.5699,    2.5699,    2.5699,    2.2552,    2.6748,    2.3601,
+  //11, 12  12, 13  13, 14  14, 15  15, 16  16, 17
+    2.5699,    2.5699,    2.5699,    2.2552,    2.6748,    2.3601,
+
+  //0,  2    0,  5   0,  12  0,  6   0,  13 
+    8.2342,     0.0524,    0.0524,    0.0524,    0.0524,
+  //1,  3    1,  5   1,  12  1,  6   1,  13
+    10.2271,     0.0524,    0.0524,    0.0524,    2.9895,
+
+  //4,  6   5,  7   6,  8   7,  9   8,  10
+    0.0524,    0.0524,    0.0524,    0.0524,    0.0524,
+  //11, 13  12, 14  13, 15  14, 16  15, 17
+    0.0524,    1.7308,    0.0524,    0.0524,    1.5210};
+
+  // // 90% simPixelTracks
+  // HOST_DEVICE_CONSTANT float maxr[nPairs] = {
+  //   //0,  1    0,  4    0,  11
+  //   3.7237,    4.5629,    4.5629,
+  // //1,  2   1,  4   1,  11
+  //   4.6678,    6.4510,    6.4510,
+  // //2,  3   2,  4   2,  11
+  //   5.7167,    5.5069,    5.5069,
+
+  // //4,  5   5,  6   6,  7   7,  8   8,  9   9,  10
+  //   2.1503,    2.2552,    2.2552,    2.0454,    2.4650,    2.2552,
+  // //11, 12  12, 13  13, 14  14, 15  15, 16  16, 17
+  //   2.1503,    2.2552,    2.2552,    2.0454,    2.4650,    2.2552,
+
+  // //0,  2    0,  5   0,  12  0,  6   0,  13 
+  //   0.0524,     0.0524,    0.0524,    0.0524,    0.0524,
+  // //1,  3    1,  5   1,  12  1,  6   1,  13
+  //   0.0524,     0.0524,    0.0524,    0.0524,    0.0524,
+
+  // //4,  6   5,  7   6,  8   7,  9   8,  10
+  //   0.0524,    0.0524,    0.0524,    0.0524,    0.0524,
+  // //11, 13  12, 14  13, 15  14, 16  15, 17
+  //   0.0524,    0.0524,    0.0524,    0.0524,    0.0524};
+
+
+  // // 99% simPixelTracks
+  // HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.1275, 0.1675, 0.2775, 0.0, 0.2925, 0.2975, 0.3175, 0.3175, 0.3175, 0.0, 0.0, 0.2925, 0.2925, 0.3225, 0.3275, 0.3125, 0.0, 0.0};
+  // 90% simPixelTracks
+  HOST_DEVICE_CONSTANT float dcaCuts[numberOfLayers] = {0.0225, 0.0425, 0.1325, 0.0, 0.1575, 0.1575, 0.1775, 0.1725, 0.1675, 0.0, 0.0, 0.1575, 0.1575, 0.1775, 0.1725, 0.1675, 0.0, 0.0};
+
+  // 99% simPixelTracks
+  HOST_DEVICE_CONSTANT float thetaCuts[numberOfLayers] = {0.0, 0.0022, 0.0018, 0.0, 0.0019, 0.0022, 0.0021, 0.0019, 0.0018, 0.0018, 0.0, 0.0019, 0.0022, 0.0021, 0.0019, 0.0018, 0.0018, 0.0};
+  // // 90% simPixelTracks
+  // HOST_DEVICE_CONSTANT float thetaCuts[numberOfLayers] = {0.0, 0.0008, 0.0006, 0.0, 0.0009, 0.0013, 0.0011, 0.0011, 0.0010, 0.0009, 0.0, 0.0009, 0.0013, 0.0011, 0.0011, 0.0010, 0.0009, 0.0};
+
+}  // namespace phase2PixelTopology
+
 namespace pixelTopology {
 
   struct Phase2 {
@@ -840,6 +1111,10 @@ namespace pixelTopology {
 
     static constexpr int16_t xOffset = -1e4;  // not used actually, to suppress static analyzer warnings
 
+    static constexpr uint32_t negEndcapStartLayer = 7;
+    static constexpr uint32_t barrelPlusPosEndcapEndLayer = 6;
+    static constexpr uint32_t barrelEndLayer = 3;
+
     static constexpr char const *nameModifier = "ColliderMLPhase1";
     static constexpr char const *cpeModules = "PixelCPEFastParams";
 
@@ -852,6 +1127,127 @@ namespace pixelTopology {
     static constexpr int16_t const *phicuts = colliderMLPhase1PixelTopology::phicuts;
     static constexpr float const *thetaCuts = colliderMLPhase1PixelTopology::thetaCuts;
     static constexpr float const *dcaCuts = colliderMLPhase1PixelTopology::dcaCuts;
+
+    static constexpr uint8_t const *startingPairs = colliderMLPhase1PixelTopology::startingPairs;
+    static constexpr bool const *isBarrel = colliderMLPhase1PixelTopology::isBarrel;
+    static constexpr float const *ptCuts = colliderMLPhase1PixelTopology::ptCuts;
+
+    static constexpr float const cellZ0Cut = 12.0;
+    static constexpr float const cellPtCut = 0.5;
+    static constexpr float const hardCurvCut = 0.015;
+
+    static constexpr inline bool isBigPixX(uint16_t px) { return false; }
+    static constexpr inline bool isBigPixY(uint16_t py) { return false; }
+
+    static constexpr inline uint16_t localX(uint16_t px) { return px; }
+    static constexpr inline uint16_t localY(uint16_t py) { return py; }
+  };
+
+  struct ColliderMLPhase2 {
+    // types
+    using hindex_type = uint32_t;  // FIXME from siPixelRecHitsHeterogeneousProduct
+    using tindex_type = uint32_t;  // for tuples
+    using cindex_type = uint32_t;  // for cells
+
+    static constexpr uint32_t maxCellNeighbors = 256;
+    static constexpr uint32_t maxCellTracks = 302;
+    static constexpr uint32_t maxHitsOnTrack = 20;
+    static constexpr uint32_t maxHitsOnTrackForFullFit = 6;
+    static constexpr uint32_t avgHitsPerTrack = 7;
+    static constexpr uint32_t maxCellsPerHit = 256;
+    static constexpr uint32_t avgTracksPerHit = 10;
+    static constexpr uint32_t maxNumberOfTuples = 256 * 1024;
+    // this is well above thanks to maxNumberOfTuples
+    static constexpr uint32_t maxHitsForContainers = avgHitsPerTrack * maxNumberOfTuples;
+    static constexpr uint32_t maxNumberOfDoublets = 5 * 512 * 1024;
+    static constexpr uint32_t maxNumOfActiveDoublets = maxNumberOfDoublets / 2;
+    static constexpr uint32_t maxNumberOfQuadruplets = maxNumberOfTuples;
+    static constexpr uint32_t maxDepth = 10;
+    static constexpr uint32_t numberOfLayers = 18;
+
+    static constexpr uint32_t maxSizeCluster = 2047;
+
+    static constexpr uint32_t getDoubletsFromHistoMaxBlockSize = 128;  // for both x and y
+    static constexpr uint32_t getDoubletsFromHistoMinBlocksPerMP = 16;
+
+    static constexpr uint16_t last_bpix1_detIndex = 216;
+    static constexpr uint16_t last_bpix2_detIndex = 432;
+    static constexpr uint16_t last_barrel_detIndex = 864;
+
+    static constexpr uint32_t maxPixInModule = 6000;
+    static constexpr uint32_t maxPixInModuleForMorphing = 0;
+    static constexpr uint32_t maxIterClustering = 16;
+
+    static constexpr uint32_t maxNumClustersPerModules = colliderMLPhase2PixelTopology::maxNumClustersPerModules;
+    static constexpr uint32_t maxHitsInModule = colliderMLPhase2PixelTopology::maxNumClustersPerModules;
+
+    static constexpr float moduleLength = 4.345f;
+    static constexpr float endcapCorrection = 0.0f;
+
+    static constexpr float xerr_barrel_l1_def = 0.00035f;
+    static constexpr float yerr_barrel_l1_def = 0.00125f;
+    static constexpr float xerr_barrel_ln_def = 0.00035f;
+    static constexpr float yerr_barrel_ln_def = 0.00125f;
+    static constexpr float xerr_endcap_def = 0.00060f;
+    static constexpr float yerr_endcap_def = 0.00180f;
+
+    static constexpr float bigPixXCorrection = 0.0f;
+    static constexpr float bigPixYCorrection = 0.0f;
+
+    static constexpr float dzdrFact = 8 * 0.0285 / 0.015;  // from dz/dr to "DY"
+
+    static constexpr int nPairsMinimal = 33;
+    static constexpr int nPairsFarForwards = nPairsMinimal + 8;  // include barrel "jumping" layer pairs
+    static constexpr int nPairs = colliderMLPhase2PixelTopology::nPairs;   // include far forward layer pairs
+
+    static constexpr int maxDYsize12 = 12;
+    static constexpr int maxDYsize = 10;
+    static constexpr int maxDYPred = 20;
+
+    static constexpr uint16_t numberOfModules = colliderMLPhase2PixelTopology::numberOfModules;
+
+    // 1000 bins < 1024 bins (10 bits) must be:
+    // - < 32*32 (warpSize*warpSize for block prefix scan for CUDA)
+    // - > number of columns (y) in any module. This is due to the fact
+    //     that in pixel clustering we give for granted that in each
+    //     bin we only have the pixel belonging to the same column.
+    //     See RecoLocalTracker/SiPixelClusterizer/plugins/alpaka/PixelClustering.h#L325-L347
+    static constexpr uint16_t clusterBinning = 1000;
+    static constexpr uint16_t clusterBits = 10;
+
+    static constexpr uint16_t numberOfModulesInBarrel = 756;
+    static constexpr uint16_t numberOfModulesInLadder = 9;
+    static constexpr uint16_t numberOfLaddersInBarrel = numberOfModulesInBarrel / numberOfModulesInLadder;
+
+    static constexpr uint16_t firstEndcapPos = 4;
+    static constexpr uint16_t firstEndcapNeg = 11;
+
+    static constexpr int16_t xOffset = -1e4;  // not used actually, to suppress static analyzer warnings
+
+    static constexpr uint32_t negEndcapStartLayer = 11;
+    static constexpr uint32_t barrelPlusPosEndcapEndLayer = 10;
+    static constexpr uint32_t barrelEndLayer = 3;
+
+    static constexpr char const *nameModifier = "ColliderMLPhase2";
+    static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
+
+    static constexpr uint32_t const *layerStart = colliderMLPhase2PixelTopology::layerStart;
+    static constexpr float const *minz = colliderMLPhase2PixelTopology::minz;
+    static constexpr float const *maxz = colliderMLPhase2PixelTopology::maxz;
+    static constexpr float const *maxr = colliderMLPhase2PixelTopology::maxr;
+
+    static constexpr uint8_t const *layerPairs = colliderMLPhase2PixelTopology::layerPairs;
+    static constexpr int16_t const *phicuts = colliderMLPhase2PixelTopology::phicuts;
+    static constexpr float const *thetaCuts = colliderMLPhase2PixelTopology::thetaCuts;
+    static constexpr float const *dcaCuts = colliderMLPhase2PixelTopology::dcaCuts;
+
+    static constexpr uint8_t const *startingPairs = colliderMLPhase2PixelTopology::startingPairs;
+    static constexpr bool const *isBarrel = colliderMLPhase2PixelTopology::isBarrel;
+    static constexpr float const *ptCuts = colliderMLPhase2PixelTopology::ptCuts;
+
+    static constexpr float const cellZ0Cut = 14.5;
+    static constexpr float const cellPtCut = 0.85;
+    static constexpr float const hardCurvCut = 0.0125;
 
     static constexpr inline bool isBigPixX(uint16_t px) { return false; }
     static constexpr inline bool isBigPixY(uint16_t py) { return false; }
@@ -868,6 +1264,9 @@ namespace pixelTopology {
 
   template <typename T>
   using isColliderMLPhase1Topology = typename std::enable_if<std::is_base_of<ColliderMLPhase1, T>::value>::type;
+
+  template <typename T>
+  using isColliderMLPhase2Topology = typename std::enable_if<std::is_base_of<ColliderMLPhase2, T>::value>::type;
 
 }  // namespace pixelTopology
 

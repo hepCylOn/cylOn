@@ -816,5 +816,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template class CAHitNtupletGeneratorKernels<pixelTopology::GenericUpgrade>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::HIonPhase1>;
   template class CAHitNtupletGeneratorKernels<pixelTopology::ColliderMLPhase1>;
+  template class CAHitNtupletGeneratorKernels<pixelTopology::ColliderMLPhase2>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

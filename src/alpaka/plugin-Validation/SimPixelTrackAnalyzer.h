@@ -98,6 +98,7 @@ namespace simdoublets {
 // class declaration
 // -------------------------------------------------------------------------------------------------------------
 
+template <typename TrackerTraits>
 class SimPixelTrackAnalyzer : public edm::EDProducer {
 public:
   explicit SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Config const& cfg);
@@ -415,8 +416,8 @@ private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
   // function to apply cuts and set doublet to alive if it passes and to killed otherwise
-  void applyCuts(SimPixelTrack::Doublet&,
-                 SimPixelTrack const&,
+  void applyCuts(SimPixelTrack<TrackerTraits>::Doublet&,
+                 SimPixelTrack<TrackerTraits> const&,
                  bool const,
                  bool const,
                  int const,
@@ -424,7 +425,7 @@ private:
                  std::vector<int>&);
 
   // function that fills all histograms for cut variables (in folder CAParameters)
-  void fillCutHistograms(SimPixelTrack::Doublet const&,
+  void fillCutHistograms(SimPixelTrack<TrackerTraits>::Doublet const&,
                          bool const,
                          bool const,
                          int const,
@@ -443,13 +444,13 @@ private:
 
 //   // function that trys to find a valid Ntuplet for the given SimPixelTrack using the given geometry configuration
 //   // (layer pairs, starting pairs, minimum number of hits) ignoring all cuts on doublets/connections and returns if it was able to find one
-  bool configAllowsForValidNtuplet(SimPixelTrack const&) const;
+  bool configAllowsForValidNtuplet(SimPixelTrack<TrackerTraits> const&) const;
 
   // ------------ member data ------------
 
   // const TrackerTopology* trackerTopology_ = nullptr;
   // const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> topology_getToken_;
-  const edm::EDGetTokenT<SimPixelTrackCollection> simPixelTracks_getToken_;
+  const edm::EDGetTokenT<SimPixelTrackCollection<TrackerTraits>> simPixelTracks_getToken_;
   const edm::EDGetTokenT<sim::ParticleHost> particles_getToken_;
   const edm::EDGetTokenT<reco::TrackingRecHitHost> hits_getToken_;
 

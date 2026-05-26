@@ -10,7 +10,7 @@
 
 #include "AlpakaDataFormats/ParticleHost.h"  
 
-#define INPUT_DEBUG
+// #define INPUT_DEBUG
 
 namespace particleReader {
 
@@ -130,6 +130,10 @@ inline sim::ParticleHost read_single_event_fromText(std::ifstream& file) {
 
     nParticles = std::stoul(line.substr(10)); // after "particles:"
 
+#ifdef INPUT_DEBUG
+    std::cout << "[particleReader] Reading event with " << nParticles << " particles" << std::endl;
+#endif
+
     // Construct the host collection (nParticles, nModules)
     sim::ParticleHost particlesHost(static_cast<int>(nParticles), cms::alpakatools::host());
 
@@ -161,6 +165,18 @@ inline sim::ParticleHost read_single_event_fromText(std::ifstream& file) {
         particlesView[i].charge() = static_cast<int16_t>(std::stoi(tokens[11]));
         particlesView[i].pdgID() = static_cast<int32_t>(std::stoi(tokens[12]));
         particlesView[i].partInd() = static_cast<uint32_t>(std::stoi(tokens[13]));
+
+#ifdef INPUT_DEBUG
+    if (nParticles > 0) {
+      std::cout << "  First particle: "
+                << "pdgID=" << particlesView.pdgID()[0]
+                << " pt=" << particlesView.pt()[0]
+                << " eta=" << particlesView.eta()[0]
+                << " phi=" << particlesView.phi()[0]
+                << " charge=" << particlesView.charge()[0]
+                << std::endl;
+    }
+#endif
 
     }
 

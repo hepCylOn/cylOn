@@ -38,7 +38,7 @@ namespace edm {
                             Alternatives alternatives,
                             std::vector<std::string> const& esproducers,
                             std::filesystem::path const& datadir,
-                            bool validation, bool fromHits, bool isPhase2, bool runSimTracks); // Change to work with Phase-2
+                            bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML); // Change to work with Phase-2
 
     int maxEvents() const { return source_.maxEvents(); }
     int processedEvents() const { return source_.processedEvents(); }

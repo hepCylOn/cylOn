@@ -5,7 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "AlpakaDataFormats/PixelTrackHost.h"
+#include "AlpakaDataFormats/TracksHost.h"
 #include "AlpakaDataFormats/ZVertexHost.h"
 #include "DataFormats/TrackCount.h"
 #include "DataFormats/VertexCount.h"
@@ -25,7 +25,7 @@ private:
   edm::EDGetTokenT<TrackCount> trackCountToken_;
   edm::EDGetTokenT<VertexCount> vertexCountToken_;
 
-  edm::EDGetTokenT<PixelTrackHost> trackToken_;
+  edm::EDGetTokenT<::reco::TracksHost> trackToken_;
   edm::EDGetTokenT<ZVertexHost> vertexToken_;
 
   int allEvents;
@@ -38,7 +38,7 @@ private:
 CountValidatorFromHits::CountValidatorFromHits(edm::ProductRegistry& reg, edm::Config const& cfg)
       : trackCountToken_(reg.consumes<TrackCount>()),
       vertexCountToken_(reg.consumes<VertexCount>()),
-      trackToken_(reg.consumes<PixelTrackHost>()),
+      trackToken_(reg.consumes<::reco::TracksHost>()),
       vertexToken_(reg.consumes<ZVertexHost>()) {
         allEvents = 0;
         goodEvents = 0;
@@ -58,8 +58,8 @@ void CountValidatorFromHits::produce(edm::Event& iEvent, const edm::EventSetup& 
     auto const& count = iEvent.get(trackCountToken_);
     auto const& tracks = iEvent.get(trackToken_);
     int nTracks = 0;
-    for (int i = 0; i < tracks->stride(); ++i) {
-      if (tracks->nHits(i) > 0) {
+    for (int i = 0; i < tracks.view().metadata().size(); ++i) {
+      if (::reco::nHits(tracks.view(),i) > 0) {
         ++nTracks;
       }
     }

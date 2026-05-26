@@ -453,6 +453,111 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     };  // Params ColliderMLPhase1
 
+    template <typename TrackerTraits>
+    struct ParamsT<TrackerTraits, pixelTopology::isColliderMLPhase2Topology<TrackerTraits>> : public AlgoParams {
+      using TT = TrackerTraits;
+      using QualityCuts = ::pixelTrack::QualityCutsT<TT>;
+
+      static constexpr AlgoParams defaultAlgoParams() {
+      return {
+          2.6f, // bField
+          // ---- Container sizes ----
+          7.0f,   // avgHitsPerTrack_
+          6.0f,   // avgCellsPerHit_
+          0.151f, // avgCellsPerCell_
+          0.040f, // avgTracksPerCell_
+
+          // ---- Algorithm Parameters ----
+          4,      // minHitsPerNtuplet_
+          10,     // minHitsForSharingCut_
+          0.9f,   // ptmin_  (kept same unless you want to change)
+          0.0125, // hardCurvCut_
+          14.5f,   // cellZ0Cut_
+          0.85f,  // cellPtCut_
+
+          // ---- Pixel Cluster Cut Params ----
+          8.0f * 0.0285f / 0.015f, // dzdrFact_
+          0, // minYsizeB1_
+          0, // minYsizeB2_
+          0, // maxDYsize12_
+          0, // maxDYsize_
+          0, // maxDYPred_
+
+          // ---- Flags ----
+          false, // useRiemannFit_
+          false, // fitNas4_
+          true,  // earlyFishbone_
+          false, // lateFishbone_
+          false, // doStats_
+          true,  // doSharedHitCut_
+          false, // dupPassThrough_
+          true   // useSimpleTripletCleaner_
+      };
+    }
+
+      AlgoParams makeAlgoParams(edm::Config const& cfg) const {
+        return {
+            static_cast<float>(cfg.value("BField", 2.6f)),
+            // ---- Container sizes ----
+            static_cast<float>(cfg.value("avgHitsPerTrack", 7.0f)),
+            static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),
+            static_cast<float>(cfg.value("avgCellsPerCell", 0.151f)),
+            static_cast<float>(cfg.value("avgTracksPerCell", 0.040f)),
+
+            // ---- Algorithm Parameters ----
+            static_cast<uint16_t>(cfg.value("minHitsPerNtuplet", 4)),
+            static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
+            static_cast<float>(cfg.value("ptmin", 0.9f)),
+            static_cast<float>(cfg.value("hardCurvCut", 0.0125)),
+            static_cast<float>(cfg.value("cellZ0Cut", 7.5f)),
+            static_cast<float>(cfg.value("cellPtCut", 0.85f)),
+
+            // ---- Pixel Cluster Cut Params ----
+            static_cast<float>(cfg.value("dzdrFact", 8.0f * 0.0285f / 0.015f)),
+            static_cast<int16_t>(cfg.value("minYsizeB1", 0)),
+            static_cast<int16_t>(cfg.value("minYsizeB2", 0)),
+            static_cast<int16_t>(cfg.value("maxDYsize12", 0)),
+            static_cast<int16_t>(cfg.value("maxDYsize", 0)),
+            static_cast<int16_t>(cfg.value("maxDYPred", 0)),
+
+            // ---- Flags ----
+            static_cast<bool>(cfg.value("useRiemannFit", false)),
+            static_cast<bool>(cfg.value("fitNas4", false)),
+            static_cast<bool>(cfg.value("earlyFishbone", true)),
+            static_cast<bool>(cfg.value("lateFishbone", false)),
+            static_cast<bool>(cfg.value("doStats", false)),
+            static_cast<bool>(cfg.value("doSharedHitCut", true)),
+            static_cast<bool>(cfg.value("dupPassThrough", false)),
+            static_cast<bool>(cfg.value("useSimpleTripletCleaner", true))
+        };
+      }
+
+      QualityCuts makeQualityCuts(edm::Config const& cfg) const {
+      return {
+          static_cast<float>(cfg.value("maxChi2",5.0f)),
+          static_cast<float>(cfg.value("minPtCut", 0.9f)),
+          static_cast<float>(cfg.value("maxZip", 0.4f)),
+          static_cast<float>(cfg.value("maxTip", 12.0f)),
+      };
+    }
+
+      static constexpr QualityCuts defaultQualityCuts() {
+      return {5.0f, /*chi2*/ 0.9f, /* pT in Gev*/ 0.4f, /*zip in cm*/ 12.0f /*tip in cm*/};
+      }
+
+      ParamsT() : algoParams_(defaultAlgoParams()), qualityCuts_(defaultQualityCuts()) {}
+      
+      ParamsT(edm::Config const& cfg) : algoParams_(makeAlgoParams(cfg)), qualityCuts_(makeQualityCuts(cfg)) {}
+
+      ParamsT(AlgoParams const& commonCuts, QualityCuts const& qualityCuts)
+          : algoParams_(commonCuts), qualityCuts_(qualityCuts) {}
+
+      // quality cuts
+      const AlgoParams algoParams_;
+      const QualityCuts qualityCuts_{5.0f, /*chi2*/ 0.9f, /* pT in Gev*/ 0.4f, /*zip in cm*/ 12.0f /*tip in cm*/};
+
+    };  // Params ColliderMLPhase2
+
   }  // namespace caHitNtupletGenerator
   template <typename TTTraits>
   class CAHitNtupletGeneratorKernels {

@@ -1,6 +1,7 @@
 #ifndef SimDataFormats_TrackingAnalysis_SimPixelTrack_h
 #define SimDataFormats_TrackingAnalysis_SimPixelTrack_h
 
+#include "Geometry/SimplePixelTopology.h"
 #include "TrackingRecHitsSoA.h"
 #include "ParticleSoA.h"
 #include "BeamSpotPOD.h"
@@ -40,6 +41,7 @@
  * @author Jan Schulz (jan.gerrit.schulz@cern.ch)
  * @date January 2025
  */
+template <typename TrackerTraits>
 class SimPixelTrack {
 public:
   /**
@@ -420,6 +422,7 @@ private:
 };
 
 // collection of SimPixelTrack
-typedef std::vector<SimPixelTrack> SimPixelTrackCollection;
+template <typename TrackerTraits>
+using SimPixelTrackCollection = std::vector<SimPixelTrack<TrackerTraits>>;
 
 #endif

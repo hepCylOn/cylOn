@@ -117,7 +117,8 @@ void writeHisto(std::vector<uint32_t>& vec, std::ofstream& file, std::vector<T>&
 }
   // class that calculate and stores all cut variables for a given doublet
   struct CellCutVariables {
-    void calculateCutVariables(SimPixelTrack::Doublet& doublet, SimPixelTrack const& simPixelTrack) {
+    template <typename TrackerTraits>
+    void calculateCutVariables(SimPixelTrack<TrackerTraits>::Doublet& doublet, SimPixelTrack<TrackerTraits> const& simPixelTrack) {
       // inner RecHit properties
       std::vector<double> inner_globalPosition = doublet.innerGlobalPos();
       inner_z_ = inner_globalPosition[2];
@@ -447,46 +448,19 @@ void writeHisto(std::vector<uint32_t>& vec, std::ofstream& file, std::vector<T>&
 // constructors and destructor
 // -------------------------------------------------------------------------------------------------------------
 
-SimPixelTrackAnalyzer::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Config const& cfg)
-    : simPixelTracks_getToken_(reg.consumes<SimPixelTrackCollection>()),
+template<typename TrackerTraits>
+SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Config const& cfg)
+    : simPixelTracks_getToken_(reg.consumes<SimPixelTrackCollection<TrackerTraits>>()),
       particles_getToken_(reg.consumes<sim::ParticleHost>()),
       hits_getToken_(reg.consumes<reco::TrackingRecHitHost>()),
-      cellZ0Cut_(12.0),
-      cellPtCut_(0.5),
-      hardCurvCut_(0.0328407224959),
+      cellZ0Cut_(TrackerTraits::cellZ0Cut),
+      cellPtCut_(TrackerTraits::cellPtCut),
+      hardCurvCut_(TrackerTraits::hardCurvCut),
       minNumDoubletsPerNtuplet_(3) {//,
 
-  
-
-  // get layer pairs from configuration
-  // std::vector<uint> layerPairs{
-
-  //   0,  1,  0,  4,  0,  11,  // BPIX1 (3)
-  //   1,  2,  1,  4,  1,  11,  // BPIX2 (6)
-  //   2,  3,  2,  4,  2,  11,  // BPIX3 (9)
-
-  //   4,  5,  5,  6,  6,  7,  7,  8,  8,  9,  9,  10,  // POS (15)
-  //   11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17,  // NEG (21)
-
-  //   0,  2,  0,  5,  0,  12, 0,  6,  0,  13,  // BPIX1 Jump (26)
-  //   1,  3,  1,  5,  1,  12, 1,  6,  1,  13,  // BPIX2 Jump (31)
-
-  //   4,  6,  5,  7,  6,  8,  7,  9,  8,  10,  // POS Jump (36)
-  //   11, 13, 12, 14, 13, 15, 14, 16, 15, 17,  // NEG Jump (41)
-
-  // };
-
-  // // get staring layer pairs from configuration
-  // std::vector<uint> startingPairs{
-  //   1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-  // };
-
-  // // number of configured layer pairs
-  // size_t numLayerPairs = layerPairs.size() / 2;
-
-  const uint8_t* layerPairs = colliderMLPhase1PixelTopology::layerPairs;
-  const uint8_t* startingPairs = colliderMLPhase1PixelTopology::startingPairs;
-  const int numLayerPairs = colliderMLPhase1PixelTopology::nPairs;
+  const uint8_t* layerPairs = TrackerTraits::layerPairs;
+  const uint8_t* startingPairs = TrackerTraits::startingPairs;
+  const int numLayerPairs = TrackerTraits::nPairs;
 
   const auto startingPairsBeg = startingPairs;
   const auto startingPairsEnd = startingPairs + numLayerPairs;
@@ -497,144 +471,19 @@ SimPixelTrackAnalyzer::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Con
     layerPairId2Index_.insert({layerPairId, i});
 
     // check if the layer pair is considered as starting point for Ntuplets
-    // bool isStartingPair = (std::find(startingPairs.begin(), startingPairs.end(), i) != startingPairs.end());
     bool isStartingPair = (std::find(startingPairsBeg, startingPairsEnd, i) != startingPairsEnd);
     if (isStartingPair) {
       startingPairs_.insert(layerPairId);
     }
   }
 
-  //   // Cells params
-  // cellCuts_.isBarrel_ = {
-  //   1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  // }; // Per layer
-
-  cellCuts_.isBarrel_ = colliderMLPhase1PixelTopology::isBarrel;
-
-  // cellCuts_.caThetaCuts_over_ptmin_ = {
-  //   0.47*0.002/0.5, 0.47*0.002/0.5, 0.47*0.002/0.5, 0.47*0.002/0.5,  // BPix
-  //                                            0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5,
-  //                                            0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5, 0.48*0.003/0.5
-  // }; // Per layer
-
-  cellCuts_.caThetaCuts_over_ptmin_ = colliderMLPhase1PixelTopology::thetaCuts;
-
-  // cellCuts_.caDCACuts_ = {
-  //   0.16*0.15,  //BPix1
-  //                                          0.16*0.25, 0.16*0.25, 0.16*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25,
-  //                                          0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25
-  // }; // Per layer
-
-  cellCuts_.caDCACuts_ = colliderMLPhase1PixelTopology::dcaCuts;
-
-  // constexpr int16_t phi0p05 = 522;
-  // constexpr int16_t phi0p06 = 626;
-  // constexpr int16_t phi0p07 = 730;
-
-  // cellCuts_.phiCuts_ = {
-  //   //0,  1    0,  4    0,  11
-  //     phi0p05, phi0p05, phi0p05, 
-  //   //1,  2    1,  4    1,  11
-  //     phi0p06, phi0p07, phi0p07,
-  //   //2,  3    2,  4    2,  11
-  //     phi0p06, phi0p07, phi0p07, 
-      
-  //   //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
-  //     phi0p05, phi0p05, phi0p05, phi0p05, phi0p05, phi0p05, 
-  //   //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
-  //     phi0p05, phi0p05, phi0p05, phi0p05, phi0p05, phi0p05,
-      
-  //   //0,  2    0,  5    0,  12   0,  6    0,  13
-  //     phi0p05, phi0p07, phi0p07, phi0p07, phi0p07,
-  //   //1,  3    1,  5    1,  12   1,  6    1,  13 
-  //     phi0p05, phi0p07, phi0p07, phi0p07, phi0p07, 
-      
-  //   //4,  6    5,  7    6,  8    7,  9    8,  10
-  //     phi0p07, phi0p07, phi0p07, phi0p07, phi0p07, 
-  //   //11, 13   12, 14   13, 15   14, 16   15, 17
-  //     phi0p07, phi0p07, phi0p07, phi0p07, phi0p07
-  // }; // Per layer pair
-
-  cellCuts_.phiCuts_ = colliderMLPhase1PixelTopology::phicuts;
-
-  // double ptCut = 0.5f;
-
-  // cellCuts_.ptCuts_ = {
-  //   //0,  1    0,  4    0,  11
-  //     ptCut, ptCut, ptCut, 
-  //   //1,  2    1,  4    1,  11
-  //     ptCut, ptCut, ptCut,
-  //   //2,  3    2,  4    2,  11
-  //     ptCut, ptCut, ptCut, 
-      
-  //   //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
-  //     ptCut, ptCut, ptCut, ptCut, ptCut, ptCut, 
-  //   //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
-  //     ptCut, ptCut, ptCut, ptCut, ptCut, ptCut,
-      
-  //   //0,  2    0,  5    0,  12   0,  6    0,  13
-  //     ptCut, ptCut, ptCut, ptCut, ptCut,
-  //   //1,  3    1,  5    1,  12   1,  6    1,  13 
-  //     ptCut, ptCut, ptCut, ptCut, ptCut, 
-      
-  //   //4,  6    5,  7    6,  8    7,  9    8,  10
-  //     ptCut, ptCut, ptCut, ptCut, ptCut, 
-  //   //11, 13   12, 14   13, 15   14, 16   15, 17
-  //     ptCut, ptCut, ptCut, ptCut, ptCut
-  // }; // Per layer pair
-
-  cellCuts_.ptCuts_ = colliderMLPhase1PixelTopology::ptCuts;
-
-  // cellCuts_.minInner_ = {
-  //   //0,  1     0,  4     0,  11
-  //     -34.0,    10.0,      2.0*-48.0, 
-  //   //1,  2     1,  4     1,  11      
-  //     2.0*-44.0,    1.0*6.0,      2.0*-72.0, 
-  //   //2,  3     2,  4     2,  11      
-  //     2.0*-54.0,    1.0*11.0,     2.0*-96.0,
-      
-  //   //4,  5     5,  6     6,  7    7,  8    8,  9    9,  10      
-  //     1.0*23.0,     1.0*30.0,     1.0*39.0,    1.0*50.0,    1.0*65.0,    1.0*82.0, 
-  //   //11, 12    12, 13    13, 14   14, 15   15, 16   16, 17      
-  //     2.0*-84.0,    2.0*-105.0,   2.0*-132.0,  2.0*-165.0,  2.0*-210.0,  2.0*-327.0, 
-      
-  //   //0,  2     0,  5   0,  12    0,  6    0,  13      
-  //     -17.0,    7.0,    -24.0,    11.0,    -24.0,
-  //   //1,  3     1,  5   1,  12    1,  6    1,  13       
-  //     -17.0,    9.0,    -24.0,    13.0,    -24.0, 
-      
-  //   //4,  6     5,  7    6,  8    7,  9    8,  10      
-  //     23.0,     30.0,    39.0,    50.0,    65.0, 
-  //   //11, 13    12, 14   13, 15   14, 16   15, 17    
-  // }; // Per layer pair
-
-  cellCuts_.minInner_ = colliderMLPhase1PixelTopology::minz;
-
-  // cellCuts_.maxInner_ = {
-  //   //0,  1     0,  4     0,  11
-  //     34.0,     50.0,     1.0*-4.0,
-  //   //1,  2     1,  4     1,  11
-  //     2.0*44.0,     2.0*72.0,     1.0*-6.0,
-  //   //2,  3     2,  4     2,  11
-  //     2.0*54.0,     2.0*96.0,     1.0*-11.0,
-      
-  //   //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
-  //     2.0*84.0,    2.0*105.0,   2.0*132.0,   2.0*165.0,   2.0*210.0,   2.0*327.0, 
-  //   //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
-  //     1.0*-23.0,   1.0*-30.0,   1.0*-39.0,   1.0*-50.0,   1.0*-65.0,   1.0*-82.0,
-      
-  //   //0,  2    0,  5    0,  12   0,  6    0,  13 
-  //     17.0,    24.0,    -7.0,    24.0,    -11.0,
-  //   //1,  3    1,  5    1,  12   1,  6    1,  13
-  //     17.0,    24.0,    -9.0,    24.0,    -13.0,
-      
-  //   //4,  6    5,  7    6,  8    7,  9    8,  10
-  //     84.0,    105.0,   132.0,   165.0,   210.0,
-  //   //11, 13   12, 14   13, 15   14, 16   15, 17
-  //     -23.0,   -30.0,   -39.0,   -50.0,   -65.0
-  // }; // Per layer pair
-
-  cellCuts_.maxInner_ = colliderMLPhase1PixelTopology::maxz;
+  cellCuts_.isBarrel_ = TrackerTraits::isBarrel;
+  cellCuts_.caThetaCuts_over_ptmin_ = TrackerTraits::thetaCuts;
+  cellCuts_.caDCACuts_ = TrackerTraits::dcaCuts;
+  cellCuts_.phiCuts_ = TrackerTraits::phicuts;
+  cellCuts_.ptCuts_ = TrackerTraits::ptCuts;
+  cellCuts_.minInner_ = TrackerTraits::minz;
+  cellCuts_.maxInner_ = TrackerTraits::maxz;
 
   cellCuts_.maxDZ_ = {
     10.0, 10.0, 10.0, 
@@ -666,35 +515,9 @@ SimPixelTrackAnalyzer::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Con
     0.0, 0.0, 0.0, 0.0, 0.0
   }; // Per layer pair
 
-//   cellCuts_.maxDR_ = {
-// //0,  1   0,  4   0,  11
-//     4.0,    5.0,    5.0,
-//   //1,  2   1,  4   1,  11
-//     // 5.0,    7.0,    7.0,
-//     5.0,    6.0,    6.0,
-//   //2,  3   2,  4   2,  11
-//     6.0,    6.0,    6.0,
+  cellCuts_.maxDR_ = TrackerTraits::maxr;
 
-//   //4,  5   5,  6   6,  7   7,  8   8,  9   9,  10
-//     3.0,    3.0,    3.0,    3.0,    3.0,    3.0,
-//   //11, 12  12, 13  13, 14  14, 15  15, 16  16, 17
-//     3.0,    3.0,    3.0,    3.0,    3.0,    3.0,
-
-//   //0,  2    0,  5   0,  12  0,  6   0,  13 
-//     4.0,     5.0,    5.0,    5.0,    5.0,
-//   //1,  3    1,  5   1,  12  1,  6   1,  13
-//     5.0,     5.0,    5.0,    5.0,    5.0,
-
-//   //4,  6   5,  7   6,  8   7,  9   8,  10
-//     3.0,    3.0,    3.0,    3.0,    3.0,
-//   //11, 13  12, 14  13, 15  14, 16  15, 17
-//     3.0,    3.0,    3.0,    3.0,    3.0,
-//   }; // Per layer pair
-
-  cellCuts_.maxDR_ = colliderMLPhase1PixelTopology::maxr;
-
-  // numLayers_ = 18;
-  numLayers_ = colliderMLPhase1PixelTopology::numberOfLayers;
+  numLayers_ = TrackerTraits::numberOfLayers;
 
   totalDoublets = 0;
   totalPassedDoublets = 0;
@@ -765,7 +588,8 @@ SimPixelTrackAnalyzer::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Con
 //   hVector_firstHitR_.resize(numLayers_);
 }
 
-SimPixelTrackAnalyzer::~SimPixelTrackAnalyzer() {
+template<typename TrackerTraits>
+SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
   std::cout << totalDoublets << " -- " << totalPassedDoublets << std::endl;
 
   simdoublets::linSpace<double> (nBins, *(std::min_element(vectors.vecInnerZ.begin(), vectors.vecInnerZ.end())), *(std::max_element(vectors.vecInnerZ.begin(), vectors.vecInnerZ.end())), binsInnerZ);
@@ -775,7 +599,6 @@ SimPixelTrackAnalyzer::~SimPixelTrackAnalyzer() {
   simdoublets::linSpace<double> (nBins, -50.0, 50.0, binsDZ);
   simdoublets::linSpace<double> (nBins, 0.0, *(std::max_element(vectors.vecDR.begin(), vectors.vecDR.end())), binsDR);
   simdoublets::linSpace<double> (nBins, -0.5, 0.5, binsDPhi);
-  // simdoublets::linSpace<double> (nBins, 0.0, 1000.0, binsZ0);
   simdoublets::linSpace<double> (nBins, 0.0, 20.0, binsZ0);
   simdoublets::linSpace<double> (nBins, 0.0, 3000.0, binsCurvature);
   simdoublets::logSpace<double> (nBins, -0.5, 2.0, binsPT);
@@ -798,11 +621,8 @@ SimPixelTrackAnalyzer::~SimPixelTrackAnalyzer() {
     }
   }
 
-  // simdoublets::linSpace<double> (nBins, 0.0, 0.07, binsCAThetaCut);
-  // simdoublets::linSpace<double> (nBins, 0.0, 0.77, binsdcaCut);
-
-  simdoublets::linSpace<double> (nBins, 0.0, 0.02, binsCAThetaCut);
-  simdoublets::linSpace<double> (nBins, 0.0, 0.3, binsdcaCut);
+  simdoublets::linSpace<double> (nBins, 0.0, 0.01, binsCAThetaCut);
+  simdoublets::linSpace<double> (nBins, 0.0, 0.5, binsdcaCut);
 
   for(int i = 0; i < nBins; ++i){
     for(int j = 0; j < int(vectors.vecCAThetaCut.size()); ++j){
@@ -890,9 +710,10 @@ SimPixelTrackAnalyzer::~SimPixelTrackAnalyzer() {
 // -------------------------------------------------------------------------------------------------------------
 
 // function to apply cuts and set doublet to alive if it passes and to killed otherwise
-void SimPixelTrackAnalyzer::applyCuts(
-    SimPixelTrack::Doublet& doublet,
-    SimPixelTrack const& simPixelTrack,
+template<typename TrackerTraits>
+void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
+    SimPixelTrack<TrackerTraits>::Doublet& doublet,
+    SimPixelTrack<TrackerTraits> const& simPixelTrack,
     bool const hasValidNeighbors,
     bool const hasValidTripletNeighbors,
     int const layerPairIdIndex,
@@ -1055,8 +876,9 @@ void SimPixelTrackAnalyzer::applyCuts(
 }
 
 // // function that fills all histograms for cut variables
-void SimPixelTrackAnalyzer::fillCutHistograms(
-    SimPixelTrack::Doublet const& doublet,
+template<typename TrackerTraits>
+void SimPixelTrackAnalyzer<TrackerTraits>::fillCutHistograms(
+    SimPixelTrack<TrackerTraits>::Doublet const& doublet,
     bool hasValidNeighbors,
     bool hasValidTripletNeighbors,
     int const layerPairIdIndex,
@@ -1331,7 +1153,8 @@ void SimPixelTrackAnalyzer::fillCutHistograms(
 
 // function that trys to find a valid Ntuplet for the given SimPixelTrack using the given geometry configuration
 // (layer pairs, starting pairs, minimum number of hits) ignoring all cuts on doublets/connections and returns if it was able to find one
-bool SimPixelTrackAnalyzer::configAllowsForValidNtuplet(SimPixelTrack const& simPixelTrack) const {
+template<typename TrackerTraits>
+bool SimPixelTrackAnalyzer<TrackerTraits>::configAllowsForValidNtuplet(SimPixelTrack<TrackerTraits> const& simPixelTrack) const {
   // if the number of layers is less than the minimum requirement, don't even bother building anything...
   if (simPixelTrack.numLayers() < minNumDoubletsPerNtuplet_ + 1)
     return false;
@@ -1375,11 +1198,12 @@ bool SimPixelTrackAnalyzer::configAllowsForValidNtuplet(SimPixelTrack const& sim
 }
 
 // main function that fills the histograms
-void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+template<typename TrackerTraits>
+void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
 
   // get SimPixelTracks
-  SimPixelTrackCollection const& simPixelTrackCollection = iEvent.get(simPixelTracks_getToken_);
+  SimPixelTrackCollection<TrackerTraits> const& simPixelTrackCollection = iEvent.get(simPixelTracks_getToken_);
   sim::ParticleHost const& particles = iEvent.get(particles_getToken_);
 
   auto const& partView = particles.view();
@@ -1434,7 +1258,7 @@ void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& i
     //   clusterSizeCutManager.reset();
 
       // calculate the cut variables for the given doublet
-      cellCutVariables.calculateCutVariables(doublet, simPixelTrack);
+      cellCutVariables.calculateCutVariables<TrackerTraits>(doublet, simPixelTrack);
 
       // first, get layer pair Id and exclude layer pairs that are not considered
       layerPairId = doublet.layerPairId();
@@ -1443,7 +1267,7 @@ void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& i
         layerPairIdIndex = layerPairId2Index_.at(layerPairId);
 
         // function to check if a doublet has inner neighbors from a considered layer pair
-        auto checkValidNeighbors = [&](SimPixelTrack::Doublet const& d) {
+        auto checkValidNeighbors = [&](SimPixelTrack<TrackerTraits>::Doublet const& d) {
           return (d.numInnerNeighbors() > 0 &&
                   !(simPixelTrack.getSimDoublet(d.innerNeighborIndex(0)).isKilledByMissingLayerPair()));
         };
@@ -2641,4 +2465,19 @@ void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& i
 // }
 
 // define this as a plug-in
-DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
+// DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
+
+class SimPixelTrackAnalyzerColliderMLPhase1 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase1> {
+public:
+  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase1>::SimPixelTrackAnalyzer;
+};
+
+class SimPixelTrackAnalyzerColliderMLPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase2> {
+public:
+  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase2>::SimPixelTrackAnalyzer;
+};
+
+// DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
+
+DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase1);
+DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase2);
