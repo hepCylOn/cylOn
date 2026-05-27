@@ -113,6 +113,8 @@ namespace hitReaderTest {
             hitsView[i].detectorIndex() = static_cast<uint16_t>(parse_uint(p));
 
             hitsView.offsetBPIX2() = static_cast<int32_t>(parse_int(p));
+
+            [[maybe_unused]] uint16_t auxForPartID = static_cast<uint16_t>(parse_uint(p)); // Not actually used in reconstruction
         }
 
         if (!std::getline(file, line)) {
