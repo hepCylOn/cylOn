@@ -313,20 +313,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       static constexpr AlgoParams defaultAlgoParams() {
       return {
-          2.6f, // bField
+          3.0f, // bField
           // Container sizes
           5.0f,   // avgHitsPerTrack_
-          25.0f,  // avgCellsPerHit_
-          2.0f,   // avgCellsPerCell_
-          1.0f,   // avgTracksPerCell_
+          6.0f,   // avgCellsPerHit_
+          0.151f, // avgCellsPerCell_
+          0.040f, // avgTracksPerCell_
 
           // Algorithm parameters
           3,      // minHitsPerNtuplet_
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_
           0.015f,  // hardCurvCut_
-          12.0f,  // cellZ0Cut_
-          0.5f,   // cellPtCut_
+          9.1f,  // cellZ0Cut_
+          0.85f,   // cellPtCut_
 
           // Pixel cluster cut params
           8.0f * 0.0285f / 0.015f, // dzdrFact_
@@ -350,20 +350,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       AlgoParams makeAlgoParams(edm::Config const& cfg) const {
         return {
-            static_cast<float>(cfg.value("BField", 2.6f)),
+            static_cast<float>(cfg.value("BField", 3.0f)),
             // Container sizes
             static_cast<float>(cfg.value("avgHitsPerTrack", 5.0f)),
-            static_cast<float>(cfg.value("avgCellsPerHit", 25.0f)),
-            static_cast<float>(cfg.value("avgCellsPerCell", 2.0f)),
-            static_cast<float>(cfg.value("avgTracksPerCell", 1.0f)),
+            static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),
+            static_cast<float>(cfg.value("avgCellsPerCell", 0.151f)),
+            static_cast<float>(cfg.value("avgTracksPerCell", 0.040f)),
 
             // Algorithm parameters
             static_cast<uint16_t>(cfg.value("minHitsPerNtuplet", 3)),
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.015f)),
-            static_cast<float>(cfg.value("cellZ0Cut", 12.0f)),
-            static_cast<float>(cfg.value("cellPtCut", 0.5f)),
+            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
+            static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // Pixel cluster cut params
             static_cast<float>(cfg.value("dzdrFact", 8.0f * 0.0285f / 0.015f)),
@@ -460,7 +460,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       static constexpr AlgoParams defaultAlgoParams() {
       return {
-          2.6f, // bField
+          3.0f, // bField
           // ---- Container sizes ----
           7.0f,   // avgHitsPerTrack_
           6.0f,   // avgCellsPerHit_
@@ -472,7 +472,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_  (kept same unless you want to change)
           0.0125, // hardCurvCut_
-          14.5f,   // cellZ0Cut_
+          9.1f,   // cellZ0Cut_
           0.85f,  // cellPtCut_
 
           // ---- Pixel Cluster Cut Params ----
@@ -497,7 +497,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       AlgoParams makeAlgoParams(edm::Config const& cfg) const {
         return {
-            static_cast<float>(cfg.value("BField", 2.6f)),
+            static_cast<float>(cfg.value("BField", 3.0f)),
             // ---- Container sizes ----
             static_cast<float>(cfg.value("avgHitsPerTrack", 7.0f)),
             static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),
@@ -509,7 +509,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.0125)),
-            static_cast<float>(cfg.value("cellZ0Cut", 7.5f)),
+            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // ---- Pixel Cluster Cut Params ----

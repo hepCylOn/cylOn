@@ -1,9 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
-eventsStr = 'SimDoublets'
-inputFile = 'output' + eventsStr + '.txt'
-outDir = 'plots_simPixelTracksColliderMLPhase1_afterChanges'
+parser = argparse.ArgumentParser(
+                    prog='extractHitsFromParquet',
+                    description='Extract hits information from parquet files')
+
+parser.add_argument('-i', '--inpFileName', default='SimDoublets')
+parser.add_argument('-o', '--outDirName', default='plots_simPixelTracks')
+parser.add_argument('-p', '--percentageForCuts', type=float, default=99.0)
+
+args = parser.parse_args()
+
+inputFile = 'output' + args.inpFileName + '.txt'
+outDir = args.outDirName
 
 # Read non-empty lines
 with open(inputFile, "r") as f:
@@ -44,15 +54,18 @@ while i < len(lines):
         # else:
         #     q_low, q_high = 0.0, 0.99
 
+        percentageForCuts = args.percentageForCuts / 100.0
+        modForSymmetricCuts = (1.0 - percentageForCuts) / 2.0
+
         # Interval depends on the name of the variable
         if "INNER Z" in label.upper():
-            q_low, q_high = 0.05, 0.95
+            q_low, q_high = modForSymmetricCuts, percentageForCuts - modForSymmetricCuts
         elif "DPHI" in label.upper() and "IDPHI" not in label.upper():
-            q_low, q_high = 0.05, 0.95
+            q_low, q_high = modForSymmetricCuts, percentageForCuts - modForSymmetricCuts
         elif "DZ" in label.upper():
-            q_low, q_high = 0.05, 0.95
+            q_low, q_high = modForSymmetricCuts, percentageForCuts - modForSymmetricCuts
         else:
-            q_low, q_high = 0.0, 0.9
+            q_low, q_high = 0.0, percentageForCuts
 
         low_idx = np.searchsorted(cdf, q_low)
         high_idx = np.searchsorted(cdf, q_high)
