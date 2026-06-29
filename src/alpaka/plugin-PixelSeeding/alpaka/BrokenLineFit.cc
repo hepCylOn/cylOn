@@ -64,7 +64,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
         // get it from the ntuple container (one to one to helix)
         auto tkid = *(tupleMultiplicity->begin(nHitsL) + tuple_idx);
-        ALPAKA_ASSERT_ACC(static_cast<int>(tkid) < foundNtuplets->nOnes());
+        ALPAKA_ASSERT_ACC(tkid < foundNtuplets->nOnes());
 
         ptkids[local_idx] = tkid;
 
@@ -195,7 +195,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           break;
         auto tkid = ptkids[local_idx];
 
-        ALPAKA_ASSERT_ACC(int(tkid) < tupleMultiplicity->capacity());
+        ALPAKA_ASSERT_ACC(tkid < tupleMultiplicity->capacity());
 
         riemannFit::Map3xNd<N> hits(phits + local_idx);
         riemannFit::Map4d fast_fit(pfast_fit + local_idx);
@@ -422,5 +422,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template class HelixFit<pixelTopology::HIonPhase1>;
   template class HelixFit<pixelTopology::ColliderMLPhase1>;
   template class HelixFit<pixelTopology::ColliderMLPhase2>;
+  template class HelixFit<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>;
+  template class HelixFit<pixelTopology::ColliderMLAllTrackerPhase2>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

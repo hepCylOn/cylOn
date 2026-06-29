@@ -23,10 +23,18 @@ namespace simpixeltracks {
     }
 
     // determine where the RecHits are
-    bool innerInBarrel = (layerIds.first < 4);
-    bool outerInBarrel = (layerIds.second < 4);
-    bool innerInBackward = (!innerInBarrel) && (layerIds.first >= TrackerTraits::negEndcapStartLayer); // Uses value from SimplePixelTopology
-    bool outerInBackward = (!outerInBarrel) && (layerIds.second >= TrackerTraits::negEndcapStartLayer); // Uses value from SimplePixelTopology
+    bool innerInBarrel = ((layerIds.first >= TrackerTraits::firstPixelBarrelPos) && (layerIds.first <= TrackerTraits::lastPixelBarrelPos)) ||
+                         ((layerIds.first >= TrackerTraits::firstShortStripsBarrelPos) && (layerIds.first <= TrackerTraits::lastShortStripsBarrelPos) && (TrackerTraits::firstShortStripsBarrelPos > TrackerTraits::lastPixelBarrelPos)) ||
+                         ((layerIds.first >= TrackerTraits::firstLongStripsBarrelPos) && (layerIds.first <= TrackerTraits::lastLongStripsBarrelPos) && (TrackerTraits::firstLongStripsBarrelPos > TrackerTraits::lastShortStripsBarrelPos));
+    bool outerInBarrel = ((layerIds.second >= TrackerTraits::firstPixelBarrelPos) && (layerIds.second <= TrackerTraits::lastPixelBarrelPos)) ||
+                         ((layerIds.second >= TrackerTraits::firstShortStripsBarrelPos) && (layerIds.second <= TrackerTraits::lastShortStripsBarrelPos) && (TrackerTraits::firstShortStripsBarrelPos > TrackerTraits::lastPixelBarrelPos)) ||
+                         ((layerIds.second >= TrackerTraits::firstLongStripsBarrelPos) && (layerIds.second <= TrackerTraits::lastLongStripsBarrelPos) && (TrackerTraits::firstLongStripsBarrelPos > TrackerTraits::lastShortStripsBarrelPos));
+    bool innerInBackward = (!innerInBarrel) && (((layerIds.first >= TrackerTraits::firstPixelEndcapNeg) && (layerIds.first <= TrackerTraits::lastPixelEndcapNeg)) ||
+                         ((layerIds.first >= TrackerTraits::firstShortStripsEndcapNeg) && (layerIds.first <= TrackerTraits::lastShortStripsEndcapNeg) && (TrackerTraits::firstShortStripsEndcapNeg > TrackerTraits::lastPixelEndcapNeg)) ||
+                         ((layerIds.first >= TrackerTraits::firstLongStripsEndcapNeg) && (layerIds.first <= TrackerTraits::lastLongStripsEndcapNeg) && (TrackerTraits::firstLongStripsEndcapNeg > TrackerTraits::lastShortStripsEndcapNeg)));
+    bool outerInBackward = (!innerInBarrel) && (((layerIds.second >= TrackerTraits::firstPixelEndcapNeg) && (layerIds.second <= TrackerTraits::lastPixelEndcapNeg)) ||
+                         ((layerIds.second >= TrackerTraits::firstShortStripsEndcapNeg) && (layerIds.second <= TrackerTraits::lastShortStripsEndcapNeg) && (TrackerTraits::firstShortStripsEndcapNeg > TrackerTraits::lastPixelEndcapNeg)) ||
+                         ((layerIds.second >= TrackerTraits::firstLongStripsEndcapNeg) && (layerIds.second <= TrackerTraits::lastLongStripsEndcapNeg) && (TrackerTraits::firstLongStripsEndcapNeg > TrackerTraits::lastShortStripsEndcapNeg)));
     bool innerInForward = (!innerInBarrel) && (!innerInBackward);
     bool outerInForward = (!outerInBarrel) && (!outerInBackward);
 
@@ -37,8 +45,8 @@ namespace simpixeltracks {
     }
     // Possibility 2: the inner RecHit is in the barrel while the outer is in either forward or backward
     else if (innerInBarrel) {
-      if (outerInBackward) return ((layerIds.second - TrackerTraits::barrelPlusPosEndcapEndLayer) - 1); // Uses value from SimplePixelTopology
-      if (outerInForward) return ((layerIds.second - TrackerTraits::barrelEndLayer) - 1); // Uses value from SimplePixelTopology
+      if (outerInBackward) return ((layerIds.second - TrackerTraits::lastPixelEndcapPos) - 1); // Uses value from SimplePixelTopology
+      if (outerInForward) return ((layerIds.second - TrackerTraits::firstPixelEndcapPos) - 1); // Uses value from SimplePixelTopology
       return -1;
     }
     // Possibility 3: invalid case (one is forward and the other in backward), set to -1
@@ -397,3 +405,5 @@ void SimPixelTrack<TrackerTraits>::buildSimNtuplets(std::set<int> const& startin
 
 template class SimPixelTrack<pixelTopology::ColliderMLPhase1>;
 template class SimPixelTrack<pixelTopology::ColliderMLPhase2>;
+template class SimPixelTrack<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>;
+template class SimPixelTrack<pixelTopology::ColliderMLAllTrackerPhase2>;

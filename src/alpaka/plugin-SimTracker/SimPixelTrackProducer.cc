@@ -182,7 +182,19 @@ public:
   using SimPixelTrackProducer<pixelTopology::ColliderMLPhase2>::SimPixelTrackProducer;
 };
 
+class SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2 : public SimPixelTrackProducer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2> {
+public:
+  using SimPixelTrackProducer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>::SimPixelTrackProducer;
+};
+
+class SimPixelTrackProducerColliderMLAllTrackerPhase2 : public SimPixelTrackProducer<pixelTopology::ColliderMLAllTrackerPhase2> {
+public:
+  using SimPixelTrackProducer<pixelTopology::ColliderMLAllTrackerPhase2>::SimPixelTrackProducer;
+};
+
 // DEFINE_FWK_MODULE(SimPixelTrackProducer);
 
 DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLPhase1);
 DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLPhase2);
+DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2);
+DEFINE_FWK_MODULE(SimPixelTrackProducerColliderMLAllTrackerPhase2);

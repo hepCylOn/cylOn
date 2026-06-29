@@ -125,8 +125,10 @@ public:
     const float* maxInner_;
     // std::vector<double> minOuter_;
     // std::vector<double> maxOuter_;
-    std::vector<double> maxDZ_;
-    std::vector<double> minDZ_;
+    // std::vector<double> maxDZ_;
+    // std::vector<double> minDZ_;
+    const float* maxDZ_;
+    const float* minDZ_;
     // std::vector<double> maxDR_;
     const float* maxDR_;
   };

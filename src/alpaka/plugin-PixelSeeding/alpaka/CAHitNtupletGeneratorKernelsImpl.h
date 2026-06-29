@@ -4,7 +4,7 @@
 // #define GPU_DEBUG
 // #define NTUPLE_DEBUG
 // #define CA_DEBUG
-// #define CA_WARNINGS
+#define CA_WARNINGS
 
 // C++ includes
 #include <cmath>
@@ -1057,8 +1057,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caHitNtupletGeneratorKernels {
                                   TkSoAView tracks_view,
                                   HitContainer const *__restrict__ foundNtuplets,
                                   HitToTuple const *__restrict__ phitToTuple,
-                                  int32_t firstPrint,
-                                  int32_t lastPrint,
+                                  uint32_t firstPrint,
+                                  uint32_t lastPrint,
                                   int iev) const {
       constexpr auto loose = Quality::loose;
 

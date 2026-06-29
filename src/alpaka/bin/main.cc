@@ -309,7 +309,9 @@ int main(int argc, char** argv) {
           }
           else {
             if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase2");
-            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
+            // else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
+            // else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2");
+            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLAllTrackerPhase2");
           }
         }
       }
@@ -335,7 +337,9 @@ int main(int argc, char** argv) {
             }
             else {
               if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase2");
-              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
+              // else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
+              // else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPixelPlusShortStripsPhase2");
+              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLAllTrackerPhase2");
             }
           }
           edmodules.emplace_back(prefix + "PixelVertexPhase1");
@@ -363,8 +367,12 @@ int main(int argc, char** argv) {
             edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase1");
           }
           else {
-            edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
-            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
+            // edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
+            // edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
+            // edmodules.emplace_back("SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2");
+            // edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2");
+            edmodules.emplace_back("SimPixelTrackProducerColliderMLAllTrackerPhase2");
+            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLAllTrackerPhase2");
           }
         }
       }
@@ -376,7 +384,9 @@ int main(int argc, char** argv) {
     if (fromHits) {
       if (isColliderML) {
         if (not isPhase2) config = "configs/testColliderMLFromHits.json";
-        else config = "configs/testColliderMLPhase2FromHits.json";
+        // else config = "configs/ColliderMLPixelOnlyPhase2FromHits.json";
+        // else config = "configs/ColliderMLPixelPlusShortStripsPhase2FromHits.json";
+        else config = "configs/ColliderMLAllTrackerPhase2FromHits.json";
       }
       else {
         config = "configs/test.json";

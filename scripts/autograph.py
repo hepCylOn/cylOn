@@ -21,6 +21,7 @@ import matplotlib.patches as patches
 from scipy.signal import find_peaks
 from scipy.ndimage import gaussian_filter1d
 import json
+from collections import Counter
 
 def ray_intersects_box(angle_deg, box_row):
     a = np.radians(angle_deg)
@@ -47,46 +48,143 @@ def ray_intersects_box(angle_deg, box_row):
         return False, np.inf
     return True, max(tmin, 0.0)
 
-def line_sweep(boxes_df, angle_step=1.0, min_boxes=3):
+def line_sweep(boxes_df,
+               angle_step=1.0,
+               min_boxes=3,
+               max_skip=1):
+
     angles = np.arange(-180, 180 + 1e-9, angle_step)
-    sequences = []  # [(angle, [box ids])]
+    sequences = []
 
     for a in angles:
         hits = []
+
         for _, b in boxes_df.iterrows():
             ok, t = ray_intersects_box(a, b)
             if ok:
                 hits.append((t, int(b["box_id"])))
+
         hits.sort(key=lambda x: x[0])
+
         seq = [bid for _, bid in hits]
+
         if len(seq) >= min_boxes:
             sequences.append((a, seq))
 
     edges = set()
-    for _, seq in sequences:
-        for u, v in zip(seq[:-1], seq[1:]):
-            if u != v:
-                edges.add((u, v))
 
-    edges_df = pd.DataFrame(sorted(edges), columns=["box_from", "box_to"])
+    for _, seq in sequences:
+
+        n = len(seq)
+
+        for i in range(n):
+
+            for jump in range(1, max_skip + 2):
+
+                j = i + jump
+
+                if j >= n:
+                    break
+
+                u = seq[i]
+                v = seq[j]
+
+                if u != v:
+                    edges.add((u, v))
+
+    edges_df = pd.DataFrame(
+        sorted(edges),
+        columns=["box_from", "box_to"]
+    )
+
     return sequences, edges_df
 
+def hemisphere(row, eps):
+    if row["maxZ"] < -eps:
+        return 1
 
-def ray_intersects_box(angle_deg, box):
-    a = np.radians(angle_deg)
-    dz, dr = np.cos(a), np.sin(a)
-    tmin, tmax = -np.inf, np.inf
-    for (minv, maxv, d) in [(box["minZ"], box["maxZ"], dz), (box["minR"], box["maxR"], dr)]:
-        if abs(d) < 1e-9:
-            if 0 < minv or 0 > maxv:
-                return False, np.inf
-        else:
-            t1, t2 = (minv / d), (maxv / d)
-            tmin, tmax = max(tmin, min(t1, t2)), min(tmax, max(t1, t2))
-    if tmax < max(tmin, 0):
-        return False, np.inf
-    return True, max(tmin, 0)
+    return 0
 
+def estimate_tolerances(z_region, r_region,
+                        tolerance_factor=0.1,
+                        bins_z=200,
+                        bins_r=200):
+
+    counts_z, edges_z = np.histogram(
+        z_region,
+        bins=bins_z,
+        density=True
+    )
+
+    smooth_z = gaussian_filter1d(counts_z, sigma=2)
+
+    peaks_z, _ = find_peaks(
+        smooth_z,
+        prominence=0.0005,
+        distance=5
+    )
+
+    z_centers = 0.5*(edges_z[:-1] + edges_z[1:])
+
+    if len(peaks_z) > 0:
+        max_val = np.max(smooth_z[peaks_z])
+        peaks_z = np.array([
+            p for p in peaks_z
+            if smooth_z[p] >= 0.5*max_val
+        ])
+
+    if len(peaks_z) < 2:
+        toleranceZ = np.std(z_region)/10.
+    else:
+        toleranceZ = (
+            tolerance_factor *
+            np.min(np.diff(z_centers[peaks_z]))
+        )
+
+    counts_r, edges_r = np.histogram(
+        r_region,
+        bins=bins_r,
+        density=True
+    )
+
+    smooth_r = gaussian_filter1d(counts_r, sigma=2)
+
+    peaks_r, _ = find_peaks(
+        smooth_r,
+        prominence=0.02,
+        distance=5
+    )
+
+    r_centers = 0.5*(edges_r[:-1] + edges_r[1:])
+
+    if len(peaks_r) > 0:
+        max_val = np.max(smooth_r[peaks_r])
+        peaks_r = np.array([
+            p for p in peaks_r
+            if smooth_r[p] >= 0.5*max_val
+        ])
+
+    if len(peaks_r) < 2:
+        toleranceR = np.std(r_region)/10.
+    else:
+        toleranceR = (
+            tolerance_factor *
+            np.min(np.diff(r_centers[peaks_r]))
+        )
+
+    return toleranceZ, toleranceR
+
+def get_tolerances(r_value, regional_tolerances):
+
+    for reg in regional_tolerances:
+
+        if reg["rmin"] <= r_value < reg["rmax"]:
+            return reg["tolZ"], reg["tolR"]
+
+    return (
+        regional_tolerances[-1]["tolZ"],
+        regional_tolerances[-1]["tolR"]
+    )
 
 def main():
     ap = argparse.ArgumentParser(description="Adaptive boxing and connectivity in Z–R plane.")
@@ -107,6 +205,39 @@ def main():
     x, y, z = df[args.x_col], df[args.y_col], df[args.z_col]
     r = np.sqrt(x**2 + y**2)
     print(f"[INFO] Loaded {len(z)} points")
+
+    # Limits in R that need to be input by the user. This follows the geometry of the detector, so it should be straightforward to find from data, but it is like this for the moment
+    region_edges = [3,20,72,np.inf]
+
+    regions = [(region_edges[i], region_edges[i+1]) for i in range(0,len(region_edges)-1)]
+
+    regional_tolerances = []
+
+    for rmin, rmax in regions:
+
+        mask = (r >= rmin) & (r < rmax)
+
+        if np.sum(mask) < 10:
+            continue
+
+        tolZ, tolR = estimate_tolerances(
+            z[mask],
+            r[mask],
+            tolerance_factor=args.tolerance_factor
+        )
+
+        regional_tolerances.append({
+            "rmin": rmin,
+            "rmax": rmax,
+            "tolZ": tolZ,
+            "tolR": tolR
+        })
+
+        print(
+            f"[INFO] R=[{rmin},{rmax}] "
+            f"-> tolZ={tolZ:.3f}, "
+            f"tolR={tolR:.3f}"
+        )
 
     # --- Histogram and peaks ---
     bins_z = 200
@@ -166,62 +297,146 @@ def main():
         plt.tight_layout()
         plt.show()
         plt.savefig("peaks.png")
+        plt.close()
 
-    # --- Tolerances ---
-    toleranceZ = args.tolerance_factor * np.min(np.diff(z_centers[peaks_z]))
-    toleranceR = args.tolerance_factor * np.min(np.diff(r_centers[peaks_r]))
-    print(f"[INFO] Derived toleranceZ = {toleranceZ:.3f}, toleranceR = {toleranceR:.3f}")
-
-    # --- Step 2: Apply adaptive boxing ---
-    z_step = toleranceZ
-    r_step = toleranceR
-
-    z_min, z_max = z.min(), z.max()
-    z_cuts = [z_min - 5*z_step]
-    current_z = z_min
-    last_point_z = current_z
-    while current_z <= z_max + 5*z_step:
-        mask = (z >= current_z) & (z < current_z + z_step)
-        if mask.any():
-            last_point_z = current_z
-        elif current_z - last_point_z >= toleranceZ:
-            z_cuts.append(current_z)
-            last_point_z = current_z
-        current_z += z_step
-    z_cuts.append(z_max + 5*z_step)
-    z_cuts = sorted(set(z_cuts))
-
-    # Build boxes in R inside each Z region
     boxes = []
-    for i in range(len(z_cuts)-1):
-        z_low, z_high = z_cuts[i], z_cuts[i+1]
-        mask_z = (z >= z_low) & (z < z_high)
-        if not mask_z.any():
-            continue
-        r_in_area = r[mask_z]
-        r_min, r_max = r_in_area.min(), r_in_area.max()
-        r_cuts = [r_min - 5*r_step]
-        current_r = r_min
-        last_point_r = current_r
-        while current_r <= r_max + 5*r_step:
-            mask_r = (r_in_area >= current_r) & (r_in_area < current_r + r_step)
-            if mask_r.any():
-                last_point_r = current_r
-            elif current_r - last_point_r >= toleranceR:
-                r_cuts.append(current_r)
-                last_point_r = current_r
-            current_r += r_step
-        r_cuts.append(r_max + 5*r_step)
-        r_cuts = sorted(set(r_cuts))
-        iz = np.digitize(z[mask_z], z_cuts) - 1
-        ir = np.digitize(r[mask_z], r_cuts) - 1
-        for z_idx, r_idx, zz, rr in zip(iz, ir, z[mask_z], r[mask_z]):
-            boxes.append((zz, rr, (z_idx, r_idx)))
 
-    # --- Step 3: Plot segmentation ---
+    for reg in regional_tolerances:
+
+        rmin_reg = reg["rmin"]
+        rmax_reg = reg["rmax"]
+
+        toleranceZ = reg["tolZ"]
+        toleranceR = reg["tolR"]
+
+        z_step = toleranceZ/10.
+        r_step = toleranceR/10.
+
+        mask_region = (
+            (r >= rmin_reg) &
+            (r < rmax_reg)
+        )
+
+        z_region = z[mask_region]
+        r_region = r[mask_region]
+
+        if len(z_region) == 0:
+            continue
+
+        z_min = z_region.min()
+        z_max = z_region.max()
+
+        z_cuts = [z_min - 5*toleranceZ]
+
+        current_z = z_min
+        last_point_z = current_z
+
+        while current_z <= z_max + 5*toleranceZ:
+
+            mask_z = (
+                (z_region >= current_z)
+                &
+                (z_region < current_z + z_step)
+            )
+
+            if mask_z.any():
+                last_point_z = current_z
+
+            elif current_z - last_point_z >= 2*toleranceZ:
+                z_cuts.append(current_z)
+                last_point_z = current_z
+
+            current_z += z_step
+
+        z_cuts.append(z_max + 5*toleranceZ)
+        z_cuts = sorted(set(z_cuts))
+
+        for i in range(len(z_cuts)-1):
+
+            z_low = z_cuts[i]
+            z_high = z_cuts[i+1]
+
+            mask_z = (
+                (z_region >= z_low)
+                &
+                (z_region < z_high)
+            )
+
+            if not mask_z.any():
+                continue
+
+            r_in_area = r_region[mask_z]
+
+            r_min = r_in_area.min()
+            r_max = r_in_area.max()
+
+            r_cuts = [r_min - 5*toleranceR]
+
+            current_r = r_min
+            last_point_r = current_r
+
+            while current_r <= r_max + 5*toleranceR:
+
+                mask_r = (
+                    (r_in_area >= current_r)
+                    &
+                    (r_in_area < current_r + r_step)
+                )
+
+                if mask_r.any():
+                    last_point_r = current_r
+
+                elif current_r - last_point_r >= 2*toleranceR:
+                    r_cuts.append(current_r)
+                    last_point_r = current_r
+
+                current_r += r_step
+
+            r_cuts.append(r_max + 5*toleranceR)
+            r_cuts = sorted(set(r_cuts))
+
+            iz = np.digitize(
+                z_region[mask_z],
+                z_cuts
+            ) - 1
+
+            ir = np.digitize(
+                r_region[mask_z],
+                r_cuts
+            ) - 1
+
+            for z_idx, r_idx, zz, rr in zip(
+                    iz,
+                    ir,
+                    z_region[mask_z],
+                    r_region[mask_z]):
+
+                boxes.append(
+                    (zz, rr, (z_idx, r_idx, rmin_reg))
+                )
+
+    min_occupancy = 20
+
     zz = [b[0] for b in boxes]
     rr = [b[1] for b in boxes]
     labels = [b[2] for b in boxes]
+
+    occupancy = Counter(labels)
+
+    valid_labels = {
+        lbl for lbl, count in occupancy.items()
+        if count >= min_occupancy
+    }
+
+    filtered = [
+        (zv, rv, lbl)
+        for zv, rv, lbl in zip(zz, rr, labels)
+        if lbl in valid_labels
+    ]
+
+    zz = [f[0] for f in filtered]
+    rr = [f[1] for f in filtered]
+    labels = [f[2] for f in filtered]
 
     unique_labels = list(set(labels))
     color_map = {lbl: i for i, lbl in enumerate(unique_labels)}
@@ -233,6 +448,10 @@ def main():
 
     zz_arr = np.array(zz)
     rr_arr = np.array(rr)
+
+    for i_lbl in np.unique(int_labels):
+
+        mask = int_labels == i_lbl
 
     cluster_boxes = []
 
@@ -281,160 +500,193 @@ def main():
                 "centerR": centerR,
                 "distance": distance
             })
-        
 
     if args.graph:
 
         boxes_df = pd.DataFrame(boxes_data)
-        boxes_df["distance"] = np.sqrt(boxes_df["centerZ"]**2 + boxes_df["centerR"]**2)
-        boxes_df["box_id"] = boxes_df.index
-        boxes_df = boxes_df.sort_values("distance").reset_index(drop=True)
-        sequences, edges_df = line_sweep(boxes_df, angle_step=1.0, min_boxes=3)
+
+        def r_region(row, region_edges):
+
+            r = row["centerR"]
+
+            for i in range(len(region_edges)-1):
+            
+                if region_edges[i] <= r < region_edges[i+1]:
+                    return i
+
+            return len(region_edges)-1
+
+        # region_edges = [3,20,72,np.inf]
+
+        boxes_df["r_region"] = boxes_df.apply(r_region, axis=1, args=(region_edges,))
+
+        boxes_df["distance"] = np.sqrt(
+            boxes_df["centerZ"]**2 + boxes_df["centerR"]**2
+        )
+
+        z_deadband = toleranceZ
+
+        boxes_df["z_priority"] = boxes_df.apply(
+            hemisphere,
+            axis=1,
+            eps=z_deadband
+        )
+
+        boxes_df = boxes_df.sort_values(
+            by=[
+                "r_region",
+                "z_priority",
+                "distance"
+            ]
+        ).reset_index(drop=True)
+
+        boxes_df["box_id"] = np.arange(len(boxes_df))
+
+        # Checks is boxes are horizontal or vertical to know if it is barrel or not
+        boxes_df["isBarrel"] = (
+            (boxes_df["maxZ"] - boxes_df["minZ"]) >
+            (boxes_df["maxR"] - boxes_df["minR"])
+        ).astype(int)
+
+        sequences, edges_df = line_sweep(boxes_df, angle_step=1.0, min_boxes=3, max_skip=1)
         sequences_df = pd.DataFrame(sequences,columns=["id","seq"])
         edges_df.to_csv("line_sweep_edges.csv", index=False)
+
+        with open("line_sweep_edges.txt", "w") as f:
+            f.write("numberOfLayers: " + str(edges_df["box_to"][len(edges_df) - 1] + 1))
+            f.write("\n\n" + "nPairs: " + str(len(edges_df)))
+            f.write("\n\n" + "numberOfModules: " + str(edges_df["box_to"][len(edges_df) - 1] + 1))
+            f.write("\n\n" + "layerPairs: ")
+            for a in range(len(edges_df)):
+                f.write(str(edges_df["box_from"][a]) + "," + str(edges_df["box_to"][a]) + ",")
+            f.write("\n\n" + "startingPairs: ")
+            for a in range(len(edges_df)): 
+                if a < 3: f.write("1,")
+                else: f.write("0,")
+            f.write("\n\n" + "isBarrel: ")
+            for a in boxes_df["isBarrel"]: f.write(str(a) + ",")
+            f.write("\n\n" + "ptCuts: ")
+            for a in range(len(edges_df)): f.write("0.5,")
+            f.write("\n\n" + "layerStart: ")
+            for a in range(edges_df["box_to"][len(edges_df) - 1] + 2): f.write(str(a) + ",")
+            f.write("\n\n" + "phicuts: ")
+            for a in range(len(edges_df)): f.write("100,")
+            f.write("\n\n" + "minz: ")
+            for a in range(len(edges_df)): f.write("0.5,")
+            f.write("\n\n" + "maxz: ")
+            for a in range(len(edges_df)): f.write("0.5,")
+            f.write("\n\n" + "maxr: ")
+            for a in range(len(edges_df)): f.write("0.5,")
+            f.write("\n\n" + "dcaCuts: ")
+            for a in range(edges_df["box_to"][len(edges_df) - 1] + 1): f.write("0.5,")
+            f.write("\n\n" + "thetaCuts: ")
+            for a in range(edges_df["box_to"][len(edges_df) - 1] + 1): f.write("0.5,")
+
         with open("line_sweep_sequences.txt", "w") as f:
             for a, seq in sequences:
                 f.write(f"Angle {a:7.2f}°: " + " → ".join(f"box {b}" for b in seq) + "\n")
 
     if args.plot:
         
-        # --- Plot clusters and bounding boxes ---
-        plt.figure(figsize=(8, 8))
-        for n,i in enumerate(boxes_df.box_id):
-            zzz = zz_arr[int_labels==n]
-            rrr = rr_arr[int_labels==n]
-            plt.scatter(zzz, rrr, s=1, alpha=0.6, label=i)
+        for _, row in boxes_df.iterrows():
 
-        plt.gca().set_prop_cycle(None)
-
-        # Draw red rectangles for each cluster bounding box
-        for i_lbl, vertices in cluster_boxes:
-            (z_min_adj, r_min_adj) = vertices[0]
-            (z_max_adj, r_max_adj) = vertices[3]
             rect = patches.Rectangle(
-                (z_min_adj, r_min_adj),
-                z_max_adj - z_min_adj,
-                r_max_adj - r_min_adj,
+                (row["minZ"], row["minR"]),
+                row["maxZ"] - row["minZ"],
+                row["maxR"] - row["minR"],
                 linewidth=1.5,
-                edgecolor='red',
-                facecolor='none',
-                alpha=0.8
+                edgecolor="red",
+                facecolor="none"
             )
+
             plt.gca().add_patch(rect)
 
+            plt.text(
+                row["centerZ"],
+                row["centerR"],
+                str(int(row["box_id"])),
+                fontsize=5,
+                ha="center",
+                va="center",
+                fontweight="bold",
+                bbox=dict(
+                    facecolor="white",
+                    edgecolor="black",
+                    alpha=0.8
+                )
+            )
+
+        for _, edge in edges_df.iterrows():
+
+            b1 = boxes_df.loc[
+                boxes_df["box_id"] == edge["box_from"]
+            ].iloc[0]
+
+            b2 = boxes_df.loc[
+                boxes_df["box_id"] == edge["box_to"]
+            ].iloc[0]
+
+            plt.plot(
+                [b1["centerZ"], b2["centerZ"]],
+                [b1["centerR"], b2["centerR"]],
+                "-",
+                linewidth=1.5,
+                alpha=0.3
+            )
+
         plt.xlabel("Z")
-        plt.ylabel("R = sqrt(X²+Y²)")
-        plt.title(f"Bounding boxes per cluster (expanded by tol/10)\n{len(cluster_boxes)} boxes total")
-        plt.grid(True, linestyle='--', alpha=0.5)
-        plt.legend(markerscale=3.0)
-        plt.xlim()
-        plt.show()
-        plt.savefig("boxes.png")
+        plt.ylabel("R")
+        plt.title("Boxes conectadas")
 
-        plt.gca().set_prop_cycle(None)
-        if args.graph:
-            #multilines = []
-            for _, seq in sequences:
-                zs = [boxes_df["centerZ"].values[s] for s in seq]
-                rs = [boxes_df["centerR"].values[s]  for s in seq]
-                #multilines.append((rs,zs))
+        plt.grid(True, alpha=0.3)
 
-                plt.plot(zs,rs,"-o",markersize=10,alpha=0.2)
-            plt.savefig("boxesconnected.png")
-        # # --- Plot: boxes with sample rays ---
-        # plt.figure(figsize=(8,8))
-        # plt.scatter(points_df["z"], points_df["r"], s=3, alpha=0.35, label="Points")
-        # for _, b in boxes_df.iterrows():
-        #     plt.plot([b["minZ"], b["maxZ"], b["maxZ"], b["minZ"], b["minZ"]],
-        #             [b["minR"], b["minR"], b["maxR"], b["maxR"], b["minR"]],
-        #             'r-', alpha=0.85, linewidth=1.0)
+        plt.savefig(
+            "boxesconnected.png",
+            dpi=300,
+            bbox_inches="tight"
+        )
 
-        # sample_every = max(1, len(sequences)//20)
-        # for a, _ in sequences[::sample_every]:
-        #     dz, dr = np.cos(np.radians(a)), np.sin(np.radians(a))
-        #     L = max(z.max()-z.min(), r.max()-r.min()) * 2.0
-        #     Zs = np.array([0, L*dz])
-        #     Rs = np.array([0, L*dr])
-        #     plt.plot(Zs, Rs, 'k--', alpha=0.25)
+        plt.close()
 
-        # plt.xlabel("Z")
-        # plt.ylabel("R = sqrt(X^2 + Y^2)")
-        # plt.title(f"Line sweep intersections (angles with ≥ {min_boxes} boxes: {len(sequences)})")
-        # plt.grid(True)
-        # plt.legend()
-        # plt.show()
+        for _, row in boxes_df.iterrows():
 
-    # # --- Assign points to boxes ---
-    # def assign_box(zi, ri, boxes):
-    #     for _, b in boxes.iterrows():
-    #         if b["minZ"] <= zi <= b["maxZ"] and b["minR"] <= ri <= b["maxR"]:
-    #             return int(b["box_id"])
-    #     return -1
+            rect = patches.Rectangle(
+                (row["minZ"], row["minR"]),
+                row["maxZ"] - row["minZ"],
+                row["maxR"] - row["minR"],
+                linewidth=1.5,
+                edgecolor="red",
+                facecolor="none"
+            )
 
-    # df_points = pd.DataFrame({"x": x, "y": y, "z": z, "r": r})
-    # df_points["box"] = [assign_box(zi, ri, boxes_df) for zi, ri in zip(z, r)]
-    # df_points = df_points.sort_values("box").reset_index(drop=True)
+            plt.gca().add_patch(rect)
 
-    # # --- Connections ---
-    # connections = []
-    # for a in np.arange(-180, 180, 1.0):
-    #     hits = []
-    #     for _, box in boxes_df.iterrows():
-    #         ok, t = ray_intersects_box(a, box)
-    #         if ok:
-    #             hits.append((t, int(box["box_id"])))
-    #     hits.sort(key=lambda x: x[0])
-    #     seq = [h[1] for h in hits]
-    #     if len(seq) > 1:
-    #         for u, v in zip(seq[:-1], seq[1:]):
-    #             connections.append((u, v))
+            plt.text(
+                row["centerZ"],
+                row["centerR"],
+                str(int(row["box_id"])),
+                fontsize=5,
+                ha="center",
+                va="center",
+                fontweight="bold",
+                bbox=dict(
+                    facecolor="white",
+                    edgecolor="black",
+                    alpha=0.8
+                )
+            )
 
-    # connections_df = pd.DataFrame(sorted(set(connections)), columns=["box_from", "box_to"])
-    # connections_json = connections_df.to_dict(orient="records")
+        plt.xlabel("Z")
+        plt.ylabel("R")
+        plt.title("Boxes")
 
-    # # --- Save results ---
-    # boxes_df.to_csv(f"{args.out_prefix}_boxes.csv", index=False)
-    # df_points.to_csv(f"{args.out_prefix}_points_labeled.csv", index=False)
-    # connections_df.to_csv(f"{args.out_prefix}_connections.csv", index=False)
-    # with open(f"{args.out_prefix}_connections.json", "w") as f:
-    #     json.dump(connections_json, f, indent=2)
-    # print(f"[INFO] Outputs written to {args.out_prefix}_*.csv/json")
+        plt.grid(True, alpha=0.3)
 
-    # # --- Plots ---
-    # if args.plot:
-    #     # Boxes
-    #     plt.figure(figsize=(8, 8))
-    #     plt.scatter(z, r, c=df_points["box"], s=5, cmap="tab10", alpha=0.7)
-    #     for _, b in boxes_df.iterrows():
-    #         rect = patches.Rectangle(
-    #             (b["minZ"], b["minR"]),
-    #             b["maxZ"] - b["minZ"],
-    #             b["maxR"] - b["minR"],
-    #             linewidth=1.5,
-    #             edgecolor="red",
-    #             facecolor="none",
-    #             alpha=0.8,
-    #         )
-    #         plt.gca().add_patch(rect)
-    #     plt.xlabel("Z")
-    #     plt.ylabel("R = sqrt(X²+Y²)")
-    #     plt.title(f"Adaptive Z–R Boxes (expanded by tol/5) — {len(boxes_df)} boxes")
-    #     plt.grid(True)
-    #     plt.show()
-
-    #     # Connections
-    #     plt.figure(figsize=(8, 8))
-    #     plt.scatter(z, r, c=df_points["box"], s=5, cmap="tab10", alpha=0.5)
-    #     for _, row in connections_df.iterrows():
-    #         b1 = boxes_df.loc[boxes_df["box_id"] == row["box_from"]].iloc[0]
-    #         b2 = boxes_df.loc[boxes_df["box_id"] == row["box_to"]].iloc[0]
-    #         plt.plot([b1["centerZ"], b2["centerZ"]], [b1["centerR"], b2["centerR"]], "k-", alpha=0.4)
-    #     plt.xlabel("Z")
-    #     plt.ylabel("R = sqrt(X²+Y²)")
-    #     plt.title("Box Connections (-180° → 180° sweep)")
-    #     plt.grid(True)
-    #     plt.show()
-
+        plt.savefig(
+            "boxes.png",
+            dpi=300,
+            bbox_inches="tight"
+        )
 
 if __name__ == "__main__":
     main()

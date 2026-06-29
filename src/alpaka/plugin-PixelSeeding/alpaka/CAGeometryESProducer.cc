@@ -260,6 +260,16 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::ColliderMLPhase2>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2 : public CAGeometryHostESProducer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>::CAGeometryHostESProducer;
+  };
+
+  class CAGeometryHostESProducerColliderMLAllTrackerPhase2 : public CAGeometryHostESProducer<pixelTopology::ColliderMLAllTrackerPhase2> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::ColliderMLAllTrackerPhase2>::CAGeometryHostESProducer;
+  };
+
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
   // ---------- Explicit instantiation and registration ----------
@@ -267,3 +277,5 @@ auto maxVal = std::ranges::max(startingPairs_);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase1);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase2);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLAllTrackerPhase2);

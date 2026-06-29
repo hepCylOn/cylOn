@@ -426,10 +426,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using TrackHitSoA = ::reco::TrackHitSoA;
     using HitContainer = caStructures::HitContainerT<TrackerTraits>;
 
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
     const int32_t H = m_params.algoParams_.avgHitsPerTrack_;
     const auto bfield = (m_params.algoParams_.bField_ * 0.29979246f ) / 100.f; // B field in GeV
     // std::cout << "Bfield = " << bfield << std::endl;
     reco::TracksSoACollection tracks({{int(nTracks), int(nTracks * H)}}, queue);
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 
     // Don't bother if less than 2 this
     if (hits_d.view().metadata().size() < 2) {
@@ -441,17 +444,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     GPUKernels kernels(
         m_params, hits_d.nHits(), hits_d.offsetBPIX2(), nDoublets, nTracks, geometry_d.view().metadata().size(), queue);
 
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
   //     auto const& hits_h = hits_d.view<::reco::HitModuleSoA>();
   // for(int i = 0; i < hits_h.metadata().size(); ++i){
   //   std::cout << hits_h[i].moduleStart() << std::endl;
   // }
 
     kernels.prepareHits(hits_d.view(), hits_d.view<::reco::HitModuleSoA>(), geometry_d.view(), queue);
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
     kernels.buildDoublets(hits_d.view(),
                           geometry_d.view<::reco::CAGraphSoA>(),
                           geometry_d.view<::reco::CALayersSoA>(),
                           hits_d.offsetBPIX2(),
                           queue);
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
     kernels.launchKernels(hits_d.view(),
                           hits_d.offsetBPIX2(),
                           geometry_d.view().metadata().size(),
@@ -460,6 +467,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                           geometry_d.view<::reco::CALayersSoA>(),
                           geometry_d.view<::reco::CAGraphSoA>(),
                           queue);
+
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 
     HelixFit fitter(bfield, m_params.algoParams_.fitNas4_);
     fitter.allocate(kernels.tupleMultiplicity(), tracks.view(), kernels.hitContainer());
@@ -476,7 +485,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                      nTracks,
                                      queue);
     }
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
     kernels.classifyTuples(hits_d.view(), tracks.view(), queue);
+    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
     std::cout << "finished building pixel tracks on GPU" << std::endl;
@@ -491,4 +502,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template class CAHitNtupletGenerator<pixelTopology::GenericUpgrade>;
   template class CAHitNtupletGenerator<pixelTopology::ColliderMLPhase1>;
   template class CAHitNtupletGenerator<pixelTopology::ColliderMLPhase2>;
+  template class CAHitNtupletGenerator<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>;
+  template class CAHitNtupletGenerator<pixelTopology::ColliderMLAllTrackerPhase2>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

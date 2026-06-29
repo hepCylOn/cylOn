@@ -57,7 +57,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         // get it from the ntuple container (one to one to helix)
         auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
-        ALPAKA_ASSERT_ACC(static_cast<int>(tkid) < foundNtuplets->nOnes());
+        ALPAKA_ASSERT_ACC(tkid < foundNtuplets->nOnes());
 
         ALPAKA_ASSERT_ACC(foundNtuplets->size(tkid) == nHits);
 
@@ -393,5 +393,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template class HelixFit<pixelTopology::HIonPhase1>;
   template class HelixFit<pixelTopology::ColliderMLPhase1>;
   template class HelixFit<pixelTopology::ColliderMLPhase2>;
+  template class HelixFit<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>;
+  template class HelixFit<pixelTopology::ColliderMLAllTrackerPhase2>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

@@ -8,8 +8,148 @@ import argparse
 from colliderml.core import load_tables, collect_tables
 from colliderml.polars import explode_tracker_hits
 
+import matplotlib.pyplot as plt
+
 pl.Config.set_tbl_rows(12)
 pl.Config.set_tbl_cols(20)
+
+def writeToFile(i,n,inputData,barrelPos,barrelThres,endcapPos,endcapThres,modules):
+
+    getInitialModulesLen = len(modules)
+
+    hxAux = inputData[1][n:(n + inputData[0][i])]
+    hyAux = inputData[2][n:(n + inputData[0][i])]
+    hzAux = inputData[3][n:(n + inputData[0][i])]
+    hrAux = inputData[4][n:(n + inputData[0][i])]
+    hpAux = inputData[5][n:(n + inputData[0][i])]
+    hpartAux = inputData[6][n:(n + inputData[0][i])]
+
+    # Only save hits that are in the current part of detector being checked
+    zCheck = (np.abs(hzAux) < ((endcapPos[-1] + endcapThres)*np.ones(len(hzAux))))
+
+    hxAux = hxAux[zCheck]
+    hyAux = hyAux[zCheck]
+    hzAux = hzAux[zCheck]
+    hrAux = hrAux[zCheck]
+    hpAux = hpAux[zCheck]
+    hpartAux = hpartAux[zCheck]
+
+    xyCheck = (hrAux < ((barrelPos[-1] + barrelThres)*np.ones(len(hrAux))))
+    
+    hxAux = hxAux[xyCheck]
+    hyAux = hyAux[xyCheck]
+    hzAux = hzAux[xyCheck]
+    hrAux = hrAux[xyCheck]
+    hpAux = hpAux[xyCheck]
+    hpartAux = hpartAux[xyCheck]
+
+    xyCheck = (hrAux > ((barrelPos[0] - barrelThres)*np.ones(len(hrAux))))
+    
+    hxAux = hxAux[xyCheck]
+    hyAux = hyAux[xyCheck]
+    hzAux = hzAux[xyCheck]
+    hrAux = hrAux[xyCheck]
+    hpAux = hpAux[xyCheck]
+    hpartAux = hpartAux[xyCheck]
+
+    # Initialize the layersID array for all the pixel hits
+    saveLayersIDarray = getInitialModulesLen*np.ones(len(hzAux)) - np.ones(len(hzAux))
+
+    # This block saves layer ID in barrel, i.e., |z| < closestEndcapDisk
+    barrelCheck = (np.abs(hzAux) < ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+
+    # Do a loop over all of the radii for the barrel layers
+    for rIdx in range(len(barrelPos)):
+        rHit = np.abs(hrAux)
+        rBarrelLayer = barrelPos[rIdx]*np.ones(len(hxAux))
+        layerBarrelCheck = barrelCheck * ((rHit > (rBarrelLayer - barrelThres)))
+        layerBarrelCheck = layerBarrelCheck * ((rHit < (rBarrelLayer + barrelThres)))
+        saveLayersIDarray = saveLayersIDarray + (rIdx*layerBarrelCheck)
+
+    # This block saves layer ID in the positive endcap, i.e., z > closestEndcapDisk
+    posEndcapCheck = (hzAux > ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+
+    # Do a loop over all of the longitudes for the endcap layers
+    for zIdx in range(len(endcapPos)):
+        zHit = hzAux
+        zEndcapLayer = endcapPos[zIdx]*np.ones(len(hxAux))
+        layerPosEndcapCheck = posEndcapCheck * ((zHit > (zEndcapLayer - endcapThres)))
+        layerPosEndcapCheck = layerPosEndcapCheck * ((zHit < (zEndcapLayer + endcapThres)))
+        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(barrelPos))*layerPosEndcapCheck)
+
+    # This block saves layer ID in the negative endcap, i.e., z < -closestEndcapDisk
+    negEndcapCheck = (hzAux < (-(endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+
+    # Do a loop over all of the longitudes for the endcap layers; the actual longitudinal
+    # value has a signal change below to only consider z < 0
+    for zIdx in range(len(endcapPos)):
+        zHit = hzAux
+        zEndcapLayer = endcapPos[zIdx]*np.ones(len(hxAux))
+        layerNegEndcapCheck = negEndcapCheck *((zHit < -(zEndcapLayer - endcapThres)))
+        layerNegEndcapCheck = layerNegEndcapCheck *((zHit > -(zEndcapLayer + endcapThres)))
+        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(barrelPos) + len(endcapPos))*layerNegEndcapCheck)
+
+    # Check the amount of hits per layer of the pixel barrel, i.e., |z| < closestEndcapDisk
+    barrelCheck = (np.abs(hzAux) < ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+
+    barrelHxAux = hxAux[barrelCheck]
+    barrelHrAux = hrAux[barrelCheck]
+
+    for r in barrelPos:
+        rHit = np.abs(barrelHrAux)
+        rBarrelLayer = r*np.ones(len(barrelHxAux))
+        layerBarrelCheck = ((rHit > (rBarrelLayer - barrelThres)))
+        datasetBarrelLayers = rHit[layerBarrelCheck]
+        rBarrelLayer = r*np.ones(len(datasetBarrelLayers))
+        layerBarrelCheck = ((datasetBarrelLayers < (rBarrelLayer + barrelThres)))
+        # if detector == 2: print(len(datasetBarrelLayers[layerBarrelCheck]))
+        modules.append(len(datasetBarrelLayers[layerBarrelCheck]))
+
+    # Check the amount of hits per layer of the pixel positive endcap, i.e., z > closestEndcapDisk
+    posEndcapCheck = ((hzAux) > ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+    
+    posEndcapHxAux = hxAux[posEndcapCheck]
+    posEndcapHzAux = hzAux[posEndcapCheck]
+
+    for z in endcapPos:
+        zHit = posEndcapHzAux
+        zEndcapLayer = z*np.ones(len(posEndcapHxAux))
+        posEndcapLayerCheck = (zHit > (zEndcapLayer - endcapThres))
+        datasetPosEndcapLayers = posEndcapHzAux[posEndcapLayerCheck]
+        zEndcapLayer = z*np.ones(len(datasetPosEndcapLayers))
+        posEndcapLayerCheck = (datasetPosEndcapLayers < (zEndcapLayer + endcapThres))
+        # if detector == 2: print(len(datasetPosEndcapLayers[posEndcapLayerCheck]))
+        modules.append(len(datasetPosEndcapLayers[posEndcapLayerCheck]))
+
+    # Check the amount of hits per layer of the pixel negative endcap, i.e., z < -closestEndcapDisk
+    negEndcapCheck = ((hzAux) < (-(endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+
+    negEndcapHxAux = hxAux[negEndcapCheck]
+    negEndcapHzAux = hzAux[negEndcapCheck]
+
+    for z in endcapPos:
+        zHit = negEndcapHzAux
+        zEndcapLayer = z*np.ones(len(negEndcapHxAux))
+        negEndcapLayerCheck = (zHit < (-(zEndcapLayer - endcapThres)))
+        datasetNegEndcapLayers = zHit[negEndcapLayerCheck]
+        zEndcapLayer = z*np.ones(len(datasetNegEndcapLayers))
+        negEndcapLayerCheck = (datasetNegEndcapLayers > (-(zEndcapLayer + endcapThres)))
+        # if detector == 2: print(len(datasetNegEndcapLayers[negEndcapLayerCheck]))
+        modules.append(len(datasetNegEndcapLayers[negEndcapLayerCheck]))
+
+    # Adds the values of hits per module cumulativelly to mimic the CMS hits input
+    for i in range(getInitialModulesLen,len(modules)):
+        modules[i] = modules[i] + modules[i-1]
+
+    # To apply the layers ID ordering to all of the information to be saved, a tuple has to be
+    # created so that the ordering acts in the same way over all columns. Afterwards, the tuple
+    # can be split. Index 5 in x[5] means the layer ID column
+    tuples = list(zip((hxAux/10.0).tolist(),(hyAux/10.0).tolist(),(hzAux/10.0).tolist(),(hrAux/10.0).tolist(),(np.arctan2(hyAux,hxAux)).tolist(),(saveLayersIDarray.astype('i')).tolist(),(hpartAux).tolist()))
+    tuples_sorted = sorted(tuples, key = lambda x : x[5])
+
+    saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID = zip(*tuples_sorted)
+
+    return saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID,modules
 
 parser = argparse.ArgumentParser(
                     prog='extractHitsFromParquet',
@@ -20,6 +160,9 @@ parser.add_argument('-p', '--isPhase2', action='store_true')
 parser.add_argument('-d', '--debug', action='store_true')
 parser.add_argument('-e', '--eventsForDebug', type=int, default=1)
 parser.add_argument('-n', '--numberOfEvents', type=int, default=10)
+parser.add_argument('-m', '--makeHitPosPlot', action='store_true')
+parser.add_argument('-s', '--shortStrips', action='store_true')
+parser.add_argument('-l', '--longStrips', action='store_true')
 
 args = parser.parse_args()
 
@@ -53,6 +196,16 @@ if args.isPhase2: colliderMLPixelEndcap = [620.0,730.0,830.0,980.0,1120.0,1320.0
 colliderMLPixelBarrelThreshold = 15.0
 colliderMLPixelEndcapThreshold = 50.0
 
+coliderMLShortStripsBarrel = [250.0,350.0,500.0,650.0]
+coliderMLShortStripsEndcap = [1300.0,1580.0,1820.0,2200.0,2580.0,2980.0]
+coliderMLShortStripsBarrelThreshold = 60.0
+coliderMLShortStripsEndcapThreshold = 80.0
+
+coliderMLLongStripsBarrel = [820.0,1020.0]
+coliderMLLongStripsEndcap = [1300.0,1580.0,1900.0,2250.0,2600.0,3000.0]
+coliderMLLongStripsBarrelThreshold = 60.0
+coliderMLLongStripsEndcapThreshold = 100.0
+
 home_directory = os.path.expanduser("~")
 
 cfg = {
@@ -75,16 +228,6 @@ tracker_mult = tracker_evt.select(
     pl.col("x").list.len().alias("n_tracker_hits"),
 )
 
-saveX = []
-saveY = []
-saveZ = []
-saveR = []
-saveP = []
-saveM = []
-saveID = []
-saveLayersID = []
-saveParticleID = []
-
 hits_flat = explode_tracker_hits(tracker_evt)
 
 hn = (tracker_mult["n_tracker_hits"]).to_numpy().astype(int)
@@ -95,8 +238,18 @@ hr = np.sqrt(hx**2 + hy**2)
 hp = np.arctan2(hy,hx)
 hpart = hits_flat["particle_id"].to_numpy().astype(int)
 
+inputData = [hn,hx,hy,hz,hr,hp,hpart]
+
 counter = {"n": 0}
 nAux = 0
+
+if args.makeHitPosPlot:
+
+    plt.scatter(hz, hr, s=0.5)
+    plt.title("ColliderML data")
+    plt.xlabel("Z [mm]")
+    plt.ylabel("R [mm]")
+    plt.savefig("colliderMLGeometry.pdf")
 
 for i in range(len(hn)):
 
@@ -105,140 +258,51 @@ for i in range(len(hn)):
             print(f"Created files {hitsFileName} and {mapFileName} WHILE DEBUGGING")
             exit()
 
+    saveX = []
+    saveY = []
+    saveZ = []
+    saveR = []
+    saveP = []
+    saveLayersID = []
+    saveParticleID = []
+
     saveModules = [0]
 
-    hxAux = hx[nAux:(nAux + hn[i])]
-    hyAux = hy[nAux:(nAux + hn[i])]
-    hzAux = hz[nAux:(nAux + hn[i])]
-    hrAux = hr[nAux:(nAux + hn[i])]
-    hpAux = hp[nAux:(nAux + hn[i])]
-    hpartAux = hpart[nAux:(nAux + hn[i])]
+    extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,colliderMLPixelBarrel,colliderMLPixelBarrelThreshold,colliderMLPixelEndcap,colliderMLPixelEndcapThreshold,saveModules)
 
-    nAux += hn[i]
+    saveX.extend(list(extractedX))
+    saveY.extend(list(extractedY))
+    saveZ.extend(list(extractedZ))
+    saveR.extend(list(extractedR))
+    saveP.extend(list(extractedP))
+    saveLayersID.extend(list(extractedLayersID))
+    saveParticleID.extend(list(extractedParticleID))
 
-    # Only save hits that are in the pixel detector, i.e., |z| < 1600 and r < 200
-    zCheck = (np.abs(hzAux) < ((colliderMLPixelEndcap[-1] + 80)*np.ones(len(hzAux))))
+    if args.shortStrips:
 
-    hxAux = hxAux[zCheck]
-    hyAux = hyAux[zCheck]
-    hzAux = hzAux[zCheck]
-    hrAux = hrAux[zCheck]
-    hpAux = hpAux[zCheck]
-    hpartAux = hpartAux[zCheck]
+        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,coliderMLShortStripsBarrel,coliderMLShortStripsBarrelThreshold,coliderMLShortStripsEndcap,coliderMLShortStripsEndcapThreshold,saveModules)
 
-    xyCheck = (hrAux < (200.0*np.ones(len(hrAux))))
-    
-    hxAux = hxAux[xyCheck]
-    hyAux = hyAux[xyCheck]
-    hzAux = hzAux[xyCheck]
-    hrAux = hrAux[xyCheck]
-    hpAux = hpAux[xyCheck]
-    hpartAux = hpartAux[xyCheck]
+        saveX.extend(list(extractedX))
+        saveY.extend(list(extractedY))
+        saveZ.extend(list(extractedZ))
+        saveR.extend(list(extractedR))
+        saveP.extend(list(extractedP))
+        saveLayersID.extend(list(extractedLayersID))
+        saveParticleID.extend(list(extractedParticleID))
 
-    # Initialize the layersID array for all the pixel hits
-    saveLayersIDarray = np.zeros(len(hzAux))
+    if args.longStrips:
 
-    # This block saves layer ID in barrel, i.e., |z| < 550
-    barrelCheck = (np.abs(hzAux) < (550*np.ones(len(hzAux))))
+        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,coliderMLLongStripsBarrel,coliderMLLongStripsBarrelThreshold,coliderMLLongStripsEndcap,coliderMLLongStripsEndcapThreshold,saveModules)
 
-    # Do a loop over all of the radii for the barrel layers
-    for rIdx in range(len(colliderMLPixelBarrel)):
-        rHit = np.abs(hrAux)
-        rBarrelLayer = colliderMLPixelBarrel[rIdx]*np.ones(len(hxAux))
-        layerBarrelCheck = barrelCheck * ((rHit > (rBarrelLayer - colliderMLPixelBarrelThreshold)))
-        layerBarrelCheck = layerBarrelCheck * ((rHit < (rBarrelLayer + colliderMLPixelBarrelThreshold)))
-        saveLayersIDarray = saveLayersIDarray + (rIdx*layerBarrelCheck)
+        saveX.extend(list(extractedX))
+        saveY.extend(list(extractedY))
+        saveZ.extend(list(extractedZ))
+        saveR.extend(list(extractedR))
+        saveP.extend(list(extractedP))
+        saveLayersID.extend(list(extractedLayersID))
+        saveParticleID.extend(list(extractedParticleID))
 
-    # This block saves layer ID in the positive endcap, i.e., z > 550
-    posEndcapCheck = (hzAux > (550*np.ones(len(hzAux))))
-
-    # Do a loop over all of the longitudes for the endcap layers
-    for zIdx in range(len(colliderMLPixelEndcap)):
-        zHit = hzAux
-        zEndcapLayer = colliderMLPixelEndcap[zIdx]*np.ones(len(hxAux))
-        layerPosEndcapCheck = posEndcapCheck * ((zHit > (zEndcapLayer - colliderMLPixelEndcapThreshold)))
-        layerPosEndcapCheck = layerPosEndcapCheck * ((zHit < (zEndcapLayer + colliderMLPixelEndcapThreshold)))
-        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(colliderMLPixelBarrel))*layerPosEndcapCheck)
-
-    # This block saves layer ID in the negative endcap, i.e., z < -550
-    negEndcapCheck = (hzAux < (-550*np.ones(len(hzAux))))
-
-    # Do a loop over all of the longitudes for the endcap layers; the actual longitudinal
-    # value has a signal change below to only consider z < 0
-    for zIdx in range(len(colliderMLPixelEndcap)):
-        zHit = hzAux
-        zEndcapLayer = colliderMLPixelEndcap[zIdx]*np.ones(len(hxAux))
-        layerNegEndcapCheck = negEndcapCheck *((zHit < -(zEndcapLayer - colliderMLPixelEndcapThreshold)))
-        layerNegEndcapCheck = layerNegEndcapCheck *((zHit > -(zEndcapLayer + colliderMLPixelEndcapThreshold)))
-        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(colliderMLPixelBarrel) + len(colliderMLPixelEndcap))*layerNegEndcapCheck)
-
-    # Check the amount of hits per layer of the pixel barrel, i.e., |z| < 550
-    barrelCheck = (np.abs(hzAux) < (550*np.ones(len(hzAux))))
-
-    barrelHxAux = hxAux[barrelCheck]
-    barrelHrAux = hrAux[barrelCheck]
-
-    for r in colliderMLPixelBarrel:
-        rHit = np.abs(barrelHrAux)
-        rBarrelLayer = r*np.ones(len(barrelHxAux))
-        layerBarrelCheck = ((rHit > (rBarrelLayer - colliderMLPixelBarrelThreshold)))
-        datasetBarrelLayers = rHit[layerBarrelCheck]
-        rHit = np.abs(datasetBarrelLayers)
-        rBarrelLayer = r*np.ones(len(datasetBarrelLayers))
-        layerBarrelCheck = ((rHit < (rBarrelLayer + colliderMLPixelBarrelThreshold)))
-        saveModules.append(len(datasetBarrelLayers[layerBarrelCheck]))
-
-    # Check the amount of hits per layer of the pixel positive endcap, i.e., z > 550
-    posEndcapCheck = ((hzAux) > (550*np.ones(len(hzAux))))
-    
-    posEndcapHxAux = hxAux[posEndcapCheck]
-    posEndcapHzAux = hzAux[posEndcapCheck]
-
-    for z in colliderMLPixelEndcap:
-        zHit = posEndcapHzAux
-        zEndcapLayer = z*np.ones(len(posEndcapHxAux))
-        posEndcapLayerCheck = (zHit > (zEndcapLayer - colliderMLPixelEndcapThreshold))
-        datasetPosEndcapLayers = posEndcapHzAux[posEndcapLayerCheck]
-        zHit = datasetPosEndcapLayers
-        zEndcapLayer = z*np.ones(len(datasetPosEndcapLayers))
-        posEndcapLayerCheck = (zHit < (zEndcapLayer + colliderMLPixelEndcapThreshold))
-        saveModules.append(len(datasetPosEndcapLayers[posEndcapLayerCheck]))
-
-    # Check the amount of hits per layer of the pixel negative endcap, i.e., z < -550
-    negEndcapCheck = ((hzAux) < (-550*np.ones(len(hzAux))))
-
-    negEndcapHxAux = hxAux[negEndcapCheck]
-    negEndcapHzAux = hzAux[negEndcapCheck]
-
-    for z in colliderMLPixelEndcap:
-        zHit = negEndcapHzAux
-        zEndcapLayer = z*np.ones(len(negEndcapHxAux))
-        negEndcapLayerCheck = (zHit < (-(zEndcapLayer - colliderMLPixelEndcapThreshold)))
-        datasetNegEndcapLayers = zHit[negEndcapLayerCheck]
-        zHit = datasetNegEndcapLayers
-        zEndcapLayer = z*np.ones(len(datasetNegEndcapLayers))
-        negEndcapLayerCheck = (zHit > (-(zEndcapLayer + colliderMLPixelEndcapThreshold)))
-        saveModules.append(len(datasetNegEndcapLayers[negEndcapLayerCheck]))
-
-    # Adds the values of hits per module cumulativelly to mimic the CMS hits input
-    for i in range(1,len(saveModules)):
-        saveModules[i] = saveModules[i] + saveModules[i-1]
-
-    # To apply the layers ID ordering to all of the information to be saved, a tuple has to be
-    # created so that the ordering acts in the same way over all columns. Afterwards, the tuple
-    # can be split. Index 5 in x[5] means the layer ID column
-    tuples = list(zip((hxAux/10.0).tolist(),(hyAux/10.0).tolist(),(hzAux/10.0).tolist(),(hrAux/10.0).tolist(),(np.arctan2(hyAux,hxAux)).tolist(),(saveLayersIDarray.astype('i')).tolist(),(hpartAux).tolist()))
-    tuples_sorted = sorted(tuples, key = lambda x : x[5])
-
-    saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID = zip(*tuples_sorted)
-
-    saveX = list(saveX)
-    saveY = list(saveY)
-    saveZ = list(saveZ)
-    saveR = list(saveR)
-    saveP = list(saveP)
-    saveLayersID = list(saveLayersID)
-    saveParticleID = list(saveParticleID)
+    nAux += inputData[0][i]
 
     # Information per event is appended to file hits.txt as:
     # hits:total_number_of_hits
@@ -250,8 +314,7 @@ for i in range(len(hn)):
         fout.write(f"hits:{len(saveX)}\n")
         fout.write(f"module:{len(saveModules)-1}\n")
         for j in range(len(saveX)):
-            # fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]},{saveY[j]},{saveZ[j]},{saveR[j]},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveModules[1]}\n")
-            fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]},{saveY[j]},{saveZ[j]},{saveR[j]},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveModules[1]},{saveParticleID[j]}\n") # Used to extract particles with more layers and for muons
+            fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]},{saveY[j]},{saveZ[j]},{saveR[j]},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveModules[1]},{saveParticleID[j]}\n")
         writeHelper = ""
         for m in saveModules: writeHelper = writeHelper + str(m) + ","
         # 

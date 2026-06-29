@@ -137,10 +137,10 @@ struct fillBulk {
 struct verifyBulk {
   template <typename Assoc>
   ALPAKA_FN_ACC void operator()(Acc1D const& acc, Assoc const* __restrict__ assoc, AtomicPairCounter const* apc) const {
-    if (::toSigned(apc->get().first) >= Assoc::ctNOnes()) {
+    if (apc->get().first >= Assoc::ctNOnes()) {
       printf("Overflow %d %d\n", apc->get().first, Assoc::ctNOnes());
     }
-    ALPAKA_ASSERT_ACC(toSigned(assoc->size()) < Assoc::ctCapacity());
+    ALPAKA_ASSERT_ACC(assoc->size() < Assoc::ctCapacity());
   }
 };
 

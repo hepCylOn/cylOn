@@ -19,8 +19,8 @@
   "SiPixelGainCalibrationForHLTHostESProducer": {
     "data": "data/SiPixelGainCalibrationForHLTHostRun2.bin"
   },
-  "CAGeometryHostESProducerColliderMLPhase2": {
-    "data": "data/AdHocCMSPhase1Geometry.bin"
+  "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2": {
+    "data": "data/ColliderMLPixelPlusShortStripsPhase2Geometry.bin"
   },
   "SiPixelFedIdsESProducer": {
     "data": "data/fedIds.bin"

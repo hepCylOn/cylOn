@@ -53,7 +53,7 @@ class PixelCPEFast {
       m_detParamsGPU.resize(ndetParams);
       in.read(reinterpret_cast<char *>(m_detParamsGPU.data()), ndetParams * sizeof(DetParams));
 
-      std::ofstream out(outputPath + "/AdHocCMSPhase1Modules.bin", std::ios::binary);
+      std::ofstream out(outputPath + "/ColliderMLPixelOnlyPhase2Modules.bin", std::ios::binary);
       if (!out) throw std::runtime_error("Cannot open file for writing");
 
       std::cout << "=== Writing " <<  ndetParams << " modules" << std::endl;
@@ -64,7 +64,7 @@ class PixelCPEFast {
       }
 
       out.close();
-      std::cout << "AdHocCMSPhase1Modules.bin written.\n";
+      std::cout << "ColliderMLPixelOnlyPhase2Modules.bin written.\n";
 
     }
 
@@ -84,10 +84,6 @@ constexpr uint16_t nLayers  = 18;
 constexpr uint16_t nPairs   = 41;
 
 // phi cut constants
-// constexpr int16_t phi0p01 = 106;
-// constexpr int16_t phi0p02 = 210;
-// constexpr int16_t phi0p03 = 314;
-// constexpr int16_t phi0p04 = 418;
 constexpr int16_t phi0p05 = 522;
 constexpr int16_t phi0p06 = 626;
 constexpr int16_t phi0p07 = 730;
@@ -117,28 +113,6 @@ constexpr int16_t phicuts[nPairs]{
     //11, 13   12, 14   13, 15   14, 16   15, 17
       phi0p07, phi0p07, phi0p07, phi0p07, phi0p07
 
-    // //0,  1    0,  4    0,  11
-    //   phi0p03, phi0p03, phi0p03, 
-    // //1,  2    1,  4    1,  11
-    //   phi0p03, phi0p04, phi0p04,
-    // //2,  3    2,  4    2,  11
-    //   phi0p04, phi0p04, phi0p04, 
-      
-    // //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02, phi0p02, 
-    // //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02, phi0p02,
-      
-    // //0,  2    0,  5    0,  12   0,  6    0,  13
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02,
-    // //1,  3    1,  5    1,  12   1,  6    1,  13 
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02, 
-      
-    // //4,  6    5,  7    6,  8    7,  9    8,  10
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02, 
-    // //11, 13   12, 14   13, 15   14, 16   15, 17
-    //   phi0p02, phi0p02, phi0p02, phi0p02, phi0p02
-
 };
 
 // Min z for layer pairs
@@ -166,28 +140,6 @@ constexpr float minz_vals[nPairs] = {
     //11, 13    12, 14   13, 15   14, 16   15, 17      
       -84.0,    -105.0,  -132.0,  -165.0,  -210.0
 
-    // //0,  1     0,  4     0,  11
-    //   -26.0,    20.0,      -49.0, 
-    // //1,  2     1,  4     1,  11      
-    //   -31.0,    28.0,      -52.0, 
-    // //2,  3     2,  4     2,  11      
-    //   -36.0,    38.0,      -52.0,
-      
-    // //4,  5     5,  6     6,  7    7,  8    8,  9    9,  10      
-    //   59.0,     69.0,     80.0,    93.0,    109.0,   128.0, 
-    // //11, 12    12, 13    13, 14   14, 15   15, 16   16, 17      
-    //   -65.0,    -75.0,    -86.0,   -102.0,  -115.0,  -134.0,
-      
-    // //0,  2     0,  5   0,  12    0,  6    0,  13      
-    //   -29.0,    17.0,    -52.0,    17.0,    -52.0,
-    // //1,  3     1,  5   1,  12    1,  6    1,  13       
-    //   -33.0,    25.0,    -55.0,    25.0,    -55.0, 
-      
-    // //4,  6     5,  7    6,  8    7,  9    8,  10      
-    //   56.0,     66.0,    77.0,    90.0,    106.0
-    // //11, 13    12, 14   13, 15   14, 16   15, 17      
-    //   -68.0,    -78.0,   -89.0,   -105.0,  -118.0
-    
 };
 
 // Max z for layer pairs
@@ -216,55 +168,11 @@ constexpr float maxz_vals[nPairs] = {
     //11, 13   12, 14   13, 15   14, 16   15, 17
       -23.0,   -30.0,   -39.0,   -50.0,   -65.0
 
-    // //0,  1     0,  4     0,  11
-    //   26.0,     49.0,     -20.0,
-    // //1,  2     1,  4     1,  11
-    //   31.0,     52.0,     -28.0,
-    // //2,  3     2,  4     2,  11
-    //   36.0,     52.0,     -38.0,
-      
-    // //4,  5    5,  6    6,  7    7,  8    8,  9    9,  10
-    //   65.0,    75.0,    86.0,    102.0,   115.0,   134.0, 
-    // //11, 12   12, 13   13, 14   14, 15   15, 16   16, 17
-    //   -59.0,   -69.0,   -80.0,   -93.0,   -109.0,  -128.0, 
-      
-    // //0,  2    0,  5    0,  12   0,  6    0,  13 
-    //   29.0,    52.0,    -17.0,    52.0,    -17.0,
-    // //1,  3    1,  5    1,  12   1,  6    1,  13
-    //   33.0,    55.0,    -25.0,    55.0,    -25.0,
-      
-    // //4,  6    5,  7    6,  8    7,  9    8,  10
-    //   68.0,    78.0,    89.0,    105.0,   118.0
-    // //11, 13   12, 14   13, 15   14, 16   15, 17
-    //   -56.0,   -66.0,   -77.0,   -90.0,   -106.0
-
 };
 
 // Max r for layer pairs
 constexpr float maxr_vals[nPairs] = {
     
-  // //0,  1   0,  4   0,  11
-  //   5.0,    6.0,    6.0,
-  // //1,  2   1,  4   1,  11
-  //   7.0,    8.0,    8.0,
-  // //2,  3   2,  4   2,  11
-  //   7.0,    8.0,    8.0,
-
-  // //4,  5   5,  6   6,  7   7,  8   8,  9   9,  10
-  //   6.0,    6.0,    6.0,    6.0,    6.0,    6.0,
-  // //11, 12  12, 13  13, 14  14, 15  15, 16  16, 17
-  //   6.0,    6.0,    6.0,    6.0,    6.0,    6.0,
-
-  // //0,  2    0,  5   0,  12  0,  6   0,  13 
-  //   10.0,    5.0,    5.0,    5.0,    5.0,
-  // //1,  3    1,  5   1,  12  1,  6   1,  13
-  //   12.0,    8.0,    8.0,    8.0,    8.0,
-
-  // //4,  6   5,  7   6,  8   7,  9   8,  10
-  //   9.0,    9.0,    9.0,    8.0,    8.0,
-  // //11, 13  12, 14  13, 15  14, 16  15, 17
-  //   9.0,    9.0,    9.0,    8.0,    8.0
-
   //0,  1   0,  4   0,  11
     4.0,    5.0,    5.0,
   //1,  2   1,  4   1,  11
@@ -337,20 +245,6 @@ constexpr uint32_t layerStart[nLayers + 1] = {
 };
 
 // caThetaCuts and caDCACuts
-// constexpr float caDCACuts_vals[nLayers] = {0.2*0.15,  //BPix1
-//                                            0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25,
-//                                            0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25, 0.2*0.25};
-// constexpr float caThetaCuts_vals[nLayers] = {0.45*0.002, 0.45*0.002, 0.45*0.002, 0.45*0.002,  // BPix
-//                                              0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003,
-//                                              0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003, 0.45*0.003};
-// // caThetaCuts and caDCACuts
-// constexpr float caDCACuts_vals[nLayers] = {0.15,  //BPix1
-//                                            0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-//                                            0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25};
-// constexpr float caThetaCuts_vals[nLayers] = {0.002, 0.002, 0.002, 0.002,  // BPix
-//                                              0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003,
-//                                              0.003, 0.003, 0.003, 0.003, 0.003, 0.003};
-// caThetaCuts and caDCACuts
 constexpr float caDCACuts_vals[nLayers] = {0.16*0.15,  //BPix1
                                            0.16*0.25, 0.16*0.25, 0.16*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25,
                                            0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25, 0.18*0.25};
@@ -364,9 +258,9 @@ int writeModules(std::string dataDir) {
 }
 
 int write(std::string dataDir) {
-    std::ifstream ifs(dataDir + "/AdHocCMSPhase1Modules.bin", std::ios::binary);
+    std::ifstream ifs(dataDir + "/ColliderMLPixelOnlyPhase2Modules.bin", std::ios::binary);
     if (!ifs) {
-        std::cerr << "Error: cannot open AdHocCMSPhase1Modules.bin for reading.\n";
+        std::cerr << "Error: cannot open ColliderMLPixelOnlyPhase2Modules.bin for reading.\n";
         return 1;
     }
 
@@ -409,7 +303,7 @@ int write(std::string dataDir) {
     geo.m_layers   = layers.data();
     geo.m_pairs    = pairs.data();
 
-    std::ofstream ofs(dataDir + "/AdHocCMSPhase1Geometry.bin", std::ios::binary);
+    std::ofstream ofs(dataDir + "/ColliderMLPixelOnlyPhase2Geometry.bin", std::ios::binary);
     ofs.write(reinterpret_cast<const char*>(&geo.m_nModules), sizeof(geo.m_nModules));
     ofs.write(reinterpret_cast<const char*>(&geo.m_nLayers),  sizeof(geo.m_nLayers));
     ofs.write(reinterpret_cast<const char*>(&geo.m_nPairs),   sizeof(geo.m_nPairs));
@@ -419,16 +313,16 @@ int write(std::string dataDir) {
     ofs.write(reinterpret_cast<const char*>(pairs.data()),   pairs.size()   * sizeof(CAPair));
 
     ofs.close();
-    std::cout << "AdHocCMSPhase1Geometry.bin written.\n";
+    std::cout << "ColliderMLPixelOnlyPhase2Geometry.bin written.\n";
 
     return 0;
 }
 
 int verify(std::string dataDir) {
-    std::ifstream ifs(dataDir + "/AdHocCMSPhase1Geometry.bin", std::ios::binary);
+    std::ifstream ifs(dataDir + "/ColliderMLPixelOnlyPhase2Geometry.bin", std::ios::binary);
 
     if (!ifs) {
-        std::cerr << "Error opening AdHocCMSPhase1Geometry.bin\n";
+        std::cerr << "Error opening ColliderMLPixelOnlyPhase2Geometry.bin\n";
         return 1;
     }
 

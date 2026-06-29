@@ -61,7 +61,10 @@ namespace edm {
       }
       else {
         if (not isColliderML) in_fileName =  "hitsCMSPhase2.txt";
-        else in_fileName = "hitsWithoutParticleIdPhase2.txt";
+        // else in_fileName = "hitsWithoutParticleIdPhase2.txt";
+        // else in_fileName = "hitsWithParticleIDPixelOnlyPhase2.txt";
+        // else in_fileName = "hitsWithParticleIDPixelPlusShortStripsPhase2.txt";
+        else in_fileName = "hitsWithParticleIDAllTrackerPhase2.txt";
       }
       // else in_fileName = "hitsMuonsOnlyMinLayers.txt"; // Just for testing with muons only
       in_file.open(datadir / in_fileName);
@@ -112,8 +115,14 @@ namespace edm {
             in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
           }
           else {
-            in_particles    = std::ifstream(datadir / "particlesFilterPhase2.txt");
-            in_map = std::ifstream(datadir / "mapHitsToParticlesPhase2.txt");
+            // in_particles    = std::ifstream(datadir / "particlesFilterPhase2.txt");
+            // in_map = std::ifstream(datadir / "mapHitsToParticlesPhase2.txt");
+            // in_particles    = std::ifstream(datadir / "particlesFilterPixelOnlyPhase2.txt");
+            // in_map = std::ifstream(datadir / "mapHitsToParticlesPixelOnlyPhase2.txt");
+            // in_particles    = std::ifstream(datadir / "particlesFilterPixelPlusShortStripsPhase2.txt");
+            // in_map = std::ifstream(datadir / "mapHitsToParticlesPixelPlusShortStripsPhase2.txt");
+            in_particles    = std::ifstream(datadir / "particlesFilterAllTrackerPhase2.txt");
+            in_map = std::ifstream(datadir / "mapHitsToParticlesAllTrackerPhase2.txt");
           } 
           // in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt"); // Just for testing with muons only
           // in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt"); // Just for testing with muons only

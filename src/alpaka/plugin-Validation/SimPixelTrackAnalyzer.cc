@@ -484,37 +484,8 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
   cellCuts_.ptCuts_ = TrackerTraits::ptCuts;
   cellCuts_.minInner_ = TrackerTraits::minz;
   cellCuts_.maxInner_ = TrackerTraits::maxz;
-
-  cellCuts_.maxDZ_ = {
-    10.0, 10.0, 10.0, 
-    10.0, 10.0, 10.0, 
-    10.0, 10.0, 10.0, 
-
-    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 
-    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 
-
-    10.0, 10.0, 10.0, 10.0, 10.0, 
-    10.0, 10.0, 10.0, 10.0, 10.0, 
-
-    10.0, 10.0, 10.0, 10.0, 10.0, 
-    10.0, 10.0, 10.0, 10.0, 10.0
-  }; // Per layer pair
-
-  cellCuts_.minDZ_ = {
-    0.0, 0.0, 0.0, 
-    0.0, 0.0, 0.0, 
-    0.0, 0.0, 0.0, 
-
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-
-    0.0, 0.0, 0.0, 0.0, 0.0, 
-    0.0, 0.0, 0.0, 0.0, 0.0, 
-
-    0.0, 0.0, 0.0, 0.0, 0.0, 
-    0.0, 0.0, 0.0, 0.0, 0.0
-  }; // Per layer pair
-
+  cellCuts_.maxDZ_ = TrackerTraits::minz; // Placeholders; not actually used in the rest of the code
+  cellCuts_.minDZ_ = TrackerTraits::maxz; // Placeholders; not actually used in the rest of the code
   cellCuts_.maxDR_ = TrackerTraits::maxr;
 
   numLayers_ = TrackerTraits::numberOfLayers;
@@ -2477,7 +2448,19 @@ public:
   using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase2>::SimPixelTrackAnalyzer;
 };
 
+class SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2> {
+public:
+  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>::SimPixelTrackAnalyzer;
+};
+
+class SimPixelTrackAnalyzerColliderMLAllTrackerPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLAllTrackerPhase2> {
+public:
+  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLAllTrackerPhase2>::SimPixelTrackAnalyzer;
+};
+
 // DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
 
 DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase1);
 DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase2);
+DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2);
+DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLAllTrackerPhase2);

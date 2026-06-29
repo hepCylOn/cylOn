@@ -136,10 +136,10 @@ if __name__ == "__main__":
     muonModifier = ''
     if args.isMuonsOnly: muonModifier = 'MuonsOnly'
 
-    partFileName = 'particles' + args.outFileName + muonModifier + '.txt'
+    inputPartFileName = 'particles' + args.outFileName + muonModifier + '.txt'
     inputHitsName = 'hitsWithParticleID' + args.outFileName + phaseModifier + '.txt'
     outFileName = 'particlesFilter' + args.outFileName + muonModifier + phaseModifier + '.txt'
 
-    filterParticlesPerLayer(args.inputPartName, args.inputHitsName, args.outFileName)
+    filterParticlesPerLayer(inputPartFileName, inputHitsName, outFileName)
 
 
