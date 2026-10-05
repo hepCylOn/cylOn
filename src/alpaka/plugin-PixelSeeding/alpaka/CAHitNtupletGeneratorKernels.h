@@ -316,7 +316,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           3.0f, // bField
           // Container sizes
           5.0f,   // avgHitsPerTrack_
-          6.0f,   // avgCellsPerHit_
+          10.0f,   // avgCellsPerHit_
           0.151f, // avgCellsPerCell_
           0.040f, // avgTracksPerCell_
 
@@ -353,7 +353,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<float>(cfg.value("BField", 3.0f)),
             // Container sizes
             static_cast<float>(cfg.value("avgHitsPerTrack", 5.0f)),
-            static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),
+            static_cast<float>(cfg.value("avgCellsPerHit", 10.0f)),
             static_cast<float>(cfg.value("avgCellsPerCell", 0.151f)),
             static_cast<float>(cfg.value("avgTracksPerCell", 0.040f)),
 
@@ -463,7 +463,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           3.0f, // bField
           // ---- Container sizes ----
           7.0f,   // avgHitsPerTrack_
-          6.0f,   // avgCellsPerHit_
+          10.0f,   // avgCellsPerHit_
           0.151f, // avgCellsPerCell_
           0.040f, // avgTracksPerCell_
 
@@ -500,7 +500,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<float>(cfg.value("BField", 3.0f)),
             // ---- Container sizes ----
             static_cast<float>(cfg.value("avgHitsPerTrack", 7.0f)),
-            static_cast<float>(cfg.value("avgCellsPerHit", 6.0f)),
+            static_cast<float>(cfg.value("avgCellsPerHit", 10.0f)),
             static_cast<float>(cfg.value("avgCellsPerCell", 0.151f)),
             static_cast<float>(cfg.value("avgTracksPerCell", 0.040f)),
 
