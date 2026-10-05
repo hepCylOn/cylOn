@@ -1,9 +1,9 @@
+#include <iostream>
 #include <filesystem>
 #include <fstream>
-#include <ios>
-#include <iostream>  // for std::cout, std::endl
 #include <memory>
-#include <utility>
+#include <stdexcept>
+#include <string>
 
 #include "DataFormats/BeamSpotPODInp.h"
 #include "AlpakaDataFormats/BeamSpotPOD.h"
@@ -11,24 +11,77 @@
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
 #include "Framework/ConfigRegistry.h"
-#include "Framework/StreamFileUtils.h"
 
 // #define GPU_DEBUG
 
+namespace {
+  void readBeamSpot(std::filesystem::path const& path, BeamSpotPOD& beamSpot) {
+    auto const extension = path.extension();
+    if (extension != ".bin" && extension != ".txt") {
+      throw std::runtime_error("Unsupported beam spot file extension: " + extension.string());
+    }
+
+    std::ifstream input(path, extension == ".bin" ? std::ios::binary : std::ios::in);
+    if (!input) {
+      throw std::runtime_error("Cannot open beam spot file: " + path.string());
+    }
+
+    BeamSpotPODInp values{};
+    if (extension == ".bin") {
+      input.read(reinterpret_cast<char*>(&values), sizeof(values));
+      if (input.gcount() != static_cast<std::streamsize>(sizeof(values))) {
+        throw std::runtime_error("Beam spot binary must contain exactly 11 floats: " + path.string());
+      }
+      char extra;
+      if (input.read(&extra, 1)) {
+        throw std::runtime_error("Beam spot binary has trailing data: " + path.string());
+      }
+    } else {
+      if (!(input >> values.x >> values.y >> values.z >> values.sigmaZ >> values.beamWidthX >> values.beamWidthY >>
+            values.dxdz >> values.dydz >> values.emittanceX >> values.emittanceY >> values.betaStar)) {
+        throw std::runtime_error("Beam spot text must contain 11 whitespace-separated floats: " + path.string());
+      }
+      std::string extra;
+      if (input >> extra) {
+        throw std::runtime_error("Beam spot text has extra data after the 11 expected floats: " + path.string());
+      }
+    }
+
+    beamSpot = BeamSpotPOD{values.x,
+                           values.y,
+                           values.z,
+                           values.sigmaZ,
+                           values.beamWidthX,
+                           values.beamWidthY,
+                           values.dxdz,
+                           values.dydz,
+                           values.emittanceX,
+                           values.emittanceY,
+                           values.betaStar};
+  }
+}  // namespace
+
 class BeamSpotESProducer : public edm::ESProducer {
 public:
-  explicit BeamSpotESProducer(edm::Config const& cfg) : data_(static_cast<std::string>(cfg.value("data", defaultPath_))) {
+  explicit BeamSpotESProducer(edm::Config const& config)
+      : beamSpot_{0.f, 0.f, 5e-05f, 4.f, 0.0015f, 0.0015f, 0.f, 0.f, 0.f, 0.f, 0.f} {
+    auto const data = config.value("data", std::string{});
+    if (!data.empty()) {
+      readBeamSpot(data, beamSpot_);
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] BeamSpotESProducer constructed with data path: "
-              << data_ << std::endl;
+      std::cout << "[GPU_DEBUG] BeamSpotESProducer loaded beam spot from " << data << std::endl;
 #endif
+    } else {
+#ifdef GPU_DEBUG
+      std::cout << "[GPU_DEBUG] BeamSpotESProducer using default beam spot values" << std::endl;
+#endif
+    }
   }
 
   void produce(edm::EventSetup& eventSetup);
 
 private:
-  std::filesystem::path data_;
-  std::filesystem::path defaultPath_ = "data/beamspot.bin";
+  BeamSpotPOD beamSpot_;
 };
 
 void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
@@ -36,22 +89,9 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
   std::cout << "[GPU_DEBUG] BeamSpotESProducer::produce() called" << std::endl;
 #endif
 
-  auto bs = std::make_unique<BeamSpotPOD>();
-  // auto bs = std::make_unique<BeamSpotPODInp>();
+  auto bs = std::make_unique<BeamSpotPOD>(beamSpot_);
 
 #ifdef GPU_DEBUG
-  std::cout << "[GPU_DEBUG] Attempting to open file: " << data_ << std::endl;
-#endif
-
-  try {
-    auto in = edm::utils::openInputFile(data_);
-    in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
-
-    in.read(reinterpret_cast<char*>(bs.get()), sizeof(BeamSpotPODInp));
-
-#ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Successfully read BeamSpotPOD (" << sizeof(BeamSpotPODInp)
-              << " bytes) from " << data_ << std::endl;
     std::cout << "[GPU_DEBUG] BeamSpot values: "
               << "x=" << bs->x << "  y=" << bs->y << "  z=" << bs->z
               << "  sigmaZ=" << bs->sigmaZ << std::endl;
@@ -61,13 +101,6 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
               << " emittanceX=" << bs->emittanceX << "  emittanceY=" << bs->emittanceY
               << "  betaStar=" << bs->betaStar << std::endl;
 #endif
-
-  } catch (std::exception const& e) {
-#ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] ERROR reading BeamSpot file: " << e.what() << std::endl;
-#endif
-    throw;  // rethrow to preserve framework error handling
-  }
 
   eventSetup.put(std::move(bs));
 

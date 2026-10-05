@@ -1,6 +1,6 @@
 {
   "BeamSpotESProducer": {
-    "data": "data/beamspot.bin"
+    "data": ""
   },
   "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2": {
     "data": "data/ColliderMLPixelPlusShortStripsPhase2Geometry.bin",

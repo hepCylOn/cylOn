@@ -1,6 +1,6 @@
 {
   "BeamSpotESProducer": {
-    "data": "data/beamspot.bin"
+    "data": ""
   },
   "CAGeometryHostESProducerColliderMLPhase2": {
     "data": "data/ColliderMLPixelOnlyPhase2Geometry.bin",
