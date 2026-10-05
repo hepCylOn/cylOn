@@ -1,4 +1,5 @@
 // C++ headers
+#include <chrono>
 #ifdef DUMP_GPU_TK_TUPLES
 #include <mutex>
 #endif
@@ -57,8 +58,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 #ifdef GPU_DEBUG
     std::cout << "Allocation for tuple building with: " << std::endl;
     std::cout << "- nHits          = " << nHits << std::endl;
-    std::cout << "- maxDoublets    = " << maxTuples << std::endl;
-    std::cout << "- maxTracks      = " << maxDoublets << std::endl;
+    std::cout << "- maxDoublets    = " << maxDoublets << std::endl;
+    std::cout << "- maxTracks      = " << maxTuples << std::endl;
 
     std::cout << "- nCellsToCells  = " << nCellsToCells << std::endl;
     std::cout << "- nHitsToCells   = " << nHitsToCells << std::endl;
@@ -491,7 +492,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using namespace caPixelDoublets;
     using namespace caHitNtupletGeneratorKernels;
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- begin_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point begin_time = std::chrono::steady_clock::now();  
+#endif
 
     auto nhits = hh.metadata().size();
     const auto maxDoublets = this->maxNumberOfDoublets_;
@@ -503,7 +508,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::wait(queue);
 #endif
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- nHitsMaxDoublets_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point nHitsMaxDoublets_time = std::chrono::steady_clock::now();  
+#endif
 
     if (0 == nhits)
       return;  // protect against empty events
@@ -515,7 +524,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const Vec2D thrs{threadsPerBlock, stride};
     const auto workDiv2D = cms::alpakatools::make_workdiv<Acc2D>(blks, thrs);
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- workDiv2D_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point workDiv2D_time = std::chrono::steady_clock::now();  
+#endif
 
 #ifdef GPU_DEBUG
     std::cout << "nActualPairs = " << cc.metadata().size() << std::endl;
@@ -534,15 +547,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         this->device_hitPhiHist_->data(),
                         this->device_hitToCell_->data(),
                         this->m_params.algoParams_);
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelGetDoubletsFromHisto_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelGetDoubletsFromHisto_time = std::chrono::steady_clock::now();  
+#endif
 
     HitToCell::template launchFinalize<Acc1D>(this->device_hitToCellView_, queue);
+
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelLaunchFinalize_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelLaunchFinalize_time = std::chrono::steady_clock::now();  
+#endif
 
     threadsPerBlock = 512;
     blocks = cms::alpakatools::divide_up_by(maxDoublets, threadsPerBlock);
     auto workDiv1D = cms::alpakatools::make_workdiv<Acc1D>(blocks, threadsPerBlock);
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- workDiv1D_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point workDiv1D_time = std::chrono::steady_clock::now();  
+#endif
 
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
@@ -557,11 +585,31 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         offsetBPIX2,
                         this->device_hitToCell_->data());
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelFillDoubletsHisto_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelFillDoubletsHisto_time = std::chrono::steady_clock::now();  
+#endif
 
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
     std::cout << "FillDoubletsHisto   -> done!" << std::endl;
+#endif
+
+#ifdef GPU_DEBUG 
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- finalWaitOnlyGPUDebug_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point finalWaitOnlyGPUDebug_time = std::chrono::steady_clock::now();  
+
+  std::cout << "=============================" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference nHitsMaxDoublets = " << std::chrono::duration_cast<std::chrono::milliseconds>(nHitsMaxDoublets_time - begin_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference workDiv2D = " << std::chrono::duration_cast<std::chrono::milliseconds>(workDiv2D_time - nHitsMaxDoublets_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference kernelGetDoubletsFromHisto = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelGetDoubletsFromHisto_time - workDiv2D_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference kernelLaunchFinalize = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelLaunchFinalize_time - kernelGetDoubletsFromHisto_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference workDiv1D = " << std::chrono::duration_cast<std::chrono::milliseconds>(workDiv1D_time - kernelLaunchFinalize_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference kernelFillDoubletsHisto = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelFillDoubletsHisto_time - workDiv1D_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGeneratorKernels.cc -- Time difference finalWaitOnlyGPUDebug = " << std::chrono::duration_cast<std::chrono::milliseconds>(finalWaitOnlyGPUDebug_time - kernelFillDoubletsHisto_time).count() << " [ms]" << std::endl;
+  std::cout << "=============================" << std::endl;
 #endif
   }
 

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <functional>
 #include <vector>
+#include <chrono>
 
 #include <alpaka/alpaka.hpp>
 
@@ -426,13 +427,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using TrackHitSoA = ::reco::TrackHitSoA;
     using HitContainer = caStructures::HitContainerT<TrackerTraits>;
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- begin_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point begin_time = std::chrono::steady_clock::now();
+#endif
 
     const int32_t H = m_params.algoParams_.avgHitsPerTrack_;
     const auto bfield = (m_params.algoParams_.bField_ * 0.29979246f ) / 100.f; // B field in GeV
-    // std::cout << "Bfield = " << bfield << std::endl;
     reco::TracksSoACollection tracks({{int(nTracks), int(nTracks * H)}}, queue);
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- trackSoACreation_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point trackSoACreation_time = std::chrono::steady_clock::now();
+#endif
 
     // Don't bother if less than 2 this
     if (hits_d.view().metadata().size() < 2) {
@@ -444,7 +453,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     GPUKernels kernels(
         m_params, hits_d.nHits(), hits_d.offsetBPIX2(), nDoublets, nTracks, geometry_d.view().metadata().size(), queue);
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- zeroTracksGPUKernelsCreation_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point zeroTracksGPUKernelsCreation_time = std::chrono::steady_clock::now();
+#endif
 
   //     auto const& hits_h = hits_d.view<::reco::HitModuleSoA>();
   // for(int i = 0; i < hits_h.metadata().size(); ++i){
@@ -452,13 +465,25 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   // }
 
     kernels.prepareHits(hits_d.view(), hits_d.view<::reco::HitModuleSoA>(), geometry_d.view(), queue);
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelPrepareHits_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelPrepareHits_time = std::chrono::steady_clock::now();
+#endif
+
     kernels.buildDoublets(hits_d.view(),
                           geometry_d.view<::reco::CAGraphSoA>(),
                           geometry_d.view<::reco::CALayersSoA>(),
                           hits_d.offsetBPIX2(),
                           queue);
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelBuildDoublets_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelBuildDoublets_time = std::chrono::steady_clock::now();
+#endif
+
     kernels.launchKernels(hits_d.view(),
                           hits_d.offsetBPIX2(),
                           geometry_d.view().metadata().size(),
@@ -468,10 +493,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                           geometry_d.view<::reco::CAGraphSoA>(),
                           queue);
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelLaunchKernels_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelLaunchKernels_time = std::chrono::steady_clock::now();
+#endif
 
     HelixFit fitter(bfield, m_params.algoParams_.fitNas4_);
     fitter.allocate(kernels.tupleMultiplicity(), tracks.view(), kernels.hitContainer());
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- createAllocateFitter_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point createAllocateFitter_time = std::chrono::steady_clock::now();
+#endif
+
     if (m_params.algoParams_.useRiemannFit_) {
       fitter.launchRiemannKernels(hits_d.view(),
                                   geometry_d.view<::reco::CAModulesSoA>(),
@@ -485,12 +521,40 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                      nTracks,
                                      queue);
     }
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelFitter_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelFitter_time = std::chrono::steady_clock::now();
+#endif
+
     kernels.classifyTuples(hits_d.view(), tracks.view(), queue);
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- kernelClassifyTuples_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point kernelClassifyTuples_time = std::chrono::steady_clock::now();
+#endif
+
 #ifdef GPU_DEBUG
     alpaka::wait(queue);
     std::cout << "finished building pixel tracks on GPU" << std::endl;
+#endif
+
+#ifdef GPU_DEBUG
+  std::cout << __LINE__ << " -- " << __FILE__ << " -- finalWaitOnlyGPUDebug_time" << std::endl;
+  alpaka::wait(queue);
+  std::chrono::steady_clock::time_point finalWaitOnlyGPUDebug_time = std::chrono::steady_clock::now();
+
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference trackSoACreation = " << std::chrono::duration_cast<std::chrono::milliseconds>(trackSoACreation_time - begin_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference zeroTracksGPUKernelsCreation = " << std::chrono::duration_cast<std::chrono::milliseconds>(zeroTracksGPUKernelsCreation_time - trackSoACreation_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference kernelPrepareHits = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelPrepareHits_time - zeroTracksGPUKernelsCreation_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference kernelBuildDoublets = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelBuildDoublets_time - kernelPrepareHits_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference kernelLaunchKernels = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelLaunchKernels_time - kernelBuildDoublets_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference createAllocateFitter = " << std::chrono::duration_cast<std::chrono::milliseconds>(createAllocateFitter_time - kernelLaunchKernels_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference kernelFitter = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelFitter_time - createAllocateFitter_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference kernelClassifyTuples = " << std::chrono::duration_cast<std::chrono::milliseconds>(kernelClassifyTuples_time - kernelFitter_time).count() << " [ms]" << std::endl;
+  std::cout << "CAHitNtupletGenerator.cc -- Time difference finalWaitOnlyGPUDebug = " << std::chrono::duration_cast<std::chrono::milliseconds>(finalWaitOnlyGPUDebug_time - kernelClassifyTuples_time).count() << " [ms]" << std::endl;
 #endif
 
     return tracks;
