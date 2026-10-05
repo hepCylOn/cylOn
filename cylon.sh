@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # ============================================================
-# Configuração padrão
+# Standard configuration
 # ============================================================
 
 MAKE_JOBS=8
@@ -22,87 +22,92 @@ FROM_HITS=false
 IS_PHASE2=false
 IS_COLLIDER_ML=false
 VALIDATION=false
+TRACKER_TYPE=""
 
-# Argumentos extras específicos de cada execução.
+# Extra arguments for each execution
 #
-# Cada --first-extra / --second-extra representa UM argumento
-# passado diretamente ao alpaka.
+# Each --first-extra / --second-extra takes ONLY ONE argument
+# passed directly to alpaka.
 FIRST_EXTRA_ARGS=()
 SECOND_EXTRA_ARGS=()
 
 # ============================================================
-# Funções auxiliares
+# Auxiliary functions
 # ============================================================
 
 usage() {
     cat <<EOF
-Uso:
+Usage:
     $0 [opções]
 
-Descrição:
-    Executa opcionalmente um script Python, recompila o alpaka
-    e executa o programa uma ou duas vezes.
+Description:
+    Optionally executes a python script, recompiles alpaka
+    executes code one or two times with the specified options.
 
-Opções gerais:
+General options:
     --input FILE
-        Arquivo de entrada.
+        Input txt file
 
     --max-events N
-        Número máximo de eventos. Padrão: ${MAX_EVENTS}
+        Maximum number of events. Default: ${MAX_EVENTS}
 
     --make-jobs N
-        Número de jobs usados pelo make. Padrão: ${MAKE_JOBS}
+        NNumber of jobs used by make. Default: ${MAKE_JOBS}
 
     --no-cuda
-        Não passa --cuda para o alpaka.
+        Do not passes --cuda to alpaka.
 
-Opções do alpaka:
+Reconstruction options:
     --from-hits
-        Adiciona --fromHits.
+        Adds --fromHits.
 
     --phase2
-        Adiciona --isPhase2.
+        Adds --isPhase2.
 
     --collider-ml
-        Adiciona --isColliderML.
+        Adds --isColliderML.
 
     --validation
-        Adiciona --validation.
+        Adds --validation.
+
+    --tracker-type TYPE
+        Adds --trackerType TYPE. Possible values: PixelOnly,
+        PixelPlusShortStrips or AllTracker.
 
 Script Python:
     --autograph
-        Executa:
+        Executes:
             python3 scripts/autograph.py --input FILE
 
     --python-script SCRIPT
-        Executa um script Python especificado pelo usuário.
+        Executes a Python script specified by the user.
 
     --python-arg ARG
-        Argumento adicional para o script Python.
-        Pode ser usado várias vezes.
+        Aditional argument for the Python script.
+        Can be used multiple times.
 
-Duas execuções:
+Two executions:
     --run-twice
-        Executa o alpaka duas vezes.
+        Executes alpaka twice.
 
     --first-extra ARG
-        Adiciona um argumento somente à primeira execução.
-        Pode ser usado várias vezes.
+        Adds an argument only to the first execution.
+        Can be used multiple times.
 
     --second-extra ARG
-        Adiciona um argumento somente à segunda execução.
-        Pode ser usado várias vezes.
+        Adds an argument only to the second execution.
+        Can be used multiple times.
 
     --help
-        Mostra esta mensagem.
+        Shows this message.
 
-Exemplos:
+Examples:
 
-1) Execução simples:
+1) Simple execution:
 
-    $0 --input input.root --from-hits --phase2 --collider-ml --validation
+    $0 --input input.root --from-hits --phase2 --collider-ml --tracker-type PixelOnly --validation
 
-2) Executando o autograph antes:
+2) Running autograph first:
 
     $0 \\
         --input input.root \\
@@ -112,7 +117,7 @@ Exemplos:
         --collider-ml \\
         --validation
 
-3) Duas execuções com opções extras diferentes:
+3) Two executions with different extra options:
 
     $0 \\
         --input input.root \\
@@ -123,11 +128,11 @@ Exemplos:
         --first-extra --someOption \\
         --second-extra --validation
 
-4) Script Python arbitrário:
+4) Arbitrary python script:
 
     $0 \\
         --input input.root \\
-        --python-script scripts/meu_script.py \\
+        --python-script scripts/my_script.py \\
         --python-arg --foo \\
         --python-arg bar
 
@@ -140,32 +145,32 @@ die() {
 }
 
 # ============================================================
-# Parsing dos argumentos
+# Arguments parsing
 # ============================================================
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
 
         --input)
-            [[ $# -ge 2 ]] || die "--input requer um argumento."
+            [[ $# -ge 2 ]] || die "--input needs an argument."
             INPUT_FILE="$2"
             shift 2
             ;;
 
         --max-events)
-            [[ $# -ge 2 ]] || die "--max-events requer um argumento."
+            [[ $# -ge 2 ]] || die "--max-events needs an argument."
             MAX_EVENTS="$2"
             shift 2
             ;;
 
         --make-jobs)
-            [[ $# -ge 2 ]] || die "--make-jobs requer um argumento."
+            [[ $# -ge 2 ]] || die "--make-jobs needs an argument."
             MAKE_JOBS="$2"
             shift 2
             ;;
 
         --backend)
-            [[ $# -ge 2 ]] || die "--backend requer um argumento."
+            [[ $# -ge 2 ]] || die "--backend needs an argument."
             BACKEND="$2"
             shift 2
             ;;
@@ -190,6 +195,12 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
 
+        --tracker-type)
+            [[ $# -ge 2 ]] || die "--tracker-type needs an argument."
+            TRACKER_TYPE="$2"
+            shift 2
+            ;;
+
         --autograph)
             RUN_PYTHON=true
             PYTHON_SCRIPT="scripts/autograph.py"
@@ -197,14 +208,14 @@ while [[ $# -gt 0 ]]; do
             ;;
 
         --python-script)
-            [[ $# -ge 2 ]] || die "--python-script requer um argumento."
+            [[ $# -ge 2 ]] || die "--python-script needs an argument."
             RUN_PYTHON=true
             PYTHON_SCRIPT="$2"
             shift 2
             ;;
 
         --python-arg)
-            [[ $# -ge 2 ]] || die "--python-arg requer um argumento."
+            [[ $# -ge 2 ]] || die "--python-arg needs an argument."
             PYTHON_ARGS+=("$2")
             shift 2
             ;;
@@ -215,13 +226,13 @@ while [[ $# -gt 0 ]]; do
             ;;
 
         --first-extra)
-            [[ $# -ge 2 ]] || die "--first-extra requer um argumento."
+            [[ $# -ge 2 ]] || die "--first-extra needs an argument."
             FIRST_EXTRA_ARGS+=("$2")
             shift 2
             ;;
 
         --second-extra)
-            [[ $# -ge 2 ]] || die "--second-extra requer um argumento."
+            [[ $# -ge 2 ]] || die "--second-extra needs an argument."
             SECOND_EXTRA_ARGS+=("$2")
             shift 2
             ;;
@@ -232,48 +243,58 @@ while [[ $# -gt 0 ]]; do
             ;;
 
         *)
-            die "Opção desconhecida: $1"
+            die "Unknown option: $1"
             ;;
 
     esac
 done
 
 # ============================================================
-# Validações
+# Validations
 # ============================================================
 
 if [[ "$RUN_PYTHON" == true && -z "$INPUT_FILE" ]]; then
-    die "--input é obrigatório quando um script Python é executado."
+    die "--input is required when a Python script is executed."
 fi
 
 if [[ "$RUN_PYTHON" == true && ! -f "$PYTHON_SCRIPT" ]]; then
-    die "Script Python não encontrado: $PYTHON_SCRIPT"
+    die "Python script not found: $PYTHON_SCRIPT"
 fi
 
 if ! [[ "$MAX_EVENTS" =~ ^[0-9]+$ ]]; then
-    die "--max-events deve ser um número inteiro."
+    die "--max-events must be a positive integer."
 fi
 
 if ! [[ "$MAKE_JOBS" =~ ^[0-9]+$ ]] || [[ "$MAKE_JOBS" -eq 0 ]]; then
-    die "--make-jobs deve ser um inteiro maior que zero."
+    die "--make-jobs must be a positive integer."
 fi
 
 case "$BACKEND" in
     cuda|serial|rocm)
         ;;
     *)
-        die "Backend inválido: $BACKEND. Use: cuda, serial ou rocm."
+        die "Invalid backend: $BACKEND. Use: cuda, serial or rocm."
         ;;
 esac
 
+if [[ -n "$TRACKER_TYPE" ]]; then
+    case "$TRACKER_TYPE" in
+        PixelOnly|PixelPlusShortStrips|AllTracker)
+            ;;
+        *)
+            die "Invalid tracker: $TRACKER_TYPE. Use: PixelOnly, PixelPlusShortStrips or AllTracker."
+            ;;
+    esac
+fi
+
 # ============================================================
-# Script Python
+# Python script
 # ============================================================
 
 if [[ "$RUN_PYTHON" == true ]]; then
     echo
     echo "============================================================"
-    echo "Executando script Python"
+    echo "Executing python script: $PYTHON_SCRIPT"
     echo "============================================================"
 
     PYTHON_CMD=(
@@ -292,12 +313,12 @@ if [[ "$RUN_PYTHON" == true ]]; then
 fi
 
 # ============================================================
-# Compilação
+# Compilation
 # ============================================================
 
 echo
 echo "============================================================"
-echo "Compilando alpaka"
+echo "Compiling code with make -j $MAKE_JOBS"
 echo "============================================================"
 
 MAKE_CMD=(
@@ -311,7 +332,7 @@ echo "+ ${MAKE_CMD[*]}"
 "${MAKE_CMD[@]}"
 
 # ============================================================
-# Montagem dos argumentos comuns do alpaka
+# Assembly of common reconstruction arguments
 # ============================================================
 
 ALPAKA_BASE_ARGS=(
@@ -335,13 +356,17 @@ if [[ "$VALIDATION" == true ]]; then
     ALPAKA_BASE_ARGS+=(--validation)
 fi
 
+if [[ -n "$TRACKER_TYPE" ]]; then
+    ALPAKA_BASE_ARGS+=(--trackerType "$TRACKER_TYPE")
+fi
+
 # ============================================================
-# Primeira execução
+# First execution
 # ============================================================
 
 echo
 echo "============================================================"
-echo "Executando alpaka - execução 1"
+echo "Executing reconstruction - execution 1"
 echo "============================================================"
 
 FIRST_CMD=(
@@ -354,14 +379,14 @@ echo "+ ${FIRST_CMD[*]}"
 "${FIRST_CMD[@]}"
 
 # ============================================================
-# Segunda execução, se solicitada
+# Second execution, if requested
 # ============================================================
 
 if [[ "$RUN_TWICE" == true ]]; then
 
     echo
     echo "============================================================"
-    echo "Executando alpaka - execução 2"
+    echo "Executing reconstruction - execution 2"
     echo "============================================================"
 
     SECOND_CMD=(
@@ -376,5 +401,5 @@ fi
 
 echo
 echo "============================================================"
-echo "Execução concluída com sucesso."
+echo "Reconstruction completed successfully."
 echo "============================================================"
