@@ -124,7 +124,7 @@ auto maxVal = std::ranges::max(startingPairs_);
     std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << "\n"
               << "  - Reading modules from: " << data_ << std::endl;
     #endif
-        
+
     // Construct full host geometry (layers + graph + modules)
     auto caGeometryHost = std::unique_ptr<reco::CAGeometryHost>(
       new reco::CAGeometryHost{{{nLayers_ + 1, nPairs_, nModules_}}, cms::alpakatools::host()});
@@ -245,6 +245,11 @@ auto maxVal = std::ranges::max(startingPairs_);
     using CAGeometryHostESProducer<pixelTopology::Phase1>::CAGeometryHostESProducer;
   };
 
+  class CAGeometryHostESProducerPhase2 : public CAGeometryHostESProducer<pixelTopology::Phase2> {
+  public:
+    using CAGeometryHostESProducer<pixelTopology::Phase2>::CAGeometryHostESProducer;
+  };
+
   class CAGeometryHostESProducerGenericUpgrade : public CAGeometryHostESProducer<pixelTopology::GenericUpgrade> {
   public:
     using CAGeometryHostESProducer<pixelTopology::GenericUpgrade>::CAGeometryHostESProducer;
@@ -274,6 +279,7 @@ auto maxVal = std::ranges::max(startingPairs_);
 
   // ---------- Explicit instantiation and registration ----------
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase1);
+  DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerPhase2);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerGenericUpgrade);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase1);
   DEFINE_FWK_ALPAKA_EVENTSETUP_MODULE(CAGeometryHostESProducerColliderMLPhase2);
