@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdint>
 
-#include <cuda_runtime.h>
+#include <alpaka/alpaka.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
