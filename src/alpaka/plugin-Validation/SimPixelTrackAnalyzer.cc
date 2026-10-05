@@ -458,9 +458,37 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
       hardCurvCut_(TrackerTraits::hardCurvCut),
       minNumDoubletsPerNtuplet_(3) {//,
 
-  const uint8_t* layerPairs = TrackerTraits::layerPairs;
-  const uint8_t* startingPairs = TrackerTraits::startingPairs;
-  const int numLayerPairs = TrackerTraits::nPairs;
+  const size_t numLayerPairs = static_cast<size_t>(cfg.value("nPairs", TrackerTraits::nPairs));
+
+  auto getVectorOrDefault = [&](std::string const& key, auto const* defaults, size_t expected) {
+      using T = std::remove_cvref_t<decltype(defaults[0])>;
+      std::vector<T> vec;
+
+      if (cfg.contains(key)) {
+        try {
+          vec = cfg.at(key).get<std::vector<T>>();
+          if (vec.size() != expected) {
+            std::cerr << "[SimPixelTrackAnalyzer ERROR] Size mismatch in " << key << ":\n"
+                      << "  expected = " << expected << ", actual = " << vec.size() << std::endl;
+            std::abort();
+          }
+        } catch (std::exception const& e) {
+          std::cerr << "[SimPixelTrackAnalyzer WARNING] Failed to read key '" << key
+                    << "': " << e.what() << ". Using default values." << std::endl;
+          vec.assign(defaults, defaults + expected);
+        }
+      } else {
+        vec.assign(defaults, defaults + expected);
+      }
+
+      return vec;
+    };
+
+  const auto layerPairs = getVectorOrDefault("pairGraph", TrackerTraits::layerPairs, numLayerPairs * 2);
+
+  const auto startingPairsVec = getVectorOrDefault("startingPairs", TrackerTraits::startingPairs, numLayerPairs);
+
+  const uint8_t* startingPairs = startingPairsVec.data();
 
   const auto startingPairsBeg = startingPairs;
   const auto startingPairsEnd = startingPairs + numLayerPairs;
@@ -477,18 +505,10 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
     }
   }
 
-  cellCuts_.isBarrel_ = TrackerTraits::isBarrel;
-  cellCuts_.caThetaCuts_over_ptmin_ = TrackerTraits::thetaCuts;
-  cellCuts_.caDCACuts_ = TrackerTraits::dcaCuts;
-  cellCuts_.phiCuts_ = TrackerTraits::phicuts;
-  cellCuts_.ptCuts_ = TrackerTraits::ptCuts;
-  cellCuts_.minInner_ = TrackerTraits::minz;
-  cellCuts_.maxInner_ = TrackerTraits::maxz;
-  cellCuts_.maxDZ_ = TrackerTraits::minz; // Placeholders; not actually used in the rest of the code
-  cellCuts_.minDZ_ = TrackerTraits::maxz; // Placeholders; not actually used in the rest of the code
-  cellCuts_.maxDR_ = TrackerTraits::maxr;
+  numLayers_ = static_cast<int>(cfg.value("nLayers", TrackerTraits::numberOfLayers));
 
-  numLayers_ = TrackerTraits::numberOfLayers;
+  cellCuts_.isBarrel_ = getVectorOrDefault("isBarrel", TrackerTraits::isBarrel, numLayers_);
+  cellCuts_.ptCuts_ = getVectorOrDefault("ptCuts", TrackerTraits::ptCuts, numLayerPairs);
 
   totalDoublets = 0;
   totalPassedDoublets = 0;
@@ -626,7 +646,8 @@ SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
     }
   }
 
-  file.open("/data/user/borzari/cmssw/cylOn/outputSimDoublets.txt");
+  // file.open("/data/user/borzari/cmssw/cylOn/outputSimDoublets.txt");
+  file.open("/eos/user/b/borzari/cylOn/outputSimDoublets.txt");
   if (file.is_open()) {
 
     for(int i = 0; i < int(histoInnerZ.size()); ++i) {
@@ -689,20 +710,22 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
     bool const hasValidTripletNeighbors,
     int const layerPairIdIndex,
     simdoublets::CellCutVariables const& cellCutVariables,
+    reco::CAGraphSoAConstView const& pairs,
+    reco::CALayersSoAConstView const& layers,
     std::vector<int>& passCuts) {
   // -------------------------------------------------------------------------
   //  apply cuts for doublet creation
   // -------------------------------------------------------------------------
 
+
   double inner = cellCuts_.isBarrel_[doublet.innerLayerId()] ? cellCutVariables.inner_z() : cellCutVariables.inner_r();
-//   double outer = cellCuts_.isBarrel_[doublet.outerLayerId()] ? cellCutVariables.outer_z() : cellCutVariables.outer_r();
 
 //   bool passInner{true}, passYsize{true}, passOuter{true}, passDPhi{true}, passDR{true}, passDZ{true}, passDYsize{true},
 //       passPt{true}, passZ0{true};
      bool passInner{true}, passDPhi{true}, passDR{true}, passDZ{true}, passPt{true}, passZ0{true};
 
   /* inner r/z window cut */
-  if (inner < cellCuts_.minInner_[layerPairIdIndex] || inner > cellCuts_.maxInner_[layerPairIdIndex]){
+  if (inner < pairs[layerPairIdIndex].minz() || inner > pairs[layerPairIdIndex].maxz()){
     passInner = false;
   }
   else ++passCuts[0];
@@ -715,7 +738,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
   //     cellCutVariables.dz() < cellCuts_.minDZ_[layerPairIdIndex])
   //   passDZ = false;
   /* z0cutoff */
-  if (cellCutVariables.dr() > cellCuts_.maxDR_[layerPairIdIndex] || cellCutVariables.dr() < 0)
+  if (cellCutVariables.dr() > pairs[layerPairIdIndex].maxr() || cellCutVariables.dr() < 0)
     passDR = false;
   if (cellCutVariables.z0() > cellZ0Cut_){
     passZ0 = false;
@@ -727,7 +750,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
   }
   else passCuts[2]++;
   /* idphicut */
-  if (cellCutVariables.idphi() > cellCuts_.phiCuts_[layerPairIdIndex]){
+  if (cellCutVariables.idphi() > pairs[layerPairIdIndex].phiCuts()){
     passDPhi = false;
   }
   else passCuts[3]++;
@@ -799,15 +822,13 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
       bool passCATheta{true}, passHardCurv{true}, passDca{true};
 
       // apply CAThetaCut
-      // if (cellCutVariables.CAThetaCut(i) > cellCuts_.caThetaCuts_over_ptmin_.at(doublet.innerLayerId()))
-      if (cellCutVariables.CAThetaCut(i) > cellCuts_.caThetaCuts_over_ptmin_[doublet.innerLayerId()])
+      if (cellCutVariables.CAThetaCut(i) > layers[doublet.innerLayerId()].caThetaCut())
         passCATheta = false;
       // apply hardCurvCut
       if (cellCutVariables.hardCurvCut(i) > hardCurvCut_)
         passHardCurv = false;
       // apply dcaCut
-      // if (cellCutVariables.dcaCut(i) > cellCuts_.caDCACuts_.at(doublet.innerNeighborsInnerLayerId()))
-      if (cellCutVariables.dcaCut(i) > cellCuts_.caDCACuts_[doublet.innerNeighborsInnerLayerId()])
+      if (cellCutVariables.dcaCut(i) > layers[doublet.innerLayerId()].caDCACut())
         passDca = false;
 
     //   h_hardCurvCut_.fillPassThisCut(passHardCurv);
@@ -1176,6 +1197,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
   // get SimPixelTracks
   SimPixelTrackCollection<TrackerTraits> const& simPixelTrackCollection = iEvent.get(simPixelTracks_getToken_);
   sim::ParticleHost const& particles = iEvent.get(particles_getToken_);
+  auto const& hGeometry = iSetup.get<::reco::CAGeometryHost>();
 
   auto const& partView = particles.view();
 
@@ -1260,6 +1282,8 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
                   hasValidTripletNeighbors,
                   layerPairIdIndex,
                   cellCutVariables,
+                  hGeometry.view<::reco::CAGraphSoA>(),
+                  hGeometry.view<::reco::CALayersSoA>(),
                   passCuts);//,
                 //   clusterSizeCutManager);
 

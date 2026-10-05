@@ -107,30 +107,22 @@ public:
   // small struct keeping all cut parameters
   struct CAGeometryParams {
     // Layers params
-    // std::vector<bool> isBarrel_;
-    const bool* isBarrel_;
-    // std::vector<double> caThetaCuts_over_ptmin_;
-    const float* caThetaCuts_over_ptmin_;
-    // std::vector<double> caDCACuts_;
-    const float* caDCACuts_;
+    std::vector<bool> isBarrel_;
+    // const bool* isBarrel_;
 
     // Cells params
-    // std::vector<int> phiCuts_;
-    const int16_t* phiCuts_;
-    // std::vector<double> ptCuts_;
-    const float* ptCuts_;
-    // std::vector<double> minInner_;
-    const float* minInner_;
+    std::vector<float> ptCuts_;
+    // const float* minInner_;
     // std::vector<double> maxInner_;
-    const float* maxInner_;
+    // const float* maxInner_;
     // std::vector<double> minOuter_;
     // std::vector<double> maxOuter_;
     // std::vector<double> maxDZ_;
     // std::vector<double> minDZ_;
-    const float* maxDZ_;
-    const float* minDZ_;
+    // const float* maxDZ_;
+    // const float* minDZ_;
     // std::vector<double> maxDR_;
-    const float* maxDR_;
+    // const float* maxDR_;
   };
 
 //   // this is simply a little helper to allow us to book histograms easier
@@ -424,6 +416,8 @@ private:
                  bool const,
                  int const,
                  simdoublets::CellCutVariables const&,
+                 reco::CAGraphSoAConstView const&,
+                 reco::CALayersSoAConstView const&,
                  std::vector<int>&);
 
   // function that fills all histograms for cut variables (in folder CAParameters)
