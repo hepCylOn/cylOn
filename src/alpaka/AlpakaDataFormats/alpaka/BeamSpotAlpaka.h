@@ -5,7 +5,7 @@
 
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "DataFormats/BeamSpotPOD.h"
+#include "DataFormats/BeamSpotPODInp.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -15,7 +15,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     BeamSpotAlpaka() = delete;  // alpaka buffers are not default-constructible
 
     // constructor that allocates cached device memory on the given queue
-    BeamSpotAlpaka(Queue const& queue) : data_d_{cms::alpakatools::make_device_buffer<BeamSpotPOD>(queue)} {}
+    BeamSpotAlpaka(Queue const& queue) : data_d_{cms::alpakatools::make_device_buffer<BeamSpotPODInp>(queue)} {}
 
     // movable, non-copiable
     BeamSpotAlpaka(BeamSpotAlpaka const&) = delete;
@@ -23,14 +23,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     BeamSpotAlpaka& operator=(BeamSpotAlpaka const&) = delete;
     BeamSpotAlpaka& operator=(BeamSpotAlpaka&&) = default;
 
-    BeamSpotPOD* data() { return data_d_.data(); }
-    BeamSpotPOD const* data() const { return data_d_.data(); }
+    BeamSpotPODInp* data() { return data_d_.data(); }
+    BeamSpotPODInp const* data() const { return data_d_.data(); }
 
-    cms::alpakatools::device_buffer<Device, BeamSpotPOD>& buf() { return data_d_; }
-    cms::alpakatools::device_buffer<Device, BeamSpotPOD> const& buf() const { return data_d_; }
+    cms::alpakatools::device_buffer<Device, BeamSpotPODInp>& buf() { return data_d_; }
+    cms::alpakatools::device_buffer<Device, BeamSpotPODInp> const& buf() const { return data_d_; }
 
   private:
-    cms::alpakatools::device_buffer<Device, BeamSpotPOD> data_d_;
+    cms::alpakatools::device_buffer<Device, BeamSpotPODInp> data_d_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

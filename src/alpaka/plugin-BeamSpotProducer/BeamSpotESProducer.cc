@@ -5,7 +5,8 @@
 #include <memory>
 #include <utility>
 
-#include "DataFormats/BeamSpotPOD.h"
+#include "DataFormats/BeamSpotPODInp.h"
+#include "AlpakaDataFormats/BeamSpotPOD.h"
 #include "Framework/ESPluginFactory.h"
 #include "Framework/ESProducer.h"
 #include "Framework/EventSetup.h"
@@ -36,6 +37,7 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
 #endif
 
   auto bs = std::make_unique<BeamSpotPOD>();
+  // auto bs = std::make_unique<BeamSpotPODInp>();
 
 #ifdef GPU_DEBUG
   std::cout << "[GPU_DEBUG] Attempting to open file: " << data_ << std::endl;
@@ -45,14 +47,19 @@ void BeamSpotESProducer::produce(edm::EventSetup& eventSetup) {
     auto in = edm::utils::openInputFile(data_);
     in.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
 
-    in.read(reinterpret_cast<char*>(bs.get()), sizeof(BeamSpotPOD));
+    in.read(reinterpret_cast<char*>(bs.get()), sizeof(BeamSpotPODInp));
 
 #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Successfully read BeamSpotPOD (" << sizeof(BeamSpotPOD)
+    std::cout << "[GPU_DEBUG] Successfully read BeamSpotPOD (" << sizeof(BeamSpotPODInp)
               << " bytes) from " << data_ << std::endl;
     std::cout << "[GPU_DEBUG] BeamSpot values: "
               << "x=" << bs->x << "  y=" << bs->y << "  z=" << bs->z
               << "  sigmaZ=" << bs->sigmaZ << std::endl;
+    std::cout << "[GPU_DEBUG] BeamSpot values: "
+              << "beamWidthX=" << bs->beamWidthX << "  beamWidthY=" << bs->beamWidthY
+              << " dxdz=" << bs->dxdz << "  dydz=" << bs->dydz
+              << " emittanceX=" << bs->emittanceX << "  emittanceY=" << bs->emittanceY
+              << "  betaStar=" << bs->betaStar << std::endl;
 #endif
 
   } catch (std::exception const& e) {
