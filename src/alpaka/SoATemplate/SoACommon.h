@@ -5,6 +5,8 @@
  * Definitions of SoA common parameters for SoA class generators
  */
 
+#include <alpaka/alpaka.hpp>
+
 #include <cstdint>
 #include <cassert>
 #include <cstring>
@@ -29,18 +31,25 @@
 
 #include "Framework/typedefs.h"
 
-// CUDA attributes
-#if defined(__CUDACC__) || defined(__HIPCC__)
-#define SOA_HOST_ONLY __host__
-#define SOA_DEVICE_ONLY __device__
-#define SOA_HOST_DEVICE __host__ __device__
-#define SOA_INLINE __forceinline__
-#else
-#define SOA_HOST_ONLY
-#define SOA_DEVICE_ONLY
-#define SOA_HOST_DEVICE
-#define SOA_INLINE inline __attribute__((always_inline))
-#endif
+// // CUDA attributes
+// #if defined(__CUDACC__) || defined(__HIPCC__)
+// #define SOA_HOST_ONLY __host__
+// #define SOA_DEVICE_ONLY __device__
+// #define SOA_HOST_DEVICE __host__ __device__
+// #define SOA_INLINE __forceinline__
+// #else
+// #define SOA_HOST_ONLY
+// #define SOA_DEVICE_ONLY
+// #define SOA_HOST_DEVICE
+// #define SOA_INLINE inline __attribute__((always_inline))
+// #endif
+
+// Why not use the Alpaka types here? I assume they are already automatically
+// picked up from the alpaka.hpp header file anyways for serial, cuda, rocm, etc.
+#define SOA_HOST_ONLY ALPAKA_FN_HOST
+#define SOA_DEVICE_ONLY ALPAKA_FN_ACC
+#define SOA_HOST_DEVICE ALPAKA_FN_HOST_ACC
+#define SOA_INLINE ALPAKA_FN_INLINE
 
 // Exception throwing (or willful crash in kernels)
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)
