@@ -110,8 +110,8 @@ while i < len(lines):
         )
 
         # Lines from interval
-        plt.axvline(x_low, color='red', linestyle='--', label='Inferior limit')
-        plt.axvline(x_high, color='red', linestyle='--', label='Superior limit')
+        plt.axvline(x_low, color='red', linestyle='dotted', label='Inferior limit')
+        plt.axvline(x_high, color='green', linestyle='dashed', label='Superior limit')
 
         # Scale adjustement
         if "PT" in label.upper():

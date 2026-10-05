@@ -5,7 +5,7 @@ import numpy as np
 import uproot
 import matplotlib.pyplot as plt
 
-KIND_MAP = {0: "Efficiency", 1: "FakeRate", 2: "Duplicates", 3: "Resolution"}
+KIND_MAP = {0: "Efficiency", 1: "Duplicates", 2: "FakeRate", 3: "Resolution"}
 COORD_MAP = {0: "pT", 1: "eta", 2: "phi", 3: "d0", 4: "dz"}
 
 def binomial_error(p, n):
@@ -57,7 +57,7 @@ def subset_by_kind_coord(arrs, kind_val=None, coord_vals=None):
         sel &= np.isin(arrs["coord"], coord_vals)
     return {k: v[sel] for k, v in arrs.items()}
 
-def plot_xy(ax, x, y, yerr=None, title="", xlabel="", ylabel=""):
+def plot_xy(ax, x, y, yerr=None, title="", xlabel="", ylabel="", isLog=False):
     if yerr is not None:
         ax.errorbar(x, y, yerr=yerr, fmt="o-", lw=1.25, ms=4, capsize=3)
     else:
@@ -65,6 +65,7 @@ def plot_xy(ax, x, y, yerr=None, title="", xlabel="", ylabel=""):
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    if isLog: ax.set_xscale('log')
     ax.grid(True, alpha=0.3)
 
 def make_eff_fake_dup_plots(arrs, outdir: Path, show: bool):
@@ -78,7 +79,9 @@ def make_eff_fake_dup_plots(arrs, outdir: Path, show: bool):
             y = np.clip(s["value"], 0.0, 1.0)
             n = s["den"]
             yerr = binomial_error(y, n)
-            plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name)
+            # plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name)
+            if "pT" in xlabel: plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name, isLog=True)
+            else: plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name)
         outpath = outdir / f"{kind_name.lower()}_pt_eta_phi.png"
         fig.savefig(outpath, dpi=150)
         if show: plt.show()
@@ -120,7 +123,8 @@ def make_counts_plots(counts, outdir: Path, show: bool):
         x = counts[cx]
         y = counts[cy]
         yerr = poisson_error(y)
-        plot_xy(ax, x, y, yerr, title, xlabel, "Counts")
+        if "pT" in xlabel: plot_xy(ax, x, y, yerr, title, xlabel, "Counts", isLog=True)
+        else: plot_xy(ax, x, y, yerr, title, xlabel, "Counts")
     outpath = outdir / "counts_pt_eta_phi.png"
     fig.savefig(outpath, dpi=150)
     if show: plt.show()
