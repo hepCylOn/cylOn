@@ -69,6 +69,7 @@ namespace {
         << " --runSimTracks      Run SimPixelTracks producer and analyzer to check cuts\n"
         << " --dumpHits          Dump hits information (not working yet!)\n"
         << " --isColliderML      Run with colliderML data and geometry\n"
+        << " --trackerType       Runs with distinct tracker configurations for colliderML\n"
         << std::endl;
   }
 }  // namespace
@@ -101,6 +102,19 @@ bool getOptionalArgument(std::vector<std::string> const& args, std::vector<std::
   } catch (...) {
     return false;
   }
+}
+
+bool getOptionalArgument(std::vector<std::string> const& args,
+                         std::vector<std::string>::iterator& i,
+                         std::string& value) {
+  auto it = i;
+  ++it;
+  if (it == args.end()) {
+    return false;
+  }
+  value = *it;
+  ++i;
+  return true;
 }
 
 bool getOptionalArgument(std::vector<std::string> const& args,
@@ -146,6 +160,7 @@ int main(int argc, char** argv) {
   bool dumpHits = false;
   bool runSimTracks = false;
   bool isColliderML = false;
+  std::string trackerType = "default";
 
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
@@ -209,6 +224,8 @@ int main(int argc, char** argv) {
       histogram = true;
     } else if (*i == "--empty") {
       empty = true;
+    } else if (*i == "--trackerType") {
+      getArgument(args, i, trackerType);
     } else {
       std::cout << "Invalid parameter " << *i << std::endl << std::endl;
       print_help(args.front());
@@ -309,9 +326,11 @@ int main(int argc, char** argv) {
           }
           else {
             if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase2");
-            // else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
-            // else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2");
-            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLAllTrackerPhase2");
+            else{
+              if (trackerType == "PixelOnly") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
+              if (trackerType == "PixelPlusShortStrips") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2");
+              if (trackerType == "AllTracker") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLAllTrackerPhase2");
+            }
           }
         }
       }
@@ -337,9 +356,11 @@ int main(int argc, char** argv) {
             }
             else {
               if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase2");
-              // else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
-              // else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPixelPlusShortStripsPhase2");
-              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLAllTrackerPhase2");
+              else{
+                if (trackerType == "PixelOnly") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
+                if (trackerType == "PixelPlusShortStrips") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPixelPlusShortStripsPhase2");
+                if (trackerType == "AllTracker") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLAllTrackerPhase2");
+              }
             }
           }
           edmodules.emplace_back(prefix + "PixelVertexPhase1");
@@ -367,12 +388,18 @@ int main(int argc, char** argv) {
             edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase1");
           }
           else {
-            // edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
-            // edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
-            // edmodules.emplace_back("SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2");
-            // edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2");
-            edmodules.emplace_back("SimPixelTrackProducerColliderMLAllTrackerPhase2");
-            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLAllTrackerPhase2");
+            if (trackerType == "PixelOnly"){
+              edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
+              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
+            }
+            if (trackerType == "PixelPlusShortStrips") {
+              edmodules.emplace_back("SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2");
+              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2");
+            }
+            if (trackerType == "AllTracker") {
+              edmodules.emplace_back("SimPixelTrackProducerColliderMLAllTrackerPhase2");
+              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLAllTrackerPhase2");
+            }
           }
         }
       }
@@ -384,18 +411,24 @@ int main(int argc, char** argv) {
     if (fromHits) {
       if (isColliderML) {
         if (not isPhase2) config = "configs/testColliderMLFromHits.json";
-        // else config = "configs/ColliderMLPixelOnlyPhase2FromHits.json";
-        // else config = "configs/ColliderMLPixelPlusShortStripsPhase2FromHits.json";
-        else config = "configs/ColliderMLAllTrackerPhase2FromHits.json";
+        else {
+          if (trackerType == "PixelOnly") config = "configs/testColliderMLPixelOnlyPhase2FromHits.json";
+          if (trackerType == "PixelPlusShortStrips") config = "configs/testColliderMLPixelPlusShortStripsPhase2FromHits.json";
+          // else config = "configs/testColliderMLPixelPlusShortStripsPhase2FromHits90percent.json";
+          if (trackerType == "AllTracker") config = "configs/testColliderMLAllTrackerPhase2FromHits.json";
+        }
       }
       else {
-        config = "configs/test.json";
+        if (not isPhase2) config = "configs/test.json";
+        else config = "configs/testPhase2.json";
       }
     }
     else {
       config = "configs/test.json";
     }
   }
+
+  std::cout << "Using config file " << config << std::endl;
   
   if (not std::filesystem::exists(config)) {
     std::cout << "Config file '" << config << "' does not exist" << std::endl;
@@ -416,7 +449,8 @@ int main(int argc, char** argv) {
                                 fromHits,
                                 isPhase2,
                                 runSimTracks,
-                                isColliderML);
+                                isColliderML,
+                                trackerType);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

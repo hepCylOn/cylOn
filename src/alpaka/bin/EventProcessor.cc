@@ -23,9 +23,10 @@ namespace edm {
                                  bool fromHits,
                                  bool isPhase2,
                                  bool runSimTracks,
-                                 bool isColliderML)
+                                 bool isColliderML,
+                                 std::string const& trackerType)
       : config_(config), 
-        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks, isColliderML),
+        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks, isColliderML, trackerType),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {

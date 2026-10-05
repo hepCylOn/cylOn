@@ -33,14 +33,15 @@ namespace {
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML) // Change to work with Phase-2
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML, std::string const& trackerType) // Change to work with Phase-2
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
         fromHits_(fromHits),
         isPhase2_(isPhase2),
         runSimTracks_(runSimTracks),
-        isColliderML_(isColliderML) {
+        isColliderML_(isColliderML),
+        trackerType_(trackerType) {
 
     std::ifstream in_file;
 
@@ -57,14 +58,17 @@ namespace edm {
     {
       if (not isPhase2_) {
         if (not isColliderML) in_fileName =  "hitsCMSPhase1.txt";
-        else in_fileName = "hitsWithoutParticleId.txt";
+        // else in_fileName = "hitsWithoutParticleId.txt";
+        else in_fileName = "hitsWithParticleIdPhase1Parquet.txt";
       }
       else {
         if (not isColliderML) in_fileName =  "hitsCMSPhase2.txt";
         // else in_fileName = "hitsWithoutParticleIdPhase2.txt";
-        // else in_fileName = "hitsWithParticleIDPixelOnlyPhase2.txt";
-        // else in_fileName = "hitsWithParticleIDPixelPlusShortStripsPhase2.txt";
-        else in_fileName = "hitsWithParticleIDAllTrackerPhase2.txt";
+        else{
+          if (trackerType == "PixelOnly") in_fileName = "hitsWithParticleIDPixelOnlyPhase2.txt";
+          if (trackerType == "PixelPlusShortStrips") in_fileName = "hitsWithParticleIDPixelPlusShortStripsPhase2.txt";
+          if (trackerType == "AllTracker") in_fileName = "hitsWithParticleIDAllTrackerPhase2.txt";
+        }
       }
       // else in_fileName = "hitsMuonsOnlyMinLayers.txt"; // Just for testing with muons only
       in_file.open(datadir / in_fileName);
@@ -111,18 +115,26 @@ namespace edm {
         
         else {
           if (not isPhase2) {
-            in_particles    = std::ifstream(datadir / "particlesFilter.txt");
-            in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
+            // in_particles    = std::ifstream(datadir / "particlesFilter.txt");
+            // in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
+            in_particles    = std::ifstream(datadir / "particlesFilterPhase1Parquet.txt");
+            in_map = std::ifstream(datadir / "mapHitsToParticlesPhase1Parquet.txt");
           }
           else {
+            if (trackerType == "PixelOnly") {
+              in_particles    = std::ifstream(datadir / "particlesFilterPixelOnlyPhase2.txt");
+              in_map = std::ifstream(datadir / "mapHitsToParticlesPixelOnlyPhase2.txt");
+            }
+            else if (trackerType == "PixelPlusShortStrips") {
+              in_particles    = std::ifstream(datadir / "particlesFilterPixelPlusShortStripsPhase2.txt");
+              in_map = std::ifstream(datadir / "mapHitsToParticlesPixelPlusShortStripsPhase2.txt");
+            }
+            else if (trackerType == "AllTracker") {
+              in_particles    = std::ifstream(datadir / "particlesFilterAllTrackerPhase2.txt");
+              in_map = std::ifstream(datadir / "mapHitsToParticlesAllTrackerPhase2.txt");
+            }
             // in_particles    = std::ifstream(datadir / "particlesFilterPhase2.txt");
             // in_map = std::ifstream(datadir / "mapHitsToParticlesPhase2.txt");
-            // in_particles    = std::ifstream(datadir / "particlesFilterPixelOnlyPhase2.txt");
-            // in_map = std::ifstream(datadir / "mapHitsToParticlesPixelOnlyPhase2.txt");
-            // in_particles    = std::ifstream(datadir / "particlesFilterPixelPlusShortStripsPhase2.txt");
-            // in_map = std::ifstream(datadir / "mapHitsToParticlesPixelPlusShortStripsPhase2.txt");
-            in_particles    = std::ifstream(datadir / "particlesFilterAllTrackerPhase2.txt");
-            in_map = std::ifstream(datadir / "mapHitsToParticlesAllTrackerPhase2.txt");
           } 
           // in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt"); // Just for testing with muons only
           // in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt"); // Just for testing with muons only
@@ -177,7 +189,7 @@ namespace edm {
 
       nEventsH = std::stoul(line_hits.substr(7)); // after "events:"
 
-      if (isColliderML) {
+      if (isColliderML and validation) {
         std::string line_map;
         while (std::getline(in_map, line_map)) {
           if (!line_map.empty()) break;
