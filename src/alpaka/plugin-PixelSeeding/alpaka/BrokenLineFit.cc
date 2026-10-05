@@ -261,9 +261,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto tkidDevice =
         cms::alpakatools::make_device_buffer<typename caStructures::tindex_type[]>(queue, maxNumberOfConcurrentFits_);
     auto hitsDevice = cms::alpakatools::make_device_buffer<double[]>(
-        queue, maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix3xNd<6>) / sizeof(double));
+      queue,
+      maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix3xNd<TrackerTraits::maxHitsOnTrackForFullFit>) /
+        sizeof(double));
     auto hits_geDevice = cms::alpakatools::make_device_buffer<float[]>(
-        queue, maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix6xNf<6>) / sizeof(float));
+      queue,
+      maxNumberOfConcurrentFits_ * sizeof(riemannFit::Matrix6xNf<TrackerTraits::maxHitsOnTrackForFullFit>) /
+        sizeof(float));
     auto fast_fit_resultsDevice = cms::alpakatools::make_device_buffer<double[]>(
         queue, maxNumberOfConcurrentFits_ * sizeof(riemannFit::Vector4d) / sizeof(double));
 

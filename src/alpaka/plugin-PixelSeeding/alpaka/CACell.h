@@ -245,7 +245,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 #ifdef CA_DEBUG
               printf("track n. %d nhits %d with cells: ", it, nh + 1);
 #endif
-              if (it >= cms::alpakatools::kOverflow) {  // if negative is overflow....
+              if (it < cms::alpakatools::kOverflow) {
                 for (auto c : tmpNtuplet) {
 #ifdef CA_DEBUG
                   printf("%d - ", c);
