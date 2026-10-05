@@ -149,18 +149,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TrackerTraits>
   void CAHitNtuplet<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& es) {
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
-
     auto const& hGeometry = es.get<::reco::CAGeometryHost>();//runCache()->get(iEvent.queue());
     auto const& phits = iEvent.get(tokenHit_);
     cms::alpakatools::ScopedContextProduce<Queue> ctx{phits};
     auto const& hits = ctx.get(phits);
-    // std::array<double, 1> nHitsV = {{double(hits.nHits())}};
-    // std::array<double, 1> emptyV;
 
-    std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
-
-/// TODO: make a helper for this, have the automatic mechamism for copy (later).
+/// TODO: make a helper for this, have the automatic mechanism for copy (later).
 #if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
     reco::CAGeometrySoACollection const& geometry = hGeometry;
 #else
@@ -176,8 +170,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   uint32_t const maxTuples = maxNumberOfTuples_;
   uint32_t const maxDoublets = maxNumberOfDoublets_;
-
-  std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 
 #ifdef GPU_DEBUG
   std::cout << "[CAHitNtuplet::GPU_DEBUG] maxTuples=" << maxTuples
@@ -198,13 +190,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 #endif
 
-  std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
-
   ctx.emplace(iEvent,
               tokenTrack_,
               deviceAlgo_.makeTuplesAsync(hits, geometry, maxDoublets, maxTuples, ctx.stream()));
-
-  std::cout << __LINE__ << " -- " << __FILE__ << " -- AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH" << std::endl;
 
 #ifdef GPU_DEBUG
   std::cout << "[CAHitNtuplet::GPU_DEBUG] Finished produce() successfully." << std::endl;
@@ -212,11 +200,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   }
 
-  // using CAHitNtupletPhase1 = CAHitNtuplet<pixelTopology::Phase1>;
-  // using CAHitNtupletHIonPhase1 = CAHitNtuplet<pixelTopology::HIonPhase1>;
-  // using CAHitNtupletPhase2 = CAHitNtuplet<pixelTopology::Phase2>;
-  // using CAHitNtupletUpgrade = CAHitNtuplet<pixelTopology::GenericUpgrade>;
-  
   /// FIXME: These are needed to make these plugins visible when building the plugins.txt list
   /// see: src/alpaka/Makefile:204. This is a workaround but it works for the moment.
   class CAHitNtupletPhase1 : public CAHitNtuplet<pixelTopology::Phase1> {

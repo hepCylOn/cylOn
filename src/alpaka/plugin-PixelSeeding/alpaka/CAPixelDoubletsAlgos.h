@@ -201,7 +201,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
       uint8_t inner = cc.graph()[pairLayerId][0];
       uint8_t outer = cc.graph()[pairLayerId][1];
       ALPAKA_ASSERT_ACC(outer > inner);
-
+      
       auto hoff = PhiHisto::histOff(outer);
       auto i = (0 == pairLayerId) ? j : j - innerLayerCumulativeSize[pairLayerId - 1];
       i += offsets[inner];
@@ -217,7 +217,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
              offsets[inner],
              offsets[inner + 1]);
 #endif
-        printf("%u -- AAAAAAAAAAHHHHHH\n",__LINE__);
       // found hit corresponding to our worker thread, now do the job
       if (hh[i].detectorIndex() > ll.layerStarts()[ll.metadata().size() - 1])  //TODO use cc
         continue;                                                              // invalid
@@ -287,8 +286,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
         auto const* __restrict__ e = phiBinner->end(kk + hoff);
         auto const maxpIndex = e - p;
 
-        printf("%u -- AAAAAAAAAAHHHHHH\n",__LINE__);
-
         // innermost parallel loop, using the block elements along the faster dimension (X or 1 in a 2D grid)
         for (uint32_t pIndex : cms::alpakatools::independent_group_elements_x(acc, maxpIndex)) {
           // FIXME implement alpaka::ldg and use it here? or is it const* __restrict__ enough?
@@ -318,8 +315,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
           if (params.cellPtCut_ > 0. && ptcut(oi, idphi))
             continue;
 
-          printf("%u -- AAAAAAAAAAHHHHHH\n",__LINE__);
-
           auto ind = alpaka::atomicAdd(acc, nCells, 1u, alpaka::hierarchy::Blocks{});
           if (ind >= maxNumOfDoublets or ind >= outerHitHisto->capacity()) {
 #ifdef CA_WARNINGS
@@ -334,7 +329,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::caPixelDoublets {
 #ifdef DOUBLETS_DEBUG
           printf("doublet: %d layerPair: %d inner: %d outer: %d i: %d oi: %d\n", ind, pairLayerId, inner, outer, i, oi);
 #endif
-          printf("%u -- AAAAAAAAAAHHHHHH\n",__LINE__);
         }
       }
     }  // loop in block...
