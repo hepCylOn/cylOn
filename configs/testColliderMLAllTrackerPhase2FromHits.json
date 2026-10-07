@@ -96,8 +96,8 @@
     ]
   },
   "CAHitNtupletColliderMLAllTrackerPhase2": {
-    "maxNumberOfDoublets": 22000000,
-    "maxNumberOfTuples": 2200000
+    "maxNumberOfDoublets": 7000000,
+    "maxNumberOfTuples": 45000
   },
   "SimPixelTrackAnalyzerColliderMLAllTrackerPhase2": {
     "nPairs": 171,
