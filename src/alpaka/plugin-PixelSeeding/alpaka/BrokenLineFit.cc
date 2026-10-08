@@ -77,13 +77,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         riemannFit::Map4d fast_fit(pfast_fit + local_idx);
         riemannFit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-#ifdef BL_DUMP_HITS
-        auto &&done = alpaka::declareSharedVar<int, __COUNTER__>(acc);
-        done = 0;
-        alpaka::syncBlockThreads(acc);
-        bool dump =
-            (foundNtuplets->size(tkid) == 5 && 0 == alpaka::atomicAdd(acc, &done, 1, alpaka::hierarchy::Blocks{}));
-#endif
+// #ifdef BL_DUMP_HITS
+//         auto &&done = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+//         done = 0;
+//         alpaka::syncBlockThreads(acc);
+//         bool dump =
+//             (foundNtuplets->size(tkid) == 5 && 0 == alpaka::atomicAdd(acc, &done, 1, alpaka::hierarchy::Blocks{}));
+// #endif
 
         // Prepare data structure
         auto const *hitId = foundNtuplets->begin(tkid);
@@ -106,52 +106,53 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           ALPAKA_ASSERT_ACC(j < int(nHits));
           n += incr;
           auto hit = hitId[j];
-          float ge[6];
+          // float ge[6];
 
-#ifdef YERR_FROM_DC
-          auto const &dp = cm->detParams(hh.detectorIndex(hit));
-          auto status = hh[hit].chargeAndStatus().status;
-          int qbin = CPEFastParametrisation::kGenErrorQBins - 1 - status.qBin;
-          ALPAKA_ASSERT_ACC(qbin >= 0 && qbin < 5);
-          bool nok = (status.isBigY | status.isOneY);
-          // compute cotanbeta and use it to recompute error
-          dp.frame.rotation().multiply(dx, dy, dz, ux, uy, uz);
-          auto cb = std::abs(uy / uz);
-          int bin =
-              int(cb * (float(phase1PixelTopology::pixelThickess) / float(phase1PixelTopology::pixelPitchY)) * 8.f) - 4;
-          int low_value = 0;
-          int high_value = CPEFastParametrisation::kNumErrorBins - 1;
-          // return estimated bin value truncated to [0, 15]
-          bin = std::clamp(bin, low_value, high_value);
-          float yerr = dp.sigmay[bin] * 1.e-4f;  // toCM
-          yerr *= dp.yfact[qbin];                // inflate
-          yerr *= yerr;
-          yerr += dp.apeYY;
-          yerr = nok ? hh[hit].yerrLocal() : yerr;
-          dp.frame.toGlobal(hh[hit].xerrLocal(), 0, yerr, ge);
-#else
-          auto const &frame = cm.detFrame(hh.detectorIndex(hit));
-          frame.toGlobal(hh[hit].xerrLocal(), 0, hh[hit].yerrLocal(), ge);
-#endif
+// #ifdef YERR_FROM_DC
+//           auto const &dp = cm->detParams(hh.detectorIndex(hit));
+//           auto status = hh[hit].chargeAndStatus().status;
+//           int qbin = CPEFastParametrisation::kGenErrorQBins - 1 - status.qBin;
+//           ALPAKA_ASSERT_ACC(qbin >= 0 && qbin < 5);
+//           bool nok = (status.isBigY | status.isOneY);
+//           // compute cotanbeta and use it to recompute error
+//           dp.frame.rotation().multiply(dx, dy, dz, ux, uy, uz);
+//           auto cb = std::abs(uy / uz);
+//           int bin =
+//               int(cb * (float(phase1PixelTopology::pixelThickess) / float(phase1PixelTopology::pixelPitchY)) * 8.f) - 4;
+//           int low_value = 0;
+//           int high_value = CPEFastParametrisation::kNumErrorBins - 1;
+//           // return estimated bin value truncated to [0, 15]
+//           bin = std::clamp(bin, low_value, high_value);
+//           float yerr = dp.sigmay[bin] * 1.e-4f;  // toCM
+//           yerr *= dp.yfact[qbin];                // inflate
+//           yerr *= yerr;
+//           yerr += dp.apeYY;
+//           yerr = nok ? hh[hit].yerrLocal() : yerr;
+//           dp.frame.toGlobal(hh[hit].xerrLocal(), 0, yerr, ge);
+// #else
+//           auto const &frame = cm.detFrame(hh.detectorIndex(hit));
+//           frame.toGlobal(hh[hit].xerrLocal(), 0, hh[hit].yerrLocal(), ge);
+// #endif
 
-#ifdef BL_DUMP_HITS
-          bool dump = foundNtuplets->size(tkid) == 5;
-          if (dump) {
-            printf("Track id %d %d Hit %d on %d\nGlobal: hits.col(%d) << %f,%f,%f\n",
-                   local_idx,
-                   tkid,
-                   hit,
-                   hh[hit].detectorIndex(),
-                   i,
-                   hh[hit].xGlobal(),
-                   hh[hit].yGlobal(),
-                   hh[hit].zGlobal());
-            printf("Error: hits_ge.col(%d) << %e,%e,%e,%e,%e,%e\n", i, ge[0], ge[1], ge[2], ge[3], ge[4], ge[5]);
-          }
-#endif
+// #ifdef BL_DUMP_HITS
+//           bool dump = foundNtuplets->size(tkid) == 4;
+//           if (dump) {
+//             printf("Track id %d %d Hit %d on %d\nGlobal: hits.col(%d) << %f,%f,%f\n",
+//                    local_idx,
+//                    tkid,
+//                    hit,
+//                    hh[hit].detectorIndex(),
+//                    i,
+//                    hh[hit].xGlobal(),
+//                    hh[hit].yGlobal(),
+//                    hh[hit].zGlobal());
+//             printf("Error: hits_ge.col(%d) << %e,%e,%e,%e,%e,%e\n", i, ge[0], ge[1], ge[2], ge[3], ge[4], ge[5]);
+//           }
+// #endif
 
           hits.col(i) << hh[hit].xGlobal(), hh[hit].yGlobal(), hh[hit].zGlobal();
-          hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
+          // hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
+          hits_ge.col(i) << 0.01, 0.001, 0.0001, 0.001, 0.0001, 0.0001;
         }
         brokenline::fastFit(acc, hits, fast_fit);
 

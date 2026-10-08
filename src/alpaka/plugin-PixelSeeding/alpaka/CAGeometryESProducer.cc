@@ -23,47 +23,63 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class CAGeometryHostESProducer : public edm::ESProducer {
   public:
     explicit CAGeometryHostESProducer(edm::Config const& cfg) : 
-      data_(static_cast<std::string>(cfg.value("data", defaultPath_))),
-      nLayers_(static_cast<int>(cfg.value("nLayers", TrackerTraits::numberOfLayers))),
-      nPairs_(static_cast<int>(cfg.value("nPairs", TrackerTraits::nPairs))),
-      nModules_(static_cast<int>(cfg.value("nModules", TrackerTraits::numberOfModules)))
+      data_(static_cast<std::string>(cfg.value("data", defaultPath_)))
       {
 
-      auto getVectorOrDefault = [&](std::string const& key, auto const* defaults, size_t expected) {
-      using T = std::remove_cvref_t<decltype(defaults[0])>;
-      std::vector<T> vec;
+  auto getRequiredVector = [&]<typename T>(std::string const& key, size_t expected) {
+    if (!cfg.contains(key)) {
+      throw std::runtime_error("[CAGeometryHostESProducer - getRequiredVector ERROR] Missing required config key '" + key + "'");
+    }
 
-      if (cfg.contains(key)) {
-        try {
-          vec = cfg.at(key).get<std::vector<T>>();
-          if (vec.size() != expected) {
-            std::cerr << "[CAGeometryHostESProducer ERROR] Size mismatch in " << key << ":\n"
-                      << "  expected = " << expected << ", actual = " << vec.size() << std::endl;
-            std::abort();
-          }
-        } catch (std::exception const& e) {
-          std::cerr << "[CAGeometryHostESProducer WARNING] Failed to read key '" << key
-                    << "': " << e.what() << ". Using default values." << std::endl;
-          vec.assign(defaults, defaults + expected);
-        }
-      } else {
-        vec.assign(defaults, defaults + expected);
-      }
+    std::vector<T> vec;
+    try {
+      vec = cfg.at(key).get<std::vector<T>>();
+    } catch (std::exception const& e) {
+      throw std::runtime_error("[CAGeometryHostESProducer - getRequiredVector ERROR] Invalid config key '" + key + "': " + e.what());
+    }
 
-      return vec;
-    };
+    if (vec.size() != expected) {
+      throw std::runtime_error("[CAGeometryHostESProducer - getRequiredVector ERROR] Size mismatch in config key '" + key +
+                               "': expected " + std::to_string(expected) +
+                               ", got " + std::to_string(vec.size()));
+    }
+    return vec;
+  };
 
-  thetaCuts_   = getVectorOrDefault("thetaCuts", TrackerTraits::thetaCuts, nLayers_);
-  dcaCuts_     = getVectorOrDefault("dcaCuts", TrackerTraits::dcaCuts, nLayers_);
-  layerStarts_ = getVectorOrDefault("layerStarts", TrackerTraits::layerStart, nLayers_ + 1);
-  phiCuts_     = getVectorOrDefault("phiCuts", TrackerTraits::phicuts, nPairs_);
-  minZ_        = getVectorOrDefault("minZ", TrackerTraits::minz, nPairs_);
-  maxZ_        = getVectorOrDefault("maxZ", TrackerTraits::maxz, nPairs_);
-  maxR_        = getVectorOrDefault("maxR", TrackerTraits::maxr, nPairs_);
-  pairGraph_   = getVectorOrDefault("pairGraph", TrackerTraits::layerPairs, nPairs_ * 2);
-  startingPairs_ = cfg.contains("startingPairs")
-                   ? cfg.at("startingPairs").get<std::vector<uint8_t>>()
-                   : std::vector<uint8_t>{0u, 1u, 2u};
+  auto getRequiredInt = [&](std::string const& key) {
+    if (!cfg.contains(key)) {
+      throw std::runtime_error("[CAGeometryHostESProducer - getRequiredInt ERROR] Missing required config key '" + key + "'");
+    }
+
+    int value;
+    try {
+      value = cfg.at(key).get<int>();
+    } catch (std::exception const& e) {
+      throw std::runtime_error("[CAGeometryHostESProducer - getRequiredInt ERROR] Invalid config key '" + key + "': " + e.what());
+    }
+
+    return value;
+  };
+
+  nLayers_ = getRequiredInt("nLayers");
+  nPairs_ = getRequiredInt("nPairs");
+  nModules_ = getRequiredInt("nModules");
+
+  thetaCuts_ = getRequiredVector.template operator()<float>("thetaCuts", nLayers_);
+  dcaCuts_ = getRequiredVector.template operator()<float>("dcaCuts", nLayers_);
+  layerStarts_ = getRequiredVector.template operator()<unsigned int>("layerStarts", nLayers_ + 1);
+  phiCuts_ = getRequiredVector.template operator()<short int>("phiCuts", nPairs_);
+  minZ_ = getRequiredVector.template operator()<float>("minZ", nPairs_);
+  maxZ_ = getRequiredVector.template operator()<float>("maxZ", nPairs_);
+  maxR_ = getRequiredVector.template operator()<float>("maxR", nPairs_);
+  pairGraph_ = getRequiredVector.template operator()<uint8_t>("pairGraph", nPairs_ * 2);
+  startingPairs_ = getRequiredVector.template operator()<uint8_t>("startingPairs", nPairs_);
+
+  for (auto value : startingPairs_) {
+    if (value > 1) {
+      throw std::runtime_error("[CAGeometryHostESProducer ERROR] startingPairs entries must be 0 or 1");
+    }
+  }
 
 auto maxVal = std::ranges::max(startingPairs_);
   if (maxVal >= static_cast<unsigned int>(nPairs_)) {
@@ -88,7 +104,7 @@ auto maxVal = std::ranges::max(startingPairs_);
 
   std::cout << "[GPU_DEBUG] Constructing CAGeometryHostESProducer for "
             << TrackerTraits::nameModifier << "\n"
-            << "  - Data directory: " << data_ << "\n"
+            // << "  - Data directory: " << data_ << "\n"
             << "  - Layers: " << nLayers_
             << ", Pairs: " << nPairs_
             << ", Starting pairs: " << vecToString(startingPairs_) << std::endl;
@@ -99,10 +115,11 @@ auto maxVal = std::ranges::max(startingPairs_);
 
   private:
 
+    std::filesystem::path defaultPath_ = std::string("data/CAGeometryHostModules") + std::string(TrackerTraits::nameModifier) + ".bin";
+
     std::filesystem::path data_;
     int nLayers_, nPairs_, nModules_; //int(s) just because the PortableCollection wants so
     
-    std::filesystem::path defaultPath_ = std::string("data/CAGeometryHostModules") + std::string(TrackerTraits::nameModifier) + ".bin";;
     // Geometry parameter data members
     std::vector<float> thetaCuts_;
     std::vector<float> dcaCuts_;
@@ -121,8 +138,9 @@ auto maxVal = std::ranges::max(startingPairs_);
   void CAGeometryHostESProducer<TrackerTraits>::produce(edm::EventSetup& eventSetup) {
 
     #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << "\n"
-              << "  - Reading modules from: " << data_ << std::endl;
+    // std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << "\n"
+    //           << "  - Reading modules from: " << data_ << std::endl;
+    std::cout << "[GPU_DEBUG] Producing CAGeometryHost for " << TrackerTraits::nameModifier << std::endl;
     #endif
 
     // Construct full host geometry (layers + graph + modules)
@@ -131,7 +149,7 @@ auto maxVal = std::ranges::max(startingPairs_);
 
     auto layers = caGeometryHost->template view<::reco::CALayersSoA>();
     auto graph = caGeometryHost->template view<::reco::CAGraphSoA>();
-    auto modules = caGeometryHost->template view<::reco::CAModulesSoA>();
+    // auto modules = caGeometryHost->template view<::reco::CAModulesSoA>();
 
     // Fill layer-level data
     for (uint32_t i = 0; i < thetaCuts_.size(); ++i) {
@@ -150,8 +168,7 @@ auto maxVal = std::ranges::max(startingPairs_);
     // Fill graph-level data
     for (uint32_t i = 0; i < phiCuts_.size(); ++i) {
       graph.graph(i) = {{pairGraph_[2 * i], pairGraph_[2 * i + 1]}};
-      graph.startingPair(i) =
-          std::find(startingPairs_.begin(), startingPairs_.end(), i) != startingPairs_.end();
+      graph.startingPair(i) = startingPairs_[i] != 0;
       graph.phiCuts(i) = static_cast<int16_t>(phiCuts_[i]);
       graph.minz(i) = static_cast<float>(minZ_[i]);
       graph.maxz(i) = static_cast<float>(maxZ_[i]);
@@ -167,65 +184,65 @@ auto maxVal = std::ranges::max(startingPairs_);
     using Rotation = SOARotation<float>;
     using Frame = SOAFrame<float>;
 
-    auto in = edm::utils::openInputFile(data_);
-    if (!in.is_open()) {
-      throw std::runtime_error("CAGeometryHostESProducer: cannot open " + data_.string());
-    }
+    // auto in = edm::utils::openInputFile(data_);
+    // if (!in.is_open()) {
+    //   throw std::runtime_error("CAGeometryHostESProducer: cannot open " + data_.string());
+    // }
 
-    // read number of modules (and check consistency)
-    int nModulesInFile = 0;
-    in.read(reinterpret_cast<char*>(&nModulesInFile), sizeof(uint16_t));
+    // // read number of modules (and check consistency)
+    // int nModulesInFile = 0;
+    // in.read(reinterpret_cast<char*>(&nModulesInFile), sizeof(uint16_t));
 
 
-    if (nModulesInFile < nModules_) {
-      std::ostringstream msg;
-      msg << "[CAGeometryHostESProducer ERROR] Module count mismatch when reading file:\n"
-          << "  File: " << data_ << "\n"
-          << "  Expected (TrackerTraits::numberOfModules) = " << nModules_ << "\n"
-          << "  Found in file = " << nModulesInFile << " (too few!)\n";
-    #ifdef GPU_DEBUG
-      std::cerr << msg.str();
-    #endif
-      throw std::runtime_error(msg.str());
-    }
+    // if (nModulesInFile < nModules_) {
+    //   std::ostringstream msg;
+    //   msg << "[CAGeometryHostESProducer ERROR] Module count mismatch when reading file:\n"
+    //       << "  File: " << data_ << "\n"
+    //       << "  Expected (TrackerTraits::numberOfModules) = " << nModules_ << "\n"
+    //       << "  Found in file = " << nModulesInFile << " (too few!)\n";
+    // #ifdef GPU_DEBUG
+    //   std::cerr << msg.str();
+    // #endif
+    //   throw std::runtime_error(msg.str());
+    // }
 
-    if (nModulesInFile > nModules_) {
-      std::ostringstream msg;
-      msg << "[CAGeometryHostESProducer WARNING] File contains more modules than expected.\n"
-          << "  File: " << data_ << "\n"
-          << "  Expected = " << nModules_ << ", Found = " << nModulesInFile << "\n"
-          << "  Will load only the first " << nModules_ << " modules.\n";
-    #ifdef GPU_DEBUG
-      std::cerr << msg.str();
-    #else
-      // Print at least once even without GPU_DEBUG
-      std::cerr << msg.str();
-    #endif
-      // Continue loading, but only up to nModules_
-      nModulesInFile = nModules_;
-    }
+    // if (nModulesInFile > nModules_) {
+    //   std::ostringstream msg;
+    //   msg << "[CAGeometryHostESProducer WARNING] File contains more modules than expected.\n"
+    //       << "  File: " << data_ << "\n"
+    //       << "  Expected = " << nModules_ << ", Found = " << nModulesInFile << "\n"
+    //       << "  Will load only the first " << nModules_ << " modules.\n";
+    // #ifdef GPU_DEBUG
+    //   std::cerr << msg.str();
+    // #else
+    //   // Print at least once even without GPU_DEBUG
+    //   std::cerr << msg.str();
+    // #endif
+    //   // Continue loading, but only up to nModules_
+    //   nModulesInFile = nModules_;
+    // }
 
-    #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Loading " << nModulesInFile << " module frames from file..." << std::endl;
-    #endif
+    // #ifdef GPU_DEBUG
+    // std::cout << "[GPU_DEBUG] Loading " << nModulesInFile << " module frames from file..." << std::endl;
+    // #endif
 
-    for (int i = 0; i < nModulesInFile; ++i) {
-      Frame frame;
-      in.read(reinterpret_cast<char*>(&frame), sizeof(frame));
-      modules.detFrame(i) = frame;
-    }
+    // for (int i = 0; i < nModulesInFile; ++i) {
+    //   Frame frame;
+    //   in.read(reinterpret_cast<char*>(&frame), sizeof(frame));
+    //   modules.detFrame(i) = frame;
+    // }
 
-    // If file had extra entries, skip to end
-    if (in.peek() != EOF) {
-      in.ignore(std::numeric_limits<std::streamsize>::max());
-    }
+    // // If file had extra entries, skip to end
+    // if (in.peek() != EOF) {
+    //   in.ignore(std::numeric_limits<std::streamsize>::max());
+    // }
 
-    in.close();
+    // in.close();
 
-    #ifdef GPU_DEBUG
-    std::cout << "[GPU_DEBUG] Finished reading " << nModulesInFile
-              << " module frames from " << data_.filename() << std::endl;
-    #endif
+    // #ifdef GPU_DEBUG
+    // std::cout << "[GPU_DEBUG] Finished reading " << nModulesInFile
+    //           << " module frames from " << data_.filename() << std::endl;
+    // #endif
 
     /// TODO: allow for a queue to be here (porcoddue). And after, have the automatic mechamism for ESProducers (later).
     eventSetup.put(std::move(caGeometryHost));

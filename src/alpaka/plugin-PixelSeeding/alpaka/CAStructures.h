@@ -71,8 +71,6 @@ namespace caStructures {
   using SequentialContainerView = typename SequentialContainer::View;
 
   template <typename TrackerTraits>
-  // using PhiBinnerT =
-  //     cms::alpakatools::HistoContainer<int16_t, 256, -1, 8 * sizeof(int16_t), hindex_type, TrackerTraits::numberOfLayers>;
   using PhiBinnerT =
       cms::alpakatools::HistoContainer<int32_t, 256, cms::alpakatools::kDynamicSize, 8 * sizeof(int32_t), hindex_type, TrackerTraits::numberOfLayers>;
 

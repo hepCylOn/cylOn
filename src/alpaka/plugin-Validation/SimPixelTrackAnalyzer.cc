@@ -458,35 +458,45 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
       hardCurvCut_(TrackerTraits::hardCurvCut),
       minNumDoubletsPerNtuplet_(3) {//,
 
-  const size_t numLayerPairs = static_cast<size_t>(cfg.value("nPairs", TrackerTraits::nPairs));
+  auto getRequiredVector = [&]<typename T>(std::string const& key, size_t expected) {
+    if (!cfg.contains(key)) {
+      throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredVector ERROR] Missing required config key '" + key + "'");
+    }
 
-  auto getVectorOrDefault = [&](std::string const& key, auto const* defaults, size_t expected) {
-      using T = std::remove_cvref_t<decltype(defaults[0])>;
-      std::vector<T> vec;
+    std::vector<T> vec;
+    try {
+      vec = cfg.at(key).get<std::vector<T>>();
+    } catch (std::exception const& e) {
+      throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredVector ERROR] Invalid config key '" + key + "': " + e.what());
+    }
 
-      if (cfg.contains(key)) {
-        try {
-          vec = cfg.at(key).get<std::vector<T>>();
-          if (vec.size() != expected) {
-            std::cerr << "[SimPixelTrackAnalyzer ERROR] Size mismatch in " << key << ":\n"
-                      << "  expected = " << expected << ", actual = " << vec.size() << std::endl;
-            std::abort();
-          }
-        } catch (std::exception const& e) {
-          std::cerr << "[SimPixelTrackAnalyzer WARNING] Failed to read key '" << key
-                    << "': " << e.what() << ". Using default values." << std::endl;
-          vec.assign(defaults, defaults + expected);
-        }
-      } else {
-        vec.assign(defaults, defaults + expected);
-      }
+    if (vec.size() != expected) {
+      throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredVector ERROR] Size mismatch in config key '" + key +
+                               "': expected " + std::to_string(expected) +
+                               ", got " + std::to_string(vec.size()));
+    }
+    return vec;
+  };
 
-      return vec;
-    };
+    auto getRequiredInt = [&](std::string const& key) {
+    if (!cfg.contains(key)) {
+      throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredInt ERROR] Missing required config key '" + key + "'");
+    }
 
-  const auto layerPairs = getVectorOrDefault("pairGraph", TrackerTraits::layerPairs, numLayerPairs * 2);
+    int value;
+    try {
+      value = cfg.at(key).get<int>();
+    } catch (std::exception const& e) {
+      throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredInt ERROR] Invalid config key '" + key + "': " + e.what());
+    }
 
-  const auto startingPairsVec = getVectorOrDefault("startingPairs", TrackerTraits::startingPairs, numLayerPairs);
+    return value;
+  };
+
+  const size_t numLayerPairs = getRequiredInt("nPairs");
+
+  const auto layerPairs = getRequiredVector.template operator()<uint8_t>("pairGraph", numLayerPairs * 2);
+  const auto startingPairsVec = getRequiredVector.template operator()<uint8_t>("startingPairs", numLayerPairs);
 
   const uint8_t* startingPairs = startingPairsVec.data();
 
@@ -505,10 +515,10 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
     }
   }
 
-  numLayers_ = static_cast<int>(cfg.value("nLayers", TrackerTraits::numberOfLayers));
+  numLayers_ = getRequiredInt("nLayers");
 
-  cellCuts_.isBarrel_ = getVectorOrDefault("isBarrel", TrackerTraits::isBarrel, numLayers_);
-  cellCuts_.ptCuts_ = getVectorOrDefault("ptCuts", TrackerTraits::ptCuts, numLayerPairs);
+  cellCuts_.isBarrel_ = getRequiredVector.template operator()<bool>("isBarrel", numLayers_);
+  cellCuts_.ptCuts_ = getRequiredVector.template operator()<float>("ptCuts", numLayerPairs);
 
   totalDoublets = 0;
   totalPassedDoublets = 0;

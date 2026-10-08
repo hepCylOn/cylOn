@@ -957,7 +957,6 @@ namespace pixelTopology {
 
     static constexpr int nPairsMinimal = 33;
     static constexpr int nPairsFarForwards = nPairsMinimal + 8;  // include barrel "jumping" layer pairs
-    static constexpr int nPairs = phase1PixelTopology::nPairs;   // include far forward layer pairs // PLACEHOLDER - defined in the config file
 
     static constexpr int maxDYsize12 = 12;
     static constexpr int maxDYsize = 10;
@@ -1003,20 +1002,6 @@ namespace pixelTopology {
 
     static constexpr char const *nameModifier = "ColliderMLPhase2";
     static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
-
-    static constexpr uint32_t const *layerStart = phase1PixelTopology::layerStart; // PLACEHOLDER - defined in the config file
-    static constexpr float const *minz = phase1PixelTopology::minz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxz = phase1PixelTopology::maxz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxr = phase1PixelTopology::maxr; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *layerPairs = phase1PixelTopology::layerPairs; // PLACEHOLDER - defined in the config file
-    static constexpr int16_t const *phicuts = phase1PixelTopology::phicuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *thetaCuts = phase1PixelTopology::thetaCuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *dcaCuts = phase1PixelTopology::dcaCuts; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *startingPairs = phase1PixelTopology::startingPairs;
-    static constexpr bool const *isBarrel = phase1PixelTopology::isBarrel;
-    static constexpr float const *ptCuts = phase1PixelTopology::ptCuts;
 
     static constexpr float const cellZ0Cut = 14.5;
     static constexpr float const cellPtCut = 0.85;
