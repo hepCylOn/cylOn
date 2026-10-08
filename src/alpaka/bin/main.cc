@@ -419,7 +419,7 @@ int main(int argc, char** argv) {
         }
       }
       else {
-        if (not isPhase2) config = "configs/test.json";
+        if (not isPhase2) config = "configs/testFromHits.json";
         else config = "configs/testPhase2.json";
       }
     }
