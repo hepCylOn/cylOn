@@ -108,6 +108,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           auto hit = hitId[j];
           // float ge[6];
 
+// TODO: implement proper error propagation from global coordinates; it should come from each detector's geometry.
+// TODO: e.g., a template function for each layer in a detector, or a better generalization. For now it uses only a placeholder
+
 // #ifdef YERR_FROM_DC
 //           auto const &dp = cm->detParams(hh.detectorIndex(hit));
 //           auto status = hh[hit].chargeAndStatus().status;
