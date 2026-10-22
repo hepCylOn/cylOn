@@ -107,6 +107,7 @@ private:
 
   // just counts (discrete nHits)
   std::map<int, double> cntNHits_;
+  std::map<int, double> cntTrueNHits_;
 
   // ROOT outputs
   std::unique_ptr<TFile> outFile_;
@@ -118,6 +119,7 @@ private:
   std::vector<float> etaCenters_, etaCounts_;
   std::vector<float> phiCenters_, phiCounts_;
   std::vector<float> nHitsValues_, nHitsCounts_;
+  std::vector<float> trueNHitsValues_, trueNHitsCounts_;
 
   int kind_;      // 0=eff, 1=fake, 2=dup, 3=res, 4=counts (not used in Counts tree)
   int coord_;     // 0=pt, 1=eta, 2=phi, 3=d0, 4=dz, 5=nHits (not used in Counts tree)
@@ -232,6 +234,8 @@ SimpleTrackValidation::SimpleTrackValidation(edm::ProductRegistry& reg, edm::Con
     tcounts_->Branch("phiCounts",  &phiCounts_);
     tcounts_->Branch("nHitsValues", &nHitsValues_);
     tcounts_->Branch("nHitsCounts", &nHitsCounts_);
+    tcounts_->Branch("trueNHitsValues", &trueNHitsValues_);
+    tcounts_->Branch("trueNHitsCounts", &trueNHitsCounts_);
 
 #ifdef GPU_DEBUG
     std::cout << "[SimpleTrackValidation] ROOT output opened: " << outputFileName_ << std::endl;
@@ -313,6 +317,24 @@ void SimpleTrackValidation::produce(edm::Event& iEvent, const edm::EventSetup& i
 #ifdef GPU_DEBUG
   std::cout << "[produce] total selected particles so far: " << totalParticles_ << std::endl;
 #endif
+  std::unordered_map<uint32_t, uint32_t> truthHitsPerPart;
+  auto hitMapSize = hitMapView.metadata().size();
+  for (decltype(hitMapSize) ih = 0; ih < hitMapSize; ++ih) {
+    const uint32_t partInd = hitMapView[ih].id();
+    if (isValidPartId(partInd))
+      ++truthHitsPerPart[partInd];
+  }
+
+  for (uint32_t j = 0; j < (uint32_t) nParticles; ++j) {
+    if (!isGoodParticle(simpleParts.view(), j)) continue;
+
+    const uint32_t partInd = simpleParts.view()[j].partInd();
+    const auto it = truthHitsPerPart.find(partInd);
+    const int nTruthHits =
+        (it == truthHitsPerPart.end()) ? 0 : static_cast<int>(it->second);
+
+    cntTrueNHits_[nTruthHits] += 1.0;
+  }
 
   // Denominator for efficiencies: loop over all selected particles
   for (int ib = 0; ib < static_cast<int>(binsPt_.size()) - 1; ++ib) {
@@ -657,6 +679,7 @@ void SimpleTrackValidation::endJob() {
   etaCenters_.clear(); etaCounts_.clear();
   phiCenters_.clear(); phiCounts_.clear();
   nHitsValues_.clear(); nHitsCounts_.clear();
+  trueNHitsValues_.clear(); trueNHitsCounts_.clear();
 
   for (int i = 0; i < static_cast<int>(fakePtDen_.size()); ++i) {
     const float c = 0.5f * static_cast<float>(binsPt_[i] + binsPt_[i + 1]);
@@ -676,6 +699,10 @@ void SimpleTrackValidation::endJob() {
   for (auto const& kv : cntNHits_) {
     nHitsValues_.push_back(static_cast<float>(kv.first));
     nHitsCounts_.push_back(static_cast<float>(kv.second));
+  }
+  for (auto const& kv : cntTrueNHits_) {
+    trueNHitsValues_.push_back(static_cast<float>(kv.first));
+    trueNHitsCounts_.push_back(static_cast<float>(kv.second));
   }
 
 #ifdef GPU_DEBUG

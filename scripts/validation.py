@@ -32,7 +32,11 @@ def load_counts_tree_or_none(filename: Path):
             return None
         t = f["Counts"]
         # vector<float> branches -> jagged with one entry; take first
+        branch_names = set(t.keys())
+
         def v(name):
+            if name not in branch_names:
+                return np.array([], dtype=float)
             arr = t[name].array(library="np")
             if len(arr) == 0:
                 return np.array([], dtype=float)
@@ -46,7 +50,27 @@ def load_counts_tree_or_none(filename: Path):
             "phiCounts":  v("phiCounts"),
             "nHitsValues": v("nHitsValues"),
             "nHitsCounts": v("nHitsCounts"),
+            "trueNHitsValues": v("trueNHitsValues"),
+            "trueNHitsCounts": v("trueNHitsCounts"),
         }
+
+def truth_counts_for_coord(arrs, coord):
+    selected = subset_by_kind_coord(arrs, kind_val=0, coord_vals=[coord])
+    return selected["binCenter"], selected["den"]
+
+
+def scale_counts(y, yerr, mode, reco_total, label):
+    if mode == "none":
+        return y, yerr
+
+    denominator = reco_total if mode == "reco" else np.sum(y)
+    if denominator <= 0:
+        raise ValueError(
+            f"Cannot apply '{mode}' normalization to '{label}': "
+            "the normalization count is zero."
+        )
+
+    return y / denominator, yerr / denominator
 
 def subset_by_kind_coord(arrs, kind_val=None, coord_vals=None):
     sel = np.ones_like(arrs["kind"], dtype=bool)
@@ -67,6 +91,18 @@ def plot_xy(ax, x, y, yerr=None, title="", xlabel="", ylabel="", isLog=False):
     ax.set_ylabel(ylabel)
     if isLog: ax.set_xscale('log')
     ax.grid(True, alpha=0.3)
+
+def ratio_with_error(num, num_err, den, den_err):
+    ratio = np.full_like(num, np.nan, dtype=float)
+    ratio_err = np.full_like(num, np.nan, dtype=float)
+
+    valid = den > 0
+    ratio[valid] = num[valid] / den[valid]
+    ratio_err[valid] = np.sqrt(
+        (num_err[valid] / den[valid]) ** 2
+        + (num[valid] * den_err[valid] / den[valid] ** 2) ** 2
+    )
+    return ratio, ratio_err
 
 def make_eff_fake_dup_plots(arrs, outdir: Path, show: bool):
     for kind_val in (0, 1, 2):  # Eff, Fake, Dup
@@ -107,44 +143,150 @@ def make_resolution_plots(arrs, outdir: Path, show: bool):
     if show: plt.show()
     plt.close(fig)
 
-def make_counts_plots(counts, outdir: Path, show: bool):
+def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str):
     if counts is None:
         print("Counts tree not found — skipping counts plots.")
         return
 
-    # pT / eta / phi counts with Poisson errors
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
+    if normalization == "none":
+        ylabel = "Counts"
+    elif normalization == "reco":
+        ylabel = "Entries / reconstructed entries"
+    else:
+        ylabel = "Fraction of entries"
+
+    fig, axes = plt.subplots(
+        2, 3, figsize=(14, 7), sharex="col",
+        gridspec_kw={"height_ratios": [3, 1]},
+        constrained_layout=True,
+    )
     triplets = [
-        ("ptCenters",  "ptCounts",  "Track counts vs pT",  "pT [GeV]"),
-        ("etaCenters", "etaCounts", "Track counts vs η",   "η"),
-        ("phiCenters", "phiCounts", "Track counts vs φ",   "φ [rad]"),
+        (0, "ptCenters", "ptCounts", "Track counts vs pT", "pT [GeV]"),
+        (1, "etaCenters", "etaCounts", "Track counts vs η", "η"),
+        (2, "phiCenters", "phiCounts", "Track counts vs φ", "φ [rad]"),
     ]
-    for ax, (cx, cy, title, xlabel) in zip(axes, triplets):
-        x = counts[cx]
-        y = counts[cy]
-        yerr = poisson_error(y)
-        if "pT" in xlabel: plot_xy(ax, x, y, yerr, title, xlabel, "Counts", isLog=True)
-        else: plot_xy(ax, x, y, yerr, title, xlabel, "Counts")
-    outpath = outdir / "counts_pt_eta_phi.png"
-    fig.savefig(outpath, dpi=150)
-    if show: plt.show()
+
+    for col, (coord, cx, cy, title, xlabel) in enumerate(triplets):
+        ax = axes[0, col]
+        ratio_ax = axes[1, col]
+
+        reco_x = counts[cx]
+        reco_y = counts[cy]
+        reco_total = np.sum(reco_y)
+        reco_y_plot, reco_err = scale_counts(
+            reco_y, poisson_error(reco_y), normalization, reco_total, title
+        )
+
+        truth_x, truth_y = truth_counts_for_coord(arrs, coord)
+        truth_y_plot, truth_err = scale_counts(
+            truth_y, poisson_error(truth_y), normalization, reco_total, title
+        )
+
+        if len(reco_x) != len(truth_x) or not np.allclose(reco_x, truth_x):
+            raise ValueError(f"Truth and reconstructed bin centers differ for '{title}'")
+
+        ax.errorbar(
+            reco_x, reco_y_plot, yerr=reco_err, fmt="o-", lw=1.25, ms=4,
+            capsize=3, label="Reconstructed tracks",
+        )
+        ax.errorbar(
+            truth_x, truth_y_plot, yerr=truth_err, fmt="s-", lw=1.25, ms=4,
+            capsize=3, label="Truth particles",
+        )
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+        ratio, ratio_err = ratio_with_error(
+            reco_y_plot, reco_err, truth_y_plot, truth_err
+        )
+        ratio_ax.errorbar(
+            reco_x, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
+        )
+        ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
+        ratio_ax.set_xlabel(xlabel)
+        ratio_ax.set_ylabel("Truth / reco")
+        ratio_ax.grid(True, alpha=0.3)
+
+        if "pT" in xlabel:
+            ax.set_xscale("log")
+            ratio_ax.set_xscale("log")
+
+    fig.savefig(outdir / "counts_pt_eta_phi.png", dpi=150)
+    if show:
+        plt.show()
     plt.close(fig)
 
-    # nHits (discrete)
-    fig, ax = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
-    x = counts["nHitsValues"]
-    y = counts["nHitsCounts"]
-    yerr = poisson_error(y)
-    # draw as markers + stems to emphasize discreteness
-    markerline = ax.errorbar(x, y, yerr=yerr, fmt="o", ms=4, capsize=3)
-    ax.vlines(x, 0, y, lw=1.0, alpha=0.5)
-    ax.set_title("Track counts vs nHits")
-    ax.set_xlabel("nHits")
-    ax.set_ylabel("Counts")
+    fig, (ax, ratio_ax) = plt.subplots(
+        2, 1, figsize=(6, 7), sharex=True,
+        gridspec_kw={"height_ratios": [3, 1]},
+        constrained_layout=True,
+    )
+
+    reco_x = counts["nHitsValues"]
+    reco_y = counts["nHitsCounts"]
+    reco_total = np.sum(reco_y)
+    reco_y_plot, reco_err = scale_counts(
+        reco_y, poisson_error(reco_y), normalization, reco_total,
+        "reconstructed nHits",
+    )
+    ax.errorbar(
+        reco_x, reco_y_plot, yerr=reco_err, fmt="o", ms=4, capsize=3,
+        label="Reconstructed tracks",
+    )
+    ax.vlines(reco_x, 0, reco_y_plot, lw=1.0, alpha=0.5)
+
+    truth_x = counts["trueNHitsValues"]
+    truth_y = counts["trueNHitsCounts"]
+    if truth_x.size:
+        truth_y_plot, truth_err = scale_counts(
+            truth_y, poisson_error(truth_y), normalization, reco_total,
+            "truth nHits",
+        )
+        ax.errorbar(
+            truth_x, truth_y_plot, yerr=truth_err, fmt="s", ms=4, capsize=3,
+            label="Truth particles",
+        )
+        ax.vlines(truth_x, 0, truth_y_plot, lw=1.0, alpha=0.5)
+
+        # Align the distributions in case they contain different nHits values.
+        all_nhits = np.union1d(reco_x, truth_x)
+        reco_aligned = np.zeros(len(all_nhits))
+        reco_err_aligned = np.zeros(len(all_nhits))
+        truth_aligned = np.zeros(len(all_nhits))
+        truth_err_aligned = np.zeros(len(all_nhits))
+
+        reco_indices = np.searchsorted(all_nhits, reco_x)
+        truth_indices = np.searchsorted(all_nhits, truth_x)
+        reco_aligned[reco_indices] = reco_y_plot
+        reco_err_aligned[reco_indices] = reco_err
+        truth_aligned[truth_indices] = truth_y_plot
+        truth_err_aligned[truth_indices] = truth_err
+
+        ratio, ratio_err = ratio_with_error(
+            reco_aligned, reco_err_aligned,
+            truth_aligned, truth_err_aligned,
+        )
+        ratio_ax.errorbar(
+            all_nhits, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
+        )
+        ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
+    else:
+        print("Truth nHits branches not found; rerun validation with the updated producer.")
+
+    ax.set_title("Track and truth-particle counts vs nHits")
+    ax.set_ylabel(ylabel)
     ax.grid(True, alpha=0.3)
-    outpath = outdir / "counts_nhits.png"
-    fig.savefig(outpath, dpi=150)
-    if show: plt.show()
+    ax.legend()
+
+    ratio_ax.set_xlabel("nHits")
+    ratio_ax.set_ylabel("Reco / truth")
+    ratio_ax.grid(True, alpha=0.3)
+
+    fig.savefig(outdir / "counts_nhits.png", dpi=150)
+    if show:
+        plt.show()
     plt.close(fig)
 
 def main():
@@ -152,6 +294,13 @@ def main():
     ap.add_argument("-i", "--input", required=True, help="path to pixelTrackValidation_ntuple.root")
     ap.add_argument("-o", "--outdir", default="plots_validation", help="output directory for plots")
     ap.add_argument("--show", action="store_true", help="show interactive windows")
+    ap.add_argument("-n", "--normalization", choices=("none", "reco", "unit"), default="none",
+        help=(
+            "count-plot normalization: none=raw counts, "
+            "reco=divide both distributions by the reconstructed total, "
+            "unit=normalize each distribution separately to 1"
+        ),
+    )
     args = ap.parse_args()
 
     inpath = Path(args.input)
@@ -175,7 +324,7 @@ def main():
     # Plots
     make_eff_fake_dup_plots(val, outdir, args.show)
     make_resolution_plots(val, outdir, args.show)
-    make_counts_plots(cnt, outdir, args.show)
+    make_counts_plots(val, cnt, outdir, args.show, args.normalization)
 
     print(f"Saved plots to: {outdir.resolve()}")
 
