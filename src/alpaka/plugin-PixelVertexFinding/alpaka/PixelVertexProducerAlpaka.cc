@@ -79,7 +79,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               /* eps         */ 0.07,
               /* errmax      */ 0.01,
               /* chi2max     */ 9.0),
-        maxVertices_(256),
+        maxVertices_(512),
         ptMin_(0.5),
         ptMax_(75.0),
         tokenTrack_(reg.consumes<cms::alpakatools::Product<Queue, TkSoADevice>>()),
