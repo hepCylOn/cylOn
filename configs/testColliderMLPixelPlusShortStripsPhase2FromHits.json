@@ -104,12 +104,12 @@
     "dcaCuts": [0.0175, 0.0425, 0.0625, 0.0825, 0.1425, 0.1425, 0.1575, 0.1575, 0.1525, 0.1375, 0.1525, 0.1425, 0.1425, 0.1575, 0.1575, 0.1525, 0.1475, 0.1625, 0.1575, 0.2125, 0.3775, 0.0025, 0.2925, 0.2925, 0.3275, 0.3525, 0.0025, 0.0025, 0.2925, 0.2975, 0.3225, 0.3525, 0.0025, 0.0025]
   },
   "CAHitNtupletColliderMLPixelPlusShortStripsPhase2": {
-    "maxNumberOfDoublets": 9000000,
-    "maxNumberOfTuples": 30000,
+    "maxNumberOfDoublets": 8500000,
+    "maxNumberOfTuples": 37000,
     
     "BField": 3.0,
     "avgHitsPerTrack": 10.0,
-    "avgCellsPerHit": 40.0,
+    "avgCellsPerHit": 35.0,
     "avgCellsPerCell": 0.151,
     "avgTracksPerCell": 0.040,
     
@@ -131,7 +131,7 @@
     "fitNas4": false,
     "earlyFishbone": true,
     "lateFishbone": false,
-    "doStats": true,
+    "doStats": false,
     "doSharedHitCut": true,
     "dupPassThrough": false,
     "useSimpleTripletCleaner": true
