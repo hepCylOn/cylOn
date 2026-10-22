@@ -414,7 +414,6 @@ int main(int argc, char** argv) {
         else {
           if (trackerType == "PixelOnly") config = "configs/testColliderMLPixelOnlyPhase2FromHits.json";
           if (trackerType == "PixelPlusShortStrips") config = "configs/testColliderMLPixelPlusShortStripsPhase2FromHits.json";
-          // else config = "configs/testColliderMLPixelPlusShortStripsPhase2FromHits90percent.json";
           if (trackerType == "AllTracker") config = "configs/testColliderMLAllTrackerPhase2FromHits.json";
         }
       }
