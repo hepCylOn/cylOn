@@ -548,7 +548,7 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
     histoDZ[i].resize(nBins);
     histoDR[i].resize(nBins);
     histoDPhi[i].resize(nBins);
-    histoZ0[i].resize(nBins);
+    histoZ0[i].resize(10*nBins);
     histoCurvature[i].resize(nBins);
     histoPT[i].resize(nBins);
     histoIDPhi[i].resize(nBins);
@@ -560,10 +560,12 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
       histoDZ[i][j] = 0;
       histoDR[i][j] = 0;
       histoDPhi[i][j] = 0;
-      histoZ0[i][j] = 0;
       histoCurvature[i][j] = 0;
       histoPT[i][j] = 0;
       histoIDPhi[i][j] = 0;
+    }
+    for (int j = 0; j < 10 * nBins; ++j) {
+      histoZ0[i][j] = 0;
     }
   }
 
@@ -600,7 +602,7 @@ SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
   simdoublets::linSpace<double> (nBins, -50.0, 50.0, binsDZ);
   simdoublets::linSpace<double> (nBins, 0.0, *(std::max_element(vectors.vecDR.begin(), vectors.vecDR.end())), binsDR);
   simdoublets::linSpace<double> (nBins, -0.5, 0.5, binsDPhi);
-  simdoublets::linSpace<double> (nBins, 0.0, 20.0, binsZ0);
+  simdoublets::linSpace<double> (10*nBins, 0.0, 200.0, binsZ0);
   simdoublets::linSpace<double> (nBins, 0.0, 3000.0, binsCurvature);
   simdoublets::logSpace<double> (nBins, -0.5, 2.0, binsPT);
   simdoublets::linSpace<double> (nBins, 0.0, 2000.0, binsIDPhi);
@@ -615,10 +617,18 @@ SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
       if(vectors.vecDZ[j] > binsDZ[i] && vectors.vecDZ[j] < binsDZ[i+1]) histoDZ[k][i]++;
       if(vectors.vecDR[j] > binsDR[i] && vectors.vecDR[j] < binsDR[i+1]) histoDR[k][i]++;
       if(vectors.vecDPhi[j] > binsDPhi[i] && vectors.vecDPhi[j] < binsDPhi[i+1]) histoDPhi[k][i]++;
-      if(vectors.vecZ0[j] > binsZ0[i] && vectors.vecZ0[j] < binsZ0[i+1]) histoZ0[k][i]++;
+      // if(vectors.vecZ0[j] > binsZ0[i] && vectors.vecZ0[j] < binsZ0[i+1]) histoZ0[k][i]++;
       if(vectors.vecCurvature[j] > binsCurvature[i] && vectors.vecCurvature[j] < binsCurvature[i+1]) histoCurvature[k][i]++;
       if(vectors.vecPT[j] > binsPT[i] && vectors.vecPT[j] < binsPT[i+1]) histoPT[k][i]++;
       if(vectors.vecIDPhi[j] > binsIDPhi[i] && vectors.vecIDPhi[j] < binsIDPhi[i+1]) histoIDPhi[k][i]++;
+    }
+  }
+  for (int i = 0; i < 10 * nBins; ++i) {
+    for (int j = 0; j < static_cast<int>(vectors.vecZ0.size()); ++j) {
+      int k = vectors.vecLayerPairId[j];
+      if (vectors.vecZ0[j] > binsZ0[i] && vectors.vecZ0[j] < binsZ0[i + 1]) {
+        histoZ0[k][i]++;
+      }
     }
   }
 
