@@ -118,7 +118,7 @@ def make_eff_fake_dup_plots(arrs, outdir: Path, show: bool):
             # plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name)
             if "pT" in xlabel: plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name, isLog=True)
             else: plot_xy(ax, x, y, yerr, f"{kind_name} vs {COORD_MAP[coord_val]}", xlabel, kind_name)
-        outpath = outdir / f"{kind_name.lower()}_pt_eta_phi.png"
+        outpath = outdir / f"{kind_name.lower()}_pt_eta_phi.pdf"
         fig.savefig(outpath, dpi=150)
         if show: plt.show()
         plt.close(fig)
@@ -138,12 +138,12 @@ def make_resolution_plots(arrs, outdir: Path, show: bool):
         x = s["binCenter"]
         y = s["value"]
         plot_xy(ax, x, y, None, f"Resolution vs {COORD_MAP[coord_val]}", xlabel, ylabel)
-    outpath = outdir / "resolution_all.png"
+    outpath = outdir / "resolution_all.pdf"
     fig.savefig(outpath, dpi=150)
     if show: plt.show()
     plt.close(fig)
 
-def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str):
+def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str, show_ratio: bool):
     if counts is None:
         print("Counts tree not found — skipping counts plots.")
         return
@@ -155,11 +155,19 @@ def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str
     else:
         ylabel = "Fraction of entries"
 
-    fig, axes = plt.subplots(
-        2, 3, figsize=(14, 7), sharex="col",
-        gridspec_kw={"height_ratios": [3, 1]},
-        constrained_layout=True,
-    )
+    if show_ratio:
+        fig, axes = plt.subplots(
+            2, 3, figsize=(16, 7), sharex="col",
+            gridspec_kw={"height_ratios": [3, 1]},
+            constrained_layout=True,
+        )
+        plot_axes = axes[0, :]
+        ratio_axes = axes[1, :]
+    else:
+        fig, plot_axes = plt.subplots(
+            1, 3, figsize=(14, 4), constrained_layout=True,
+        )
+        ratio_axes = [None, None, None]
     triplets = [
         (0, "ptCenters", "ptCounts", "Track counts vs pT", "pT [GeV]"),
         (1, "etaCenters", "etaCounts", "Track counts vs η", "η"),
@@ -167,8 +175,8 @@ def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str
     ]
 
     for col, (coord, cx, cy, title, xlabel) in enumerate(triplets):
-        ax = axes[0, col]
-        ratio_ax = axes[1, col]
+        ax = plot_axes[col]
+        ratio_ax = ratio_axes[col]
 
         reco_x = counts[cx]
         reco_y = counts[cy]
@@ -187,42 +195,49 @@ def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str
 
         ax.errorbar(
             reco_x, reco_y_plot, yerr=reco_err, fmt="o-", lw=1.25, ms=4,
-            capsize=3, label="Reconstructed tracks",
+            capsize=3, label="Reconstructed tracks", color="steelblue"
         )
         ax.errorbar(
-            truth_x, truth_y_plot, yerr=truth_err, fmt="s-", lw=1.25, ms=4,
-            capsize=3, label="Truth particles",
+            truth_x, truth_y_plot, yerr=truth_err, fmt="s--", lw=1.25, ms=4,
+            capsize=3, label="Truth particles", color="orange", mfc="none"
         )
         ax.set_title(title)
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)
         ax.legend()
 
-        ratio, ratio_err = ratio_with_error(
-            reco_y_plot, reco_err, truth_y_plot, truth_err
-        )
-        ratio_ax.errorbar(
-            reco_x, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
-        )
-        ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
-        ratio_ax.set_xlabel(xlabel)
-        ratio_ax.set_ylabel("Truth / reco")
-        ratio_ax.grid(True, alpha=0.3)
+        if show_ratio:
+            ratio, ratio_err = ratio_with_error(
+                reco_y_plot, reco_err, truth_y_plot, truth_err
+            )
+            ratio_ax.errorbar(
+                reco_x, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
+            )
+            ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
+            ratio_ax.set_xlabel(xlabel)
+            ratio_ax.set_ylabel("Reco / Truth")
+            ratio_ax.grid(True, alpha=0.3)
 
         if "pT" in xlabel:
             ax.set_xscale("log")
-            ratio_ax.set_xscale("log")
+            # ax.set_yscale("log")
+            if show_ratio:
+                ratio_ax.set_xscale("log")
 
-    fig.savefig(outdir / "counts_pt_eta_phi.png", dpi=150)
+    fig.savefig(outdir / "counts_pt_eta_phi.pdf", dpi=150)
     if show:
         plt.show()
     plt.close(fig)
 
-    fig, (ax, ratio_ax) = plt.subplots(
-        2, 1, figsize=(6, 7), sharex=True,
-        gridspec_kw={"height_ratios": [3, 1]},
-        constrained_layout=True,
-    )
+    if show_ratio:
+        fig, (ax, ratio_ax) = plt.subplots(
+            2, 1, figsize=(6, 7), sharex=True,
+            gridspec_kw={"height_ratios": [3, 1]},
+            constrained_layout=True,
+        )
+    else:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
+        ratio_ax = None
 
     reco_x = counts["nHitsValues"]
     reco_y = counts["nHitsCounts"]
@@ -250,41 +265,45 @@ def make_counts_plots(arrs, counts, outdir: Path, show: bool, normalization: str
         )
         ax.vlines(truth_x, 0, truth_y_plot, lw=1.0, alpha=0.5)
 
-        # Align the distributions in case they contain different nHits values.
-        all_nhits = np.union1d(reco_x, truth_x)
-        reco_aligned = np.zeros(len(all_nhits))
-        reco_err_aligned = np.zeros(len(all_nhits))
-        truth_aligned = np.zeros(len(all_nhits))
-        truth_err_aligned = np.zeros(len(all_nhits))
-
-        reco_indices = np.searchsorted(all_nhits, reco_x)
-        truth_indices = np.searchsorted(all_nhits, truth_x)
-        reco_aligned[reco_indices] = reco_y_plot
-        reco_err_aligned[reco_indices] = reco_err
-        truth_aligned[truth_indices] = truth_y_plot
-        truth_err_aligned[truth_indices] = truth_err
-
-        ratio, ratio_err = ratio_with_error(
-            reco_aligned, reco_err_aligned,
-            truth_aligned, truth_err_aligned,
-        )
-        ratio_ax.errorbar(
-            all_nhits, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
-        )
-        ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
+        if show_ratio:
+            # Align the distributions in case they contain different nHits values.
+            all_nhits = np.union1d(reco_x, truth_x)
+            reco_aligned = np.zeros(len(all_nhits))
+            reco_err_aligned = np.zeros(len(all_nhits))
+            truth_aligned = np.zeros(len(all_nhits))
+            truth_err_aligned = np.zeros(len(all_nhits))
+    
+            reco_indices = np.searchsorted(all_nhits, reco_x)
+            truth_indices = np.searchsorted(all_nhits, truth_x)
+            reco_aligned[reco_indices] = reco_y_plot
+            reco_err_aligned[reco_indices] = reco_err
+            truth_aligned[truth_indices] = truth_y_plot
+            truth_err_aligned[truth_indices] = truth_err
+    
+            ratio, ratio_err = ratio_with_error(
+                reco_aligned, reco_err_aligned,
+                truth_aligned, truth_err_aligned,
+            )
+            ratio_ax.errorbar(
+                all_nhits, ratio, yerr=ratio_err, fmt="o", ms=4, capsize=3
+            )
+            ratio_ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
     else:
         print("Truth nHits branches not found; rerun validation with the updated producer.")
 
     ax.set_title("Track and truth-particle counts vs nHits")
     ax.set_ylabel(ylabel)
+    ax.set_yscale("log")
     ax.grid(True, alpha=0.3)
     ax.legend()
 
-    ratio_ax.set_xlabel("nHits")
-    ratio_ax.set_ylabel("Reco / truth")
-    ratio_ax.grid(True, alpha=0.3)
+    if show_ratio:
+        ratio_ax.set_xlabel("nHits")
+        ratio_ax.set_ylabel("Reco / truth")
+        # ratio_ax.set_yscale("log")
+        ratio_ax.grid(True, alpha=0.3)
 
-    fig.savefig(outdir / "counts_nhits.png", dpi=150)
+    fig.savefig(outdir / "counts_nhits.pdf", dpi=150)
     if show:
         plt.show()
     plt.close(fig)
@@ -301,6 +320,8 @@ def main():
             "unit=normalize each distribution separately to 1"
         ),
     )
+    ap.add_argument("-r", "--ratio-plots", action="store_true", help=("include reconstructed/truth ratio panels in the count plots"))
+
     args = ap.parse_args()
 
     inpath = Path(args.input)
@@ -324,7 +345,7 @@ def main():
     # Plots
     make_eff_fake_dup_plots(val, outdir, args.show)
     make_resolution_plots(val, outdir, args.show)
-    make_counts_plots(val, cnt, outdir, args.show, args.normalization)
+    make_counts_plots(val, cnt, outdir, args.show, args.normalization, show_ratio=args.ratio_plots)
 
     print(f"Saved plots to: {outdir.resolve()}")
 
