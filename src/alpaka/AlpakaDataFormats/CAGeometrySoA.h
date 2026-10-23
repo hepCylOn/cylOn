@@ -38,6 +38,7 @@ namespace reco {
                       SOA_COLUMN(GraphNode, graph),
                       SOA_COLUMN(bool, startingPair),
                       SOA_COLUMN(int16_t, phiCuts),
+                      SOA_COLUMN(float, z0cut),
                       SOA_COLUMN(float, minz),
                       SOA_COLUMN(float, maxz),
                       SOA_COLUMN(float, maxr))

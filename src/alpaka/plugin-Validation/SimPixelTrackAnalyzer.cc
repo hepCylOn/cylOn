@@ -453,7 +453,6 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
     : simPixelTracks_getToken_(reg.consumes<SimPixelTrackCollection<TrackerTraits>>()),
       particles_getToken_(reg.consumes<sim::ParticleHost>()),
       hits_getToken_(reg.consumes<reco::TrackingRecHitHost>()),
-      cellZ0Cut_(TrackerTraits::cellZ0Cut),
       cellPtCut_(TrackerTraits::cellPtCut),
       hardCurvCut_(TrackerTraits::hardCurvCut),
       minNumDoubletsPerNtuplet_(3) {//,
@@ -760,7 +759,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
   /* z0cutoff */
   if (cellCutVariables.dr() > pairs[layerPairIdIndex].maxr() || cellCutVariables.dr() < 0)
     passDR = false;
-  if (cellCutVariables.z0() > cellZ0Cut_){
+  if (cellCutVariables.z0() > pairs[layerPairIdIndex].z0cut()){
     passZ0 = false;
   }
   else passCuts[1]++;

@@ -468,7 +468,6 @@ private:
 //   const int maxDYsize12_;
 //   const int maxDYsize_;
 //   const int maxDYPred_;
-  const double cellZ0Cut_;
   const double cellPtCut_;
   const double hardCurvCut_;
   const int minNumDoubletsPerNtuplet_;

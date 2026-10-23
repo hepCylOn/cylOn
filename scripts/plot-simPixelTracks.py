@@ -116,8 +116,8 @@ while i < len(lines):
             )
 
             # Lines from interval
-            plt.axvline(x_low, color='red', linestyle='dotted', label='Inferior limit')
-            plt.axvline(x_high, color='green', linestyle='dashed', label='Superior limit')
+            plt.axvline(x_low, color='red', linestyle='dotted', linewidth=2, label='Inferior limit')
+            plt.axvline(x_high, color='green', linestyle='dashed', linewidth=2, label='Superior limit')
 
             # Scale adjustement
             if "PT" in label.upper():
@@ -151,11 +151,11 @@ summary = "\n".join([
     f"\"minZ\": {minz},\n",
     f"\"maxZ\": {maxz},\n",
     f"\"maxR\": {maxr},\n",
+    f"\"z0cut\": {cellZ0cut},\n",
     f"\"thetaCuts\": {thetaCuts},\n",
     f"\"dcaCuts\": {dcaCuts}",
     "=======================================================================",
     f"\"hardCurvCut\": {hardCurvCut},",
-    f"\"cellZ0cut\": {max(cellZ0cut)},",
     "=======================================================================",
 ])
 

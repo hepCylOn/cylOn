@@ -77,11 +77,43 @@
 
     "maxR": [
       20.0, 9.0, 9.0, 20.0, 7.0, 7.0, 5.0, 5.0, 20.0, 6.0, 6.0, 5.0, 5.0, 20.0, 20.0, 9.0, 9.0, 9.0, 9.0
+    ],
+
+    "z0cut": [
+      12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0
     ]
   },
   "CAHitNtupletPhase1": {
-    "maxNumberOfDoublets": 800000,
-    "maxNumberOfTuples": 5000
+    "maxNumberOfDoublets": 380000,
+    "maxNumberOfTuples": 2000,
+    
+    "BField": 3.0,
+    "avgHitsPerTrack": 5.0,
+    "avgCellsPerHit": 25.0,
+    "avgCellsPerCell": 0.151,
+    "avgTracksPerCell": 0.040,
+    
+    "minHitsPerNtuplet": 4,
+    "minHitsForSharingCut": 10,
+    "ptmin": 0.9,
+    "hardCurvCut": 0.0095,
+    "cellPtCut": 0.85,
+    
+    "dzdrFact": 15.2,
+    "minYsizeB1": 0,
+    "minYsizeB2": 0,
+    "maxDYsize12": 0,
+    "maxDYsize": 0,
+    "maxDYPred": 0,
+    
+    "useRiemannFit": false,
+    "fitNas4": false,
+    "earlyFishbone": true,
+    "lateFishbone": false,
+    "doStats": false,
+    "doSharedHitCut": true,
+    "dupPassThrough": false,
+    "useSimpleTripletCleaner": true
   }
 }
 

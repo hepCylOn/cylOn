@@ -73,7 +73,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_
           1.0f / (0.35f * 87.0f),  // hardCurvCut_
-          12.0f,  // cellZ0Cut_
+          // 12.0f,  // cellZ0Cut_
           0.5f,   // cellPtCut_
 
           // Pixel cluster cut params
@@ -110,7 +110,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 1.0f / (0.35f * 87.0f))),
-            static_cast<float>(cfg.value("cellZ0Cut", 12.0f)),
+            // static_cast<float>(cfg.value("cellZ0Cut", 12.0f)),
             static_cast<float>(cfg.value("cellPtCut", 0.5f)),
 
             // Pixel cluster cut params
@@ -220,7 +220,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_  (kept same unless you want to change)
           1.0f / (0.35f * 87.0f),  // hardCurvCut_
-          7.5f,   // cellZ0Cut_
+          // 7.5f,   // cellZ0Cut_
           0.85f,  // cellPtCut_
 
           // ---- Pixel Cluster Cut Params ----
@@ -257,7 +257,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 1.0f / (0.35f * 87.0f))),
-            static_cast<float>(cfg.value("cellZ0Cut", 7.5f)),
+            // static_cast<float>(cfg.value("cellZ0Cut", 7.5f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // ---- Pixel Cluster Cut Params ----
@@ -325,7 +325,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_
           0.015f,  // hardCurvCut_
-          9.1f,  // cellZ0Cut_
           0.85f,   // cellPtCut_
 
           // Pixel cluster cut params
@@ -362,7 +361,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.015f)),
-            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // Pixel cluster cut params
@@ -472,7 +470,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_  (kept same unless you want to change)
           0.0125, // hardCurvCut_
-          9.1f,   // cellZ0Cut_
           0.85f,  // cellPtCut_
 
           // ---- Pixel Cluster Cut Params ----
@@ -509,7 +506,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.0125)),
-            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // ---- Pixel Cluster Cut Params ----
@@ -577,7 +573,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_  (kept same unless you want to change)
           0.0115, // hardCurvCut_
-          9.1f,   // cellZ0Cut_
           0.85f,  // cellPtCut_
 
           // ---- Pixel Cluster Cut Params ----
@@ -614,7 +609,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.0115)),
-            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // ---- Pixel Cluster Cut Params ----
@@ -682,7 +676,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           10,     // minHitsForSharingCut_
           0.9f,   // ptmin_  (kept same unless you want to change)
           0.0915, // hardCurvCut_
-          9.1f,   // cellZ0Cut_
           0.85f,  // cellPtCut_
 
           // ---- Pixel Cluster Cut Params ----
@@ -719,7 +712,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             static_cast<uint16_t>(cfg.value("minHitsForSharingCut", 10)),
             static_cast<float>(cfg.value("ptmin", 0.9f)),
             static_cast<float>(cfg.value("hardCurvCut", 0.0915)),
-            static_cast<float>(cfg.value("cellZ0Cut", 9.1f)),
             static_cast<float>(cfg.value("cellPtCut", 0.85f)),
 
             // ---- Pixel Cluster Cut Params ----

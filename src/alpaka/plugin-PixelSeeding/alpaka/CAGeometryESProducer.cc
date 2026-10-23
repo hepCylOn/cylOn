@@ -72,6 +72,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   minZ_ = getRequiredVector.template operator()<float>("minZ", nPairs_);
   maxZ_ = getRequiredVector.template operator()<float>("maxZ", nPairs_);
   maxR_ = getRequiredVector.template operator()<float>("maxR", nPairs_);
+  z0cut_ = getRequiredVector.template operator()<float>("z0cut", nPairs_);
   pairGraph_ = getRequiredVector.template operator()<uint8_t>("pairGraph", nPairs_ * 2);
   startingPairs_ = getRequiredVector.template operator()<uint8_t>("startingPairs", nPairs_);
 
@@ -129,6 +130,7 @@ auto maxVal = std::ranges::max(startingPairs_);
     std::vector<float> minZ_;
     std::vector<float> maxZ_;
     std::vector<float> maxR_;
+    std::vector<float> z0cut_;
     std::vector<uint8_t> pairGraph_;
     std::vector<uint8_t> startingPairs_;
   };
@@ -173,6 +175,7 @@ auto maxVal = std::ranges::max(startingPairs_);
       graph.minz(i) = static_cast<float>(minZ_[i]);
       graph.maxz(i) = static_cast<float>(maxZ_[i]);
       graph.maxr(i) = static_cast<float>(maxR_[i]);
+      graph.z0cut(i) = static_cast<float>(z0cut_[i]);
     }
 
 #ifdef GPU_DEBUG

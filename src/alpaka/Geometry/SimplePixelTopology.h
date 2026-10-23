@@ -891,7 +891,6 @@ namespace pixelTopology {
     static constexpr bool const *isBarrel = colliderMLPhase1PixelTopology::isBarrel;
     static constexpr float const *ptCuts = colliderMLPhase1PixelTopology::ptCuts;
 
-    static constexpr float const cellZ0Cut = 12.0;
     static constexpr float const cellPtCut = 0.5;
     static constexpr float const hardCurvCut = 0.015;
 
@@ -1003,7 +1002,6 @@ namespace pixelTopology {
     static constexpr char const *nameModifier = "ColliderMLPhase2";
     static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
 
-    static constexpr float const cellZ0Cut = 14.5;
     static constexpr float const cellPtCut = 0.85;
     static constexpr float const hardCurvCut = 0.0125;
 
@@ -1133,7 +1131,6 @@ namespace pixelTopology {
 
     static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
 
-    static constexpr float const cellZ0Cut = 14.5;
     static constexpr float const cellPtCut = 0.85;
     static constexpr float const hardCurvCut = 0.0115;
 
@@ -1263,7 +1260,6 @@ namespace pixelTopology {
 
     static constexpr char const *cpeModules = "PixelCPEFastParamsPhase2";
 
-    static constexpr float const cellZ0Cut = 14.5;
     static constexpr float const cellPtCut = 0.85;
     static constexpr float const hardCurvCut = 0.0915;
 

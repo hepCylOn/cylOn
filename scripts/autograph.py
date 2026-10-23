@@ -577,6 +577,8 @@ def main():
             for a in range(len(edges_df)): f.write("0.5,")
             f.write("\n\n" + "maxr: ")
             for a in range(len(edges_df)): f.write("0.5,")
+            f.write("\n\n" + "z0cut: ")
+            for a in range(len(edges_df)): f.write("0.5,")
             f.write("\n\n" + "dcaCuts: ")
             for a in range(edges_df["box_to"][len(edges_df) - 1] + 1): f.write("0.5,")
             f.write("\n\n" + "thetaCuts: ")
