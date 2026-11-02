@@ -1025,24 +1025,8 @@ namespace pixelTopology {
 
     static constexpr int nPairsMinimal = 95;
     static constexpr int nPairsFarForwards = nPairsMinimal + 16;  // include barrel "jumping" layer pairs
-    static constexpr int nPairs = phase1PixelTopology::nPairs;   // include far forward layer pairs // PLACEHOLDER - defined in the config file
 
     static constexpr uint16_t numberOfModules = phase1PixelTopology::numberOfModules; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint32_t const *layerStart = phase1PixelTopology::layerStart; // PLACEHOLDER - defined in the config file
-
-    static constexpr float const *minz = phase1PixelTopology::minz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxz = phase1PixelTopology::maxz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxr = phase1PixelTopology::maxr; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *layerPairs = phase1PixelTopology::layerPairs; // PLACEHOLDER - defined in the config file
-    static constexpr int16_t const *phicuts = phase1PixelTopology::phicuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *thetaCuts = phase1PixelTopology::thetaCuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *dcaCuts = phase1PixelTopology::dcaCuts; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *startingPairs = phase1PixelTopology::startingPairs; // PLACEHOLDER - defined in the config file
-    static constexpr bool const *isBarrel = phase1PixelTopology::isBarrel; // PLACEHOLDER - defined in the config file
-    static constexpr float const *ptCuts = phase1PixelTopology::ptCuts; // PLACEHOLDER - defined in the config file
 
     static constexpr uint16_t firstPixelBarrelPos = 0;
     static constexpr uint16_t lastPixelBarrelPos = 3;
@@ -1154,24 +1138,8 @@ namespace pixelTopology {
 
     static constexpr int nPairsMinimal = 171 - 16;
     static constexpr int nPairsFarForwards = nPairsMinimal + 16;  // include barrel "jumping" layer pairs
-    static constexpr int nPairs = phase1PixelTopology::nPairs;   // include far forward layer pairs // PLACEHOLDER - defined in the config file
 
     static constexpr uint16_t numberOfModules = phase1PixelTopology::numberOfModules; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint32_t const *layerStart = phase1PixelTopology::layerStart; // PLACEHOLDER - defined in the config file
-
-    static constexpr float const *minz = phase1PixelTopology::minz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxz = phase1PixelTopology::maxz; // PLACEHOLDER - defined in the config file
-    static constexpr float const *maxr = phase1PixelTopology::maxr; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *layerPairs = phase1PixelTopology::layerPairs; // PLACEHOLDER - defined in the config file
-    static constexpr int16_t const *phicuts = phase1PixelTopology::phicuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *thetaCuts = phase1PixelTopology::thetaCuts; // PLACEHOLDER - defined in the config file
-    static constexpr float const *dcaCuts = phase1PixelTopology::dcaCuts; // PLACEHOLDER - defined in the config file
-
-    static constexpr uint8_t const *startingPairs = phase1PixelTopology::startingPairs; // PLACEHOLDER - defined in the config file
-    static constexpr bool const *isBarrel = phase1PixelTopology::isBarrel; // PLACEHOLDER - defined in the config file
-    static constexpr float const *ptCuts = phase1PixelTopology::ptCuts; // PLACEHOLDER - defined in the config file
 
     static constexpr uint16_t firstPixelBarrelPos = 0;
     static constexpr uint16_t lastPixelBarrelPos = 3;
