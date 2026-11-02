@@ -552,37 +552,41 @@ def main():
         sequences_df = pd.DataFrame(sequences,columns=["id","seq"])
         edges_df.to_csv("line_sweep_edges.csv", index=False)
 
+        n_pairs = len(edges_df)
+        last_box_to = int(edges_df["box_to"].iloc[-1])
+        n_layers = last_box_to + 1
+
+        pair_graph = [
+            int(value)
+            for value in edges_df[["box_from", "box_to"]].to_numpy().ravel()
+        ]
+        starting_pairs = (((edges_df["box_from"] == 0) | (edges_df["box_to"] == 0)).astype(int).tolist())
+        layer_starts = list(range(last_box_to + 2))
+        is_barrel = [bool(value) for value in boxes_df["isBarrel"]]
+
         with open("line_sweep_edges.txt", "w") as f:
-            f.write("numberOfLayers: " + str(edges_df["box_to"][len(edges_df) - 1] + 1))
-            f.write("\n\n" + "nPairs: " + str(len(edges_df)))
-            f.write("\n\n" + "numberOfModules: " + str(edges_df["box_to"][len(edges_df) - 1] + 1))
-            f.write("\n\n" + "layerPairs: ")
-            for a in range(len(edges_df)):
-                f.write(str(edges_df["box_from"][a]) + "," + str(edges_df["box_to"][a]) + ",")
-            f.write("\n\n" + "startingPairs: ")
-            for a in range(len(edges_df)): 
-                if a < 3: f.write("1,")
-                else: f.write("0,")
-            f.write("\n\n" + "isBarrel: ")
-            for a in boxes_df["isBarrel"]: f.write(str(a) + ",")
-            f.write("\n\n" + "ptCuts: ")
-            for a in range(len(edges_df)): f.write("0.5,")
-            f.write("\n\n" + "layerStart: ")
-            for a in range(edges_df["box_to"][len(edges_df) - 1] + 2): f.write(str(a) + ",")
-            f.write("\n\n" + "phicuts: ")
-            for a in range(len(edges_df)): f.write("100,")
-            f.write("\n\n" + "minz: ")
-            for a in range(len(edges_df)): f.write("0.5,")
-            f.write("\n\n" + "maxz: ")
-            for a in range(len(edges_df)): f.write("0.5,")
-            f.write("\n\n" + "maxr: ")
-            for a in range(len(edges_df)): f.write("0.5,")
-            f.write("\n\n" + "z0cut: ")
-            for a in range(len(edges_df)): f.write("0.5,")
-            f.write("\n\n" + "dcaCuts: ")
-            for a in range(edges_df["box_to"][len(edges_df) - 1] + 1): f.write("0.5,")
-            f.write("\n\n" + "thetaCuts: ")
-            for a in range(edges_df["box_to"][len(edges_df) - 1] + 1): f.write("0.5,")
+            def write_array(name, values, ending=",\n\n"):
+                f.write(f'"{name}": {json.dumps(values)}{ending}')
+
+            f.write(f'"nLayers": {n_layers},\n\n')
+            f.write(f'"nPairs": {n_pairs},\n\n')
+            f.write(f'"nModules": {n_layers},\n\n')
+            write_array("pairGraph", pair_graph)
+            write_array("startingPairs", starting_pairs)
+            write_array("layerStarts", layer_starts)
+            write_array("phiCuts", [100] * n_pairs)
+            write_array("minZ", [0.5] * n_pairs)
+            write_array("maxZ", [0.5] * n_pairs)
+            write_array("maxR", [0.5] * n_pairs)
+            write_array("z0cut", [0.5] * n_pairs)
+            write_array("thetaCuts", [0.5] * n_layers)
+            write_array("dcaCuts", [0.5] * n_layers, "\n\n==========================================================\n\n")
+            f.write(f'"nPairs": {n_pairs},\n\n')
+            f.write(f'"nLayers": {n_layers},\n\n')
+            write_array("pairGraph", pair_graph)
+            write_array("startingPairs", starting_pairs)
+            write_array("isBarrel", is_barrel)
+            write_array("ptCuts", [0.5] * n_pairs, ending="")
 
         with open("line_sweep_sequences.txt", "w") as f:
             for a, seq in sequences:
@@ -638,7 +642,7 @@ def main():
 
         plt.xlabel("Z")
         plt.ylabel("R")
-        plt.title("Boxes conectadas")
+        plt.title("Connected layers")
 
         plt.grid(True, alpha=0.3)
 
@@ -650,8 +654,30 @@ def main():
 
         plt.close()
 
-        for _, row in boxes_df.iterrows():
+        plot_boxes = boxes_df.dropna(
+            subset=["minZ", "maxZ", "minR", "maxR", "centerZ", "centerR"]
+        )
 
+        print(f"[INFO] Boxes to draw: {len(plot_boxes)}")
+
+        if plot_boxes.empty:
+            raise ValueError(
+                "No boxes are available to plot. Check the occupancy filter and input data."
+            )
+
+        z_min = plot_boxes["minZ"].min()
+        z_max = plot_boxes["maxZ"].max()
+        r_min = plot_boxes["minR"].min()
+        r_max = plot_boxes["maxR"].max()
+
+        if not np.isfinite([z_min, z_max, r_min, r_max]).all():
+            raise ValueError(
+                f"Non-finite box bounds: Z=({z_min}, {z_max}), R=({r_min}, {r_max})"
+            )
+
+        fig, ax = plt.subplots(figsize=(10, 7))
+
+        for _, row in plot_boxes.iterrows():
             rect = patches.Rectangle(
                 (row["minZ"], row["minR"]),
                 row["maxZ"] - row["minZ"],
@@ -660,10 +686,9 @@ def main():
                 edgecolor="red",
                 facecolor="none"
             )
+            ax.add_patch(rect)
 
-            plt.gca().add_patch(rect)
-
-            plt.text(
+            ax.text(
                 row["centerZ"],
                 row["centerR"],
                 str(int(row["box_id"])),
@@ -671,24 +696,21 @@ def main():
                 ha="center",
                 va="center",
                 fontweight="bold",
-                bbox=dict(
-                    facecolor="white",
-                    edgecolor="black",
-                    alpha=0.8
-                )
+                bbox=dict(facecolor="white", edgecolor="black", alpha=0.8)
             )
 
-        plt.xlabel("Z")
-        plt.ylabel("R")
-        plt.title("Boxes")
+        z_pad = max((z_max - z_min) * 0.03, 1e-6)
+        r_pad = max((r_max - r_min) * 0.03, 1e-6)
+        ax.set_xlim(z_min - z_pad, z_max + z_pad)
+        ax.set_ylim(r_min - r_pad, r_max + r_pad)
 
-        plt.grid(True, alpha=0.3)
+        ax.set_xlabel("Z")
+        ax.set_ylabel("R")
+        ax.set_title("Boxes")
+        ax.grid(True, alpha=0.3)
 
-        plt.savefig(
-            "boxes.png",
-            dpi=300,
-            bbox_inches="tight"
-        )
+        fig.savefig("boxes.png", dpi=150)
+        plt.close(fig)
 
 if __name__ == "__main__":
     main()
