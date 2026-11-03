@@ -1,15 +1,10 @@
 import os
 
 import numpy as np
-import polars as pl
 import vector
 import argparse
 
-from colliderml.core import load_tables, collect_tables
-from colliderml.polars import explode_particles
-
-pl.Config.set_tbl_rows(12)
-pl.Config.set_tbl_cols(20)
+from datasets import load_dataset
 
 parser = argparse.ArgumentParser(
                     prog='extractHitsFromParquet',
@@ -33,204 +28,85 @@ partFileName = 'particles' + args.outFileName + muonModifier + '.txt'
 # to remove it before executing the code
 if os.path.exists(partFileName): os.system('rm ' + partFileName)
 
-home_directory = os.path.expanduser("~")
+# Use this in streaming mode so that it doesn't directly download all files into local.
+# It will make available some datasets, but all can be iterated via a for loop, as shown below
+# More details in https://huggingface.co/datasets/OpenDataDetector/ColliderML-Release-1,
+# https://huggingface.co/docs/datasets/v1.10.1/package_reference/main_classes.html#datasets.IterableDataset
+# and https://huggingface.co/docs/datasets/stream
 
-cfg = {
-    "dataset_id": "CERN/ColliderML-Release-1",
-    "channels": "ttbar",
-    "pileup": "pu200",
-    "objects": ["particles"],
-    "split": "train",
-    "lazy": True,
-    "max_events": args.numberOfEvents,
-    "data_dir": home_directory + "/.cache/colliderml"
-}
-
-tables = load_tables(cfg)
-frames = collect_tables(tables)
-
-particles_evt = frames["particles"]
-
-particles_mult = particles_evt.select(
-    pl.col("particle_id").list.len().alias("n_particles"),
+particles_iter_dataset = load_dataset(
+    "OpenDataDetector/ColliderML-Release-1",
+    data_dir="data/ttbar_pu200_particles",
+    split="train",
+    streaming=True,
+    columns=["px","py","pz","vx","vy","vz","energy","mass","charge","particle_id","pdg_id"],
 )
-particles_flat = explode_particles(particles_evt)
 
-pn = (particles_mult["n_particles"]).to_numpy().astype(int)
-ppx = particles_flat["px"].to_numpy().astype(float)
-ppy = particles_flat["py"].to_numpy().astype(float)
-ppz = particles_flat["pz"].to_numpy().astype(float)
-pvx = particles_flat["vx"].to_numpy().astype(float)
-pvy = particles_flat["vy"].to_numpy().astype(float)
-pvz = particles_flat["vz"].to_numpy().astype(float)
-pe = particles_flat["energy"].to_numpy().astype(float)
-pm = particles_flat["mass"].to_numpy().astype(float)
-pc = particles_flat["charge"].to_numpy().astype(int)
-pid = particles_flat["particle_id"].to_numpy().astype(int)
-ppid = particles_flat["pdg_id"].to_numpy().astype(int)
+numberOfEvents = 0
 
-counter = {"n": 0}
-nAux = 0
+for particles in particles_iter_dataset:
 
-for i in range(len(pn)):
+    ppx = np.asarray(particles["px"], dtype=np.float32)
+    ppy = np.asarray(particles["py"], dtype=np.float32)
+    ppz = np.asarray(particles["pz"], dtype=np.float32)
+    pvx = np.asarray(particles["vx"], dtype=np.float32)
+    pvy = np.asarray(particles["vy"], dtype=np.float32)
+    pvz = np.asarray(particles["vz"], dtype=np.float32)
+    pe = np.asarray(particles["energy"], dtype=np.float32)
+    pm = np.asarray(particles["mass"], dtype=np.float32)
+    pc = np.asarray(particles["charge"], dtype=np.int16)
+    pid = np.asarray(particles["particle_id"], dtype=np.uint32)
+    ppid = np.asarray(particles["pdg_id"], dtype=np.int32)
 
-    if args.debug:
-        if counter["n"] >= args.eventsForDebug: 
-            print(f"Created file {partFileName} WHILE DEBUGGING")
-            exit()
+    if args.debug and numberOfEvents >= args.eventsForDebug:
+        print(f"Created file {partFileName} WHILE DEBUGGING")
+        break
 
-    ppxAux = ppx[nAux:(nAux + pn[i])]
-    ppyAux = ppy[nAux:(nAux + pn[i])]
-    ppzAux = ppz[nAux:(nAux + pn[i])]
-    pvxAux = pvx[nAux:(nAux + pn[i])]
-    pvyAux = pvy[nAux:(nAux + pn[i])]
-    pvzAux = pvz[nAux:(nAux + pn[i])]
-    peAux = pe[nAux:(nAux + pn[i])]
-    pmAux = pm[nAux:(nAux + pn[i])]
-    pcAux = pc[nAux:(nAux + pn[i])]
-    pidAux = pid[nAux:(nAux + pn[i])]
-    ppidAux = ppid[nAux:(nAux + pn[i])]
+    # Build kinematics from the original event, then combine all selection cuts, similar to what is done in CMS.
+    p4 = vector.arr({"px": ppx, "py": ppy, "pz": ppz, "E": pe})
 
-    nAux += pn[i]
-
-    # Apply some cuts to mimic tracking studies at CMS
-    # Only save particles with zVertex < 30 cm
-    vzCheck = (abs(pvzAux) < (300.0*np.ones(len(pvzAux))))
-
-    ppxAux = ppxAux[vzCheck]
-    ppyAux = ppyAux[vzCheck]
-    ppzAux = ppzAux[vzCheck]
-    pvxAux = pvxAux[vzCheck]
-    pvyAux = pvyAux[vzCheck]
-    pvzAux = pvzAux[vzCheck]
-    peAux = peAux[vzCheck]
-    pmAux = pmAux[vzCheck]
-    pcAux = pcAux[vzCheck]
-    pidAux = pidAux[vzCheck]
-    ppidAux = ppidAux[vzCheck]
-
-    # Only save particles with rVertex < 2.5 cm
-    vrCheck = (np.sqrt((pvxAux*pvxAux)+(pvyAux*pvyAux)) < (25.0*np.ones(len(pvxAux))))
-
-    ppxAux = ppxAux[vrCheck]
-    ppyAux = ppyAux[vrCheck]
-    ppzAux = ppzAux[vrCheck]
-    pvxAux = pvxAux[vrCheck]
-    pvyAux = pvyAux[vrCheck]
-    pvzAux = pvzAux[vrCheck]
-    peAux = peAux[vrCheck]
-    pmAux = pmAux[vrCheck]
-    pcAux = pcAux[vrCheck]
-    pidAux = pidAux[vrCheck]
-    ppidAux = ppidAux[vrCheck]
+    keep = (
+        (np.abs(pvz) < 300.0)
+        & (np.hypot(pvx, pvy) < 25.0)
+    )
 
     if args.isMuonsOnly:
-        # Only save muons
-        pdgidCheck = (abs(ppidAux) == (13*np.ones(len(ppidAux))))
+        keep &= np.abs(ppid) == 13
 
-        ppxAux = ppxAux[pdgidCheck]
-        ppyAux = ppyAux[pdgidCheck]
-        ppzAux = ppzAux[pdgidCheck]
-        pvxAux = pvxAux[pdgidCheck]
-        pvyAux = pvyAux[pdgidCheck]
-        pvzAux = pvzAux[pdgidCheck]
-        peAux = peAux[pdgidCheck]
-        pmAux = pmAux[pdgidCheck]
-        pcAux = pcAux[pdgidCheck]
-        pidAux = pidAux[pdgidCheck]
-        ppidAux = ppidAux[pdgidCheck]
+    keep &= (p4.pt > 0.9)
+    keep &= (np.abs(p4.eta) < 3.2)
 
-    p4_beforeCut = vector.arr({"px": ppxAux, "py": ppyAux, "pz": ppzAux, "E": peAux})
+    ppx, ppy, ppz, pvx, pvy, pvz, pe, pm, pc, pid, ppid = (
+        values[keep]
+        for values in (ppx, ppy, ppz, pvx, pvy, pvz, pe, pm, pc, pid, ppid)
+    )
 
-    # Only save particles with pT > 0.9 GeV
-    pTCheck = (p4_beforeCut.pt > (0.9*np.ones(len(ppxAux))))
-
-    ppxAux = ppxAux[pTCheck]
-    ppyAux = ppyAux[pTCheck]
-    ppzAux = ppzAux[pTCheck]
-    pvxAux = pvxAux[pTCheck]
-    pvyAux = pvyAux[pTCheck]
-    pvzAux = pvzAux[pTCheck]
-    peAux = peAux[pTCheck]
-    pmAux = pmAux[pTCheck]
-    pcAux = pcAux[pTCheck]
-    pidAux = pidAux[pTCheck]
-    ppidAux = ppidAux[pTCheck]
-
-    p4_afterPtCut = vector.arr({"px": ppxAux, "py": ppyAux, "pz": ppzAux, "E": peAux})
-
-    # Only save particles that usually pass through layer 0, i.e., |eta| < 3.2
-    etaCheck = (abs(p4_afterPtCut.eta) < (3.2*np.ones(len(ppxAux))))
-
-    ppxAux = ppxAux[etaCheck]
-    ppyAux = ppyAux[etaCheck]
-    ppzAux = ppzAux[etaCheck]
-    pvxAux = pvxAux[etaCheck]
-    pvyAux = pvyAux[etaCheck]
-    pvzAux = pvzAux[etaCheck]
-    peAux = peAux[etaCheck]
-    pmAux = pmAux[etaCheck]
-    pcAux = pcAux[etaCheck]
-    pidAux = pidAux[etaCheck]
-    ppidAux = ppidAux[etaCheck]
-
-    p4_afterCuts = vector.arr({"px": ppxAux, "py": ppyAux, "pz": ppzAux, "E": peAux})
-    
-    # Convert columns of dataset to be more readable
-    datasetPxCol = (ppxAux).tolist()
-    datasetPyCol = (ppyAux).tolist()
-    datasetPzCol = (ppzAux).tolist()
-    datasetECol = (peAux).tolist()
-    datasetPTCol = (p4_afterCuts.pt).tolist()
-    datasetEtaCol = (p4_afterCuts.eta).tolist()
-    datasetPhiCol = (p4_afterCuts.phi).tolist()
-    datasetMCol = (pmAux).tolist()
-    datasetQCol = (pcAux).tolist()
-    datasetPDGIDCol = (ppidAux).tolist()
-    datasetPartIDCol = (pidAux).tolist()
-    datasetVxCol = (pvxAux/10.0).tolist()
-    datasetVyCol = (pvyAux/10.0).tolist()
-    datasetVzCol = (pvzAux/10.0).tolist()
+    p4_afterCuts = vector.arr({"px": ppx, "py": ppy, "pz": ppz, "E": pe})
 
     # Check to see if the lists exist. Even if 0 particles, count the event to match with hits file
-    if len(datasetPxCol) == 0:
+    if ppx.size == 0:
         with open(partFileName, 'a') as fout:
-            fout.write(f"particles:0\n")
-        counter["n"] += 1
+            fout.write("particles:0\n")
+        numberOfEvents += 1
         continue
 
-    # To apply the particles' pT ordering to all of the information to be saved, a tuple has to be
-    # created so that the ordering acts in the same way over all columns. Afterwards, the tuple
-    # can be split. Index 4 in x[4] means the pT column
-    tuples = list(zip(datasetPxCol,datasetPyCol,datasetPzCol,datasetECol,datasetPTCol,datasetEtaCol,datasetPhiCol,datasetMCol,datasetQCol,datasetPDGIDCol,datasetPartIDCol,datasetVxCol,datasetVyCol,datasetVzCol))
-    tuples_sorted = sorted(tuples, key = lambda x : x[4])
-    savePX,savePY,savePZ,saveE,savePT,saveEta,savePhi,saveM,saveQ,savePDGID,savePartID,saveVX,saveVY,saveVZ = zip(*tuples_sorted)
-    savePX = list(savePX)
-    savePY = list(savePY)
-    savePZ = list(savePZ)
-    saveE = list(saveE)
-    savePT = list(savePT)
-    saveEta = list(saveEta)
-    savePhi = list(savePhi)
-    saveM = list(saveM)
-    saveQ = list(saveQ)
-    savePDGID = list(savePDGID)
-    savePartID = list(savePartID)
-    saveVX = list(saveVX)
-    saveVY = list(saveVY)
-    saveVZ = list(saveVZ)
+    order = np.argsort(p4_afterCuts.pt, kind="stable")
 
-    # Information per event is appended to partFileName as:
-    # particles:total_number_of_particles
-    # vx,vy,vz,px,py,pz,E,pT,eta,phi,m,q,pdgID,partID
-    with open(partFileName, 'a') as fout:
-        fout.write(f"particles:{len(savePX)}\n")
-        for j in range(len(savePX)):
-            fout.write(f"{saveVX[j]},{saveVY[j]},{saveVZ[j]},{savePX[j]},{savePY[j]},{savePZ[j]},{saveE[j]},{savePT[j]},{saveEta[j]},{savePhi[j]},{saveM[j]},{saveQ[j]},{savePDGID[j]},{savePartID[j]}\n")
-        fout.close()
+    with open(partFileName, "a") as fout:
+        fout.write(f"particles:{len(order)}\n")
+        for idx in order:
+            fout.write(
+                f"{float(pvx[idx] / 10.0)},{float(pvy[idx] / 10.0)},{float(pvz[idx] / 10.0)},"
+                f"{float(ppx[idx])},{float(ppy[idx])},{float(ppz[idx])},{float(pe[idx])},"
+                f"{float(p4_afterCuts.pt[idx])},{float(p4_afterCuts.eta[idx])},"
+                f"{float(p4_afterCuts.phi[idx])},{float(pm[idx])},"
+                f"{int(pc[idx])},{int(ppid[idx])},{int(pid[idx])}\n"
+            )
 
-    if args.debug: print(counter["n"])
+    if args.debug: print(numberOfEvents)
 
-    counter["n"] += 1
+    numberOfEvents += 1
 
-print(f"Created files {partFileName} with {args.numberOfEvents} events")
+    if numberOfEvents == args.numberOfEvents: break
+
+print(f"Created file {partFileName} with {numberOfEvents} events")

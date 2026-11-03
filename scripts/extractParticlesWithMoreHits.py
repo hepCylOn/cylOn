@@ -1,32 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Filters particles from the particles.txt file, keeping only
-those that have hits in at least 4 different layers,
-processing event by event to save memory.
-The output file maintains the same structure as the input file,
-and updates the number of particles in the header of each event.
-"""
-
 import re
 import argparse
 
 def eventsFromFile(file, eventMarker):
-    """
-    Reads a text file and yields events one by one.
-
-    Returns:
-        (header, eventLines)
-    """
-
     currentEvent = []
     header = None
 
     with open(file, "r", encoding="utf-8") as f:
-
         for rawLine in f:
-
             line = rawLine.strip()
-
             if not line:
                 continue
 
@@ -34,10 +15,8 @@ def eventsFromFile(file, eventMarker):
             if line.startswith("events:"):
                 continue
 
-            # New event found
             if line.startswith(eventMarker):
-
-                # Yield previous event BEFORE starting new one
+                
                 if header is not None:
                     yield header, currentEvent
 
@@ -51,69 +30,62 @@ def eventsFromFile(file, eventMarker):
         if header is not None:
             yield header, currentEvent
 
-
 def updateHeader(header, numParticles):
-    """
-    Updates the number of particles in the event header. 
-    Example: 'particles:10' -> 'particles:5'
-    """
-    # Substitutes any number after ':' by numParticles
+    # Updates the number of particles in the event header by changing any number after ':' with numParticles
     newHeader = re.sub(r":\d+", f":{numParticles}", header)
     return newHeader
 
 
 def filterParticlesPerLayer(particlesFile, hitsFile, outputFile, minLayers=4):
-    """
-    Filters particles, keeping only those that have hits in at least 'minLayers' layers. 
-    It maintains the same structure as the input file, including empty events (header only),
-    and updates the header of each event with the number of filtered particles.
-    """
     genPart = eventsFromFile(particlesFile, "particles:")
     genHits = eventsFromFile(hitsFile, "hits:")
 
     with open(outputFile, "w", encoding="utf-8") as out:
-        for header, partEvent in genPart:
-            _, hitEvent = next(genHits)
+        for event_number, (header, partEvent) in enumerate(genPart, start=1):
+            try:
+                _, hitEvent = next(genHits)
+            except StopIteration:
+                raise ValueError(
+                    f"No matching hit event for particle event {event_number} "
+                    f"({header}) in '{hitsFile}'."
+                ) from None
 
-            # Maps particleID -> set of layerIDs
-            particleIDs = [line.split(",")[-1].strip() for line in partEvent]
-            layersPerParticle = {pid: set() for pid in particleIDs}
-
-            EXPECTED_HIT_COLUMNS = 15  # adjust for the hits format
+            layers_by_pid = {
+                line.rsplit(",", 1)[-1].strip(): set()
+                for line in partEvent
+            }
 
             for line in hitEvent:
-
-                pieces = line.strip().split(',')
-
-                # Ignore summary lines or malformed lines
-                if len(pieces) != EXPECTED_HIT_COLUMNS:
+                fields = line.split(",")
+                if len(fields) != 15:
                     continue
-                
-                try:
-                    layerId = int(pieces[-3])
-                    particleID = pieces[-1].strip()
 
+                try:
+                    layer_id = int(fields[-3])
                 except ValueError:
                     continue
-                
-                if particleID in layersPerParticle:
-                    layersPerParticle[particleID].add(layerId)
 
-            # Selects particles that pass the criteria (at least 4 hits in distinct layers)
-            filteredParticles = []
-            for line in partEvent:
-                pid = line.split(",")[-1].strip()
-                layers = sorted(layersPerParticle.get(pid, set()))
-                if len(layers) >= minLayers:
-                    modifiedLine = line
-                    filteredParticles.append(modifiedLine)
+                particle_id = fields[-1].strip()
+                if particle_id in layers_by_pid:
+                    layers_by_pid[particle_id].add(layer_id)
 
-            # Updates the header with the new number of particles
-            newHeader = updateHeader(header, len(filteredParticles))
-            out.write(newHeader + "\n")
+            filtered = [
+                line for line in partEvent
+                if len(layers_by_pid[line.rsplit(",", 1)[-1].strip()]) >= minLayers
+            ]
 
-            for line in filteredParticles:
-                out.write(line + "\n")
+            out.write(updateHeader(header, len(filtered)) + "\n")
+            out.writelines(line + "\n" for line in filtered)
+
+        try:
+            extra_hit_header, _ = next(genHits)
+        except StopIteration:
+            pass
+        else:
+            raise ValueError(
+                f"'{hitsFile}' has extra hit events, starting with "
+                f"{extra_hit_header}; the input files do not match."
+            )
 
     print(f"File '{outputFile}' created successfully!")
 

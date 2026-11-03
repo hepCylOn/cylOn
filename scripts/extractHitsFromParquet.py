@@ -1,155 +1,94 @@
 import os
 
 import numpy as np
-import polars as pl
 import math
 import argparse
 
-from colliderml.core import load_tables, collect_tables
-from colliderml.polars import explode_tracker_hits
+from datasets import load_dataset
 
 import matplotlib.pyplot as plt
 
-pl.Config.set_tbl_rows(12)
-pl.Config.set_tbl_cols(20)
-
-def writeToFile(i,n,inputData,barrelPos,barrelThres,endcapPos,endcapThres,modules):
+def writeToFile(inputData,barrelPos,barrelThres,endcapPos,endcapThres,modules):
 
     getInitialModulesLen = len(modules)
 
-    hxAux = inputData[1][n:(n + inputData[0][i])]
-    hyAux = inputData[2][n:(n + inputData[0][i])]
-    hzAux = inputData[3][n:(n + inputData[0][i])]
-    hrAux = inputData[4][n:(n + inputData[0][i])]
-    hpAux = inputData[5][n:(n + inputData[0][i])]
-    hpartAux = inputData[6][n:(n + inputData[0][i])]
+    hxAux, hyAux, hzAux, hrAux, hpAux, hpartAux = inputData[1:]
 
-    # Only save hits that are in the current part of detector being checked
-    zCheck = (np.abs(hzAux) < ((endcapPos[-1] + endcapThres)*np.ones(len(hzAux))))
+    # Only keep hits that are in the current part of detector being checked
+    keep = (
+        (np.abs(hzAux) < endcapPos[-1] + endcapThres)
+        & (hrAux < barrelPos[-1] + barrelThres)
+        & (hrAux > barrelPos[0] - barrelThres)
+    )
 
-    hxAux = hxAux[zCheck]
-    hyAux = hyAux[zCheck]
-    hzAux = hzAux[zCheck]
-    hrAux = hrAux[zCheck]
-    hpAux = hpAux[zCheck]
-    hpartAux = hpartAux[zCheck]
-
-    xyCheck = (hrAux < ((barrelPos[-1] + barrelThres)*np.ones(len(hrAux))))
-    
-    hxAux = hxAux[xyCheck]
-    hyAux = hyAux[xyCheck]
-    hzAux = hzAux[xyCheck]
-    hrAux = hrAux[xyCheck]
-    hpAux = hpAux[xyCheck]
-    hpartAux = hpartAux[xyCheck]
-
-    xyCheck = (hrAux > ((barrelPos[0] - barrelThres)*np.ones(len(hrAux))))
-    
-    hxAux = hxAux[xyCheck]
-    hyAux = hyAux[xyCheck]
-    hzAux = hzAux[xyCheck]
-    hrAux = hrAux[xyCheck]
-    hpAux = hpAux[xyCheck]
-    hpartAux = hpartAux[xyCheck]
+    hxAux = hxAux[keep]
+    hyAux = hyAux[keep]
+    hzAux = hzAux[keep]
+    hrAux = hrAux[keep]
+    hpAux = hpAux[keep]
+    hpartAux = hpartAux[keep]
 
     # Initialize the layersID array for all the pixel hits
     saveLayersIDarray = getInitialModulesLen*np.ones(len(hzAux)) - np.ones(len(hzAux))
 
-    # This block saves layer ID in barrel, i.e., |z| < closestEndcapDisk
-    barrelCheck = (np.abs(hzAux) < ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+    abs_z = np.abs(hzAux)
+    abs_r = np.abs(hrAux)
+    endcap_boundary = endcapPos[0] - endcapThres
 
-    # Do a loop over all of the radii for the barrel layers
-    for rIdx in range(len(barrelPos)):
-        rHit = np.abs(hrAux)
-        rBarrelLayer = barrelPos[rIdx]*np.ones(len(hxAux))
-        layerBarrelCheck = barrelCheck * ((rHit > (rBarrelLayer - barrelThres)))
-        layerBarrelCheck = layerBarrelCheck * ((rHit < (rBarrelLayer + barrelThres)))
-        saveLayersIDarray = saveLayersIDarray + (rIdx*layerBarrelCheck)
+    barrel_region = abs_z < endcap_boundary
+    pos_endcap_region = hzAux > endcap_boundary
+    neg_endcap_region = hzAux < -endcap_boundary
 
-    # This block saves layer ID in the positive endcap, i.e., z > closestEndcapDisk
-    posEndcapCheck = (hzAux > ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+    # Assign layer IDs and count hits per layer.
+    for r_idx, radius in enumerate(barrelPos):
+        in_layer = (
+            barrel_region
+            & (abs_r > radius - barrelThres)
+            & (abs_r < radius + barrelThres)
+        )
+        saveLayersIDarray += r_idx * in_layer
+        modules.append(np.count_nonzero(in_layer))
 
-    # Do a loop over all of the longitudes for the endcap layers
-    for zIdx in range(len(endcapPos)):
-        zHit = hzAux
-        zEndcapLayer = endcapPos[zIdx]*np.ones(len(hxAux))
-        layerPosEndcapCheck = posEndcapCheck * ((zHit > (zEndcapLayer - endcapThres)))
-        layerPosEndcapCheck = layerPosEndcapCheck * ((zHit < (zEndcapLayer + endcapThres)))
-        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(barrelPos))*layerPosEndcapCheck)
+    # Positive endcap layers: append all of these counts first.
+    for z_idx, z_layer in enumerate(endcapPos):
+        in_layer = (
+            pos_endcap_region
+            & (hzAux > z_layer - endcapThres)
+            & (hzAux < z_layer + endcapThres)
+        )
+        layer_id = z_idx + len(barrelPos)
+        saveLayersIDarray += layer_id * in_layer
+        modules.append(np.count_nonzero(in_layer))
 
-    # This block saves layer ID in the negative endcap, i.e., z < -closestEndcapDisk
-    negEndcapCheck = (hzAux < (-(endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+    # Negative endcap layers: append these after all positive-endcap counts.
+    for z_idx, z_layer in enumerate(endcapPos):
+        in_layer = (
+            neg_endcap_region
+            & (hzAux > -(z_layer + endcapThres))
+            & (hzAux < -(z_layer - endcapThres))
+        )
+        layer_id = z_idx + len(barrelPos) + len(endcapPos)
+        saveLayersIDarray += layer_id * in_layer
+        modules.append(np.count_nonzero(in_layer))
 
-    # Do a loop over all of the longitudes for the endcap layers; the actual longitudinal
-    # value has a signal change below to only consider z < 0
-    for zIdx in range(len(endcapPos)):
-        zHit = hzAux
-        zEndcapLayer = endcapPos[zIdx]*np.ones(len(hxAux))
-        layerNegEndcapCheck = negEndcapCheck *((zHit < -(zEndcapLayer - endcapThres)))
-        layerNegEndcapCheck = layerNegEndcapCheck *((zHit > -(zEndcapLayer + endcapThres)))
-        saveLayersIDarray = saveLayersIDarray + ((zIdx + len(barrelPos) + len(endcapPos))*layerNegEndcapCheck)
+    # Convert hit counts per layer to cumulative counts.
+    for i in range(getInitialModulesLen, len(modules)):
+        modules[i] += modules[i - 1]
 
-    # Check the amount of hits per layer of the pixel barrel, i.e., |z| < closestEndcapDisk
-    barrelCheck = (np.abs(hzAux) < ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
+    # Order input data by the LayersID
+    layer_ids = saveLayersIDarray.astype("i")
+    order = np.argsort(layer_ids, kind="stable")
 
-    barrelHxAux = hxAux[barrelCheck]
-    barrelHrAux = hrAux[barrelCheck]
-
-    for r in barrelPos:
-        rHit = np.abs(barrelHrAux)
-        rBarrelLayer = r*np.ones(len(barrelHxAux))
-        layerBarrelCheck = ((rHit > (rBarrelLayer - barrelThres)))
-        datasetBarrelLayers = rHit[layerBarrelCheck]
-        rBarrelLayer = r*np.ones(len(datasetBarrelLayers))
-        layerBarrelCheck = ((datasetBarrelLayers < (rBarrelLayer + barrelThres)))
-        # if detector == 2: print(len(datasetBarrelLayers[layerBarrelCheck]))
-        modules.append(len(datasetBarrelLayers[layerBarrelCheck]))
-
-    # Check the amount of hits per layer of the pixel positive endcap, i.e., z > closestEndcapDisk
-    posEndcapCheck = ((hzAux) > ((endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
-    
-    posEndcapHxAux = hxAux[posEndcapCheck]
-    posEndcapHzAux = hzAux[posEndcapCheck]
-
-    for z in endcapPos:
-        zHit = posEndcapHzAux
-        zEndcapLayer = z*np.ones(len(posEndcapHxAux))
-        posEndcapLayerCheck = (zHit > (zEndcapLayer - endcapThres))
-        datasetPosEndcapLayers = posEndcapHzAux[posEndcapLayerCheck]
-        zEndcapLayer = z*np.ones(len(datasetPosEndcapLayers))
-        posEndcapLayerCheck = (datasetPosEndcapLayers < (zEndcapLayer + endcapThres))
-        # if detector == 2: print(len(datasetPosEndcapLayers[posEndcapLayerCheck]))
-        modules.append(len(datasetPosEndcapLayers[posEndcapLayerCheck]))
-
-    # Check the amount of hits per layer of the pixel negative endcap, i.e., z < -closestEndcapDisk
-    negEndcapCheck = ((hzAux) < (-(endcapPos[0] - endcapThres)*np.ones(len(hzAux))))
-
-    negEndcapHxAux = hxAux[negEndcapCheck]
-    negEndcapHzAux = hzAux[negEndcapCheck]
-
-    for z in endcapPos:
-        zHit = negEndcapHzAux
-        zEndcapLayer = z*np.ones(len(negEndcapHxAux))
-        negEndcapLayerCheck = (zHit < (-(zEndcapLayer - endcapThres)))
-        datasetNegEndcapLayers = zHit[negEndcapLayerCheck]
-        zEndcapLayer = z*np.ones(len(datasetNegEndcapLayers))
-        negEndcapLayerCheck = (datasetNegEndcapLayers > (-(zEndcapLayer + endcapThres)))
-        # if detector == 2: print(len(datasetNegEndcapLayers[negEndcapLayerCheck]))
-        modules.append(len(datasetNegEndcapLayers[negEndcapLayerCheck]))
-
-    # Adds the values of hits per module cumulativelly to mimic the CMS hits input
-    for i in range(getInitialModulesLen,len(modules)):
-        modules[i] = modules[i] + modules[i-1]
-
-    # To apply the layers ID ordering to all of the information to be saved, a tuple has to be
-    # created so that the ordering acts in the same way over all columns. Afterwards, the tuple
-    # can be split. Index 5 in x[5] means the layer ID column
-    tuples = list(zip((hxAux/10.0).tolist(),(hyAux/10.0).tolist(),(hzAux/10.0).tolist(),(hrAux/10.0).tolist(),(np.arctan2(hyAux,hxAux)).tolist(),(saveLayersIDarray.astype('i')).tolist(),(hpartAux).tolist()))
-    tuples_sorted = sorted(tuples, key = lambda x : x[5])
-
-    saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID = zip(*tuples_sorted)
-
-    return saveX,saveY,saveZ,saveR,saveP,saveLayersID,saveParticleID,modules
+    return (
+        hxAux[order] / 10.0,
+        hyAux[order] / 10.0,
+        hzAux[order] / 10.0,
+        hrAux[order] / 10.0,
+        np.arctan2(hyAux[order], hxAux[order]),
+        layer_ids[order],
+        hpartAux[order],
+        modules,
+    )
 
 parser = argparse.ArgumentParser(
                     prog='extractHitsFromParquet',
@@ -163,6 +102,9 @@ parser.add_argument('-n', '--numberOfEvents', type=int, default=10)
 parser.add_argument('-m', '--makeHitPosPlot', action='store_true')
 parser.add_argument('-s', '--shortStrips', action='store_true')
 parser.add_argument('-l', '--longStrips', action='store_true')
+parser.add_argument('--skipHeaders', action='store_true')
+parser.add_argument('--skipModules', action='store_true')
+parser.add_argument('-a', '--forAutograph', action='store_true')
 
 args = parser.parse_args()
 
@@ -181,8 +123,12 @@ def phi2short(x: float) -> int:
 phaseModifier = 'Phase1'
 if args.isPhase2: phaseModifier = 'Phase2'
 
-hitsFileName = 'hitsWithParticleID' + args.outFileName + phaseModifier + '.txt'
-mapFileName = 'mapHitsToParticles' + args.outFileName + phaseModifier + '.txt'
+autographModifier = ''
+if args.forAutograph: autographModifier = 'OneEventForAutograph'
+
+# Autograph should only modify the hits file, but adding modifier to maps file if needed
+hitsFileName = 'hitsWithParticleID' + args.outFileName + phaseModifier + autographModifier + '.txt'
+mapFileName = 'mapHitsToParticles' + args.outFileName + phaseModifier + autographModifier + '.txt'
 
 if os.path.exists(hitsFileName): os.system('rm ' + hitsFileName)
 if os.path.exists(mapFileName): os.system('rm ' + mapFileName)
@@ -206,55 +152,63 @@ coliderMLLongStripsEndcap = [1300.0,1580.0,1900.0,2250.0,2600.0,3000.0]
 coliderMLLongStripsBarrelThreshold = 60.0
 coliderMLLongStripsEndcapThreshold = 100.0
 
-home_directory = os.path.expanduser("~")
+# Use this in streaming mode so that it doesn't directly download all files into local.
+# It will make available some datasets, but all can be iterated via a for loop, as shown below
+# More details in https://huggingface.co/datasets/OpenDataDetector/ColliderML-Release-1,
+# https://huggingface.co/docs/datasets/v1.10.1/package_reference/main_classes.html#datasets.IterableDataset
+# and https://huggingface.co/docs/datasets/stream
 
-cfg = {
-    "dataset_id": "CERN/ColliderML-Release-1",
-    "channels": "ttbar",
-    "pileup": "pu200",
-    "objects": ["tracker_hits"],
-    "split": "train",
-    "lazy": True,
-    "max_events": args.numberOfEvents,
-    "data_dir": home_directory + "/.cache/colliderml"
-}
+x_key, y_key, z_key = ("x", "y", "z")
+if args.forAutograph:
+    x_key, y_key, z_key = ("true_x", "true_y", "true_z")
 
-tables = load_tables(cfg)
-frames = collect_tables(tables)
-
-tracker_evt = frames["tracker_hits"]
-
-tracker_mult = tracker_evt.select(
-    pl.col("x").list.len().alias("n_tracker_hits"),
+tracker_hits_iter_dataset = load_dataset(
+    "OpenDataDetector/ColliderML-Release-1",
+    data_dir="data/ttbar_pu200_tracker_hits",
+    split="train",
+    streaming=True,
+    columns=[x_key,y_key,z_key,"particle_id"],
 )
 
-hits_flat = explode_tracker_hits(tracker_evt)
+numberOfEvents = 0
 
-hn = (tracker_mult["n_tracker_hits"]).to_numpy().astype(int)
-hx = hits_flat["x"].to_numpy().astype(float)
-hy = hits_flat["y"].to_numpy().astype(float)
-hz = hits_flat["z"].to_numpy().astype(float)
-hr = np.sqrt(hx**2 + hy**2)
-hp = np.arctan2(hy,hx)
-hpart = hits_flat["particle_id"].to_numpy().astype(int)
+for tracker_hits in tracker_hits_iter_dataset:
 
-inputData = [hn,hx,hy,hz,hr,hp,hpart]
+    # Need to set this for autograph; if needed, change the number of events to have more data
+    # when using autograph
+    if args.forAutograph:
+        args.skipHeaders = True
+        args.skipModules = True
+        args.numberOfEvents = 1
 
-counter = {"n": 0}
-nAux = 0
+    hx = np.asarray(tracker_hits[x_key], dtype=np.float32)
+    hy = np.asarray(tracker_hits[y_key], dtype=np.float32)
+    hz = np.asarray(tracker_hits[z_key], dtype=np.float32)
+    hn = np.asarray((len(hx)), dtype=np.uint32)
+    hr = np.sqrt(hx**2 + hy**2)
+    hp = np.arctan2(hy,hx)
+    hpart = np.asarray(tracker_hits["particle_id"], dtype=np.uint64)
 
-if args.makeHitPosPlot:
+    inputData = [hn,hx,hy,hz,hr,hp,hpart]
 
-    plt.scatter(hz, hr, s=0.5)
-    plt.title("ColliderML data")
-    plt.xlabel("Z [mm]")
-    plt.ylabel("R [mm]")
-    plt.savefig("colliderMLGeometry.pdf")
+    if args.makeHitPosPlot and numberOfEvents == 0:
 
-for i in range(len(hn)):
+        plt.scatter(hz, hr, s=0.5)
+        plt.title("ColliderML data")
+        plt.xlabel("Z [mm]")
+        plt.ylabel("R [mm]")
+        plt.xlim(-1700,1700)
+        plt.ylim(0, 200)
+        if args.shortStrips:
+            plt.xlim(-3100,3100)
+            plt.ylim(0, 750)
+        if args.longStrips:
+            plt.xlim(-3100,3100)
+            plt.ylim(0, 1200)
+        plt.savefig("colliderMLGeometry.pdf")
 
     if args.debug:
-        if counter["n"] >= args.eventsForDebug: 
+        if numberOfEvents >= args.eventsForDebug: 
             print(f"Created files {hitsFileName} and {mapFileName} WHILE DEBUGGING")
             exit()
 
@@ -268,67 +222,78 @@ for i in range(len(hn)):
 
     saveModules = [0]
 
-    extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,colliderMLPixelBarrel,colliderMLPixelBarrelThreshold,colliderMLPixelEndcap,colliderMLPixelEndcapThreshold,saveModules)
+    extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(inputData,colliderMLPixelBarrel,colliderMLPixelBarrelThreshold,colliderMLPixelEndcap,colliderMLPixelEndcapThreshold,saveModules)
 
-    saveX.extend(list(extractedX))
-    saveY.extend(list(extractedY))
-    saveZ.extend(list(extractedZ))
-    saveR.extend(list(extractedR))
-    saveP.extend(list(extractedP))
-    saveLayersID.extend(list(extractedLayersID))
-    saveParticleID.extend(list(extractedParticleID))
+    saveX.extend(extractedX)
+    saveY.extend(extractedY)
+    saveZ.extend(extractedZ)
+    saveR.extend(extractedR)
+    saveP.extend(extractedP)
+    saveLayersID.extend(extractedLayersID)
+    saveParticleID.extend(extractedParticleID)
 
     if args.shortStrips:
 
-        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,coliderMLShortStripsBarrel,coliderMLShortStripsBarrelThreshold,coliderMLShortStripsEndcap,coliderMLShortStripsEndcapThreshold,saveModules)
+        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(inputData,coliderMLShortStripsBarrel,coliderMLShortStripsBarrelThreshold,coliderMLShortStripsEndcap,coliderMLShortStripsEndcapThreshold,saveModules)
 
-        saveX.extend(list(extractedX))
-        saveY.extend(list(extractedY))
-        saveZ.extend(list(extractedZ))
-        saveR.extend(list(extractedR))
-        saveP.extend(list(extractedP))
-        saveLayersID.extend(list(extractedLayersID))
-        saveParticleID.extend(list(extractedParticleID))
+        saveX.extend(extractedX)
+        saveY.extend(extractedY)
+        saveZ.extend(extractedZ)
+        saveR.extend(extractedR)
+        saveP.extend(extractedP)
+        saveLayersID.extend(extractedLayersID)
+        saveParticleID.extend(extractedParticleID)
 
     if args.longStrips:
 
-        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(i,nAux,inputData,coliderMLLongStripsBarrel,coliderMLLongStripsBarrelThreshold,coliderMLLongStripsEndcap,coliderMLLongStripsEndcapThreshold,saveModules)
+        extractedX,extractedY,extractedZ,extractedR,extractedP,extractedLayersID,extractedParticleID,saveModules = writeToFile(inputData,coliderMLLongStripsBarrel,coliderMLLongStripsBarrelThreshold,coliderMLLongStripsEndcap,coliderMLLongStripsEndcapThreshold,saveModules)
 
-        saveX.extend(list(extractedX))
-        saveY.extend(list(extractedY))
-        saveZ.extend(list(extractedZ))
-        saveR.extend(list(extractedR))
-        saveP.extend(list(extractedP))
-        saveLayersID.extend(list(extractedLayersID))
-        saveParticleID.extend(list(extractedParticleID))
-
-    nAux += inputData[0][i]
+        saveX.extend(extractedX)
+        saveY.extend(extractedY)
+        saveZ.extend(extractedZ)
+        saveR.extend(extractedR)
+        saveP.extend(extractedP)
+        saveLayersID.extend(extractedLayersID)
+        saveParticleID.extend(extractedParticleID)
 
     # Information per event is appended to file hits.txt as:
+    # events:number_of_events (only added once)
     # hits:total_number_of_hits
     # modules:total_number_of_layers
     # ph,ph,dummy_error,dummy_error,xg,yg,zg,rg,phiShort,ph,ph,ph,layerID,partID
     # 0,nHits_layer(0),nHits_layer(1)+prev,...,nHitsLayer(N-1)+prev,nHitsLayer(N)+prev
     with open(hitsFileName, 'a') as fout:
-        if counter["n"] == 0: fout.write(f"events:{len(hn)}\n")
-        fout.write(f"hits:{len(saveX)}\n")
-        fout.write(f"module:{len(saveModules)-1}\n")
+        if not args.skipHeaders:
+            if numberOfEvents == 0:
+                if not args.debug: fout.write(f"events:{args.numberOfEvents}\n")
+                else: fout.write(f"events:{args.eventsForDebug}\n")
+        if not args.skipHeaders: fout.write(f"hits:{len(saveX)}\n")
+        if not args.skipHeaders: fout.write(f"module:{len(saveModules)-1}\n")
         for j in range(len(saveX)):
-            fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]},{saveY[j]},{saveZ[j]},{saveR[j]},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveModules[1]},{saveParticleID[j]}\n")
-        writeHelper = ""
-        for m in saveModules: writeHelper = writeHelper + str(m) + ","
-        # 
-        writeHelper = writeHelper[:-1]
-        fout.write(f"{writeHelper}\n")
+            fout.write(f"1.0,1.0,0.01,0.01,{saveX[j]:.5f},{saveY[j]:.5f},{saveZ[j]:.5f},{saveR[j]:.5f},{phi2short(saveP[j])},2,3,4,{saveLayersID[j]},{saveModules[1]},{saveParticleID[j]}\n")
+        if not args.skipModules:
+            writeHelper = ""
+            for m in saveModules: writeHelper = writeHelper + str(m) + ","
+            writeHelper = writeHelper[:-1]
+            fout.write(f"{writeHelper}\n")
 
+    # Information per event is appended to file maps.txr as:
+    # events:number_of_events (only added once)
+    # hits:total_number_of_hits
+    # partID (should match the same partID/order as in hits.txt)
     with open(mapFileName, 'a') as fout:
-        if counter["n"] == 0: fout.write(f"events:{len(hn)}\n")
-        fout.write(f"hits:{len(saveParticleID)}\n")
+        if not args.skipHeaders:
+            if numberOfEvents == 0:
+                if not args.debug: fout.write(f"events:{args.numberOfEvents}\n")
+                else: fout.write(f"events:{args.eventsForDebug}\n")
+        if not args.skipHeaders: fout.write(f"hits:{len(saveParticleID)}\n")
         for j in range(len(saveParticleID)):
             fout.write(f"{saveParticleID[j]}\n")
 
-    if args.debug: print(counter["n"])
+    if args.debug: print(numberOfEvents)
 
-    counter["n"] += 1
+    numberOfEvents += 1
 
-print(f"Created files {hitsFileName} and {mapFileName} with {args.numberOfEvents} events")
+    if numberOfEvents == args.numberOfEvents: break
+
+print(f"Created files {hitsFileName} and {mapFileName} with {numberOfEvents} events")
