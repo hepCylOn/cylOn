@@ -110,22 +110,37 @@ This runs the equivalent of:
 https://arxiv.org/abs/2512.15230
 
 @misc{elitez2025collidermlreleaseopendatadetectorhighluminosity,
+
       title={ColliderML: The First Release of an OpenDataDetector High-Luminosity Physics Benchmark Dataset}, 
+
       author={Doğa Elitez and Paul Gessinger and Daniel Murnane and Marcus Selchou Raaholt and Andreas Salzburger and Stine Kofoed Skov and Andreas Stefl and Anna Zaborowska},
+
       year={2025},
+
       eprint={2512.15230},
+
       archivePrefix={arXiv},
+
       primaryClass={hep-ex},
+
       url={https://arxiv.org/abs/2512.15230}, 
+
 }
 
 @dataset{colliderml_release1_2025,
+
   title={{ColliderML Dataset Release 1}},
+
   author={{ColliderML Collaboration}},
+
   year={2025},
+
   publisher={Hugging Face},
+
   howpublished={\url{https://huggingface.co/datasets/OpenDataDetector/ColliderML-Release-1}},
+
   note={Simulation performed using ACTS and the Open Data Detector}
+  
 }
 
 </details>
