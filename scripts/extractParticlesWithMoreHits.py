@@ -1,5 +1,6 @@
 import re
 import argparse
+import os
 
 def eventsFromFile(file, eventMarker):
     currentEvent = []
@@ -16,7 +17,6 @@ def eventsFromFile(file, eventMarker):
                 continue
 
             if line.startswith(eventMarker):
-                
                 if header is not None:
                     yield header, currentEvent
 
@@ -97,10 +97,13 @@ if __name__ == "__main__":
                     description='Extract hits information from parquet files')
 
     parser.add_argument('-o', '--outFileName', default='')
+    parser.add_argument('--outDir', default='.', help='Directory containing inputs and for the output file (default: current directory).')
     parser.add_argument('-p', '--isPhase2', action='store_true')
     parser.add_argument('-m', '--isMuonsOnly', action='store_true')
 
     args = parser.parse_args()
+    outDir = args.outDir or '.'
+    os.makedirs(outDir, exist_ok=True)
 
     phaseModifier = 'Phase1'
     if args.isPhase2: phaseModifier = 'Phase2'
@@ -108,10 +111,9 @@ if __name__ == "__main__":
     muonModifier = ''
     if args.isMuonsOnly: muonModifier = 'MuonsOnly'
 
-    inputPartFileName = 'particles' + args.outFileName + muonModifier + '.txt'
-    inputHitsName = 'hitsWithParticleID' + args.outFileName + phaseModifier + '.txt'
-    outFileName = 'particlesFilter' + args.outFileName + muonModifier + phaseModifier + '.txt'
+    inputPartFileName = os.path.join(outDir, 'particles' + args.outFileName + muonModifier + '.txt')
+    inputHitsName = os.path.join(outDir, 'hitsWithParticleID' + args.outFileName + phaseModifier + '.txt')
+    outFileName = os.path.join(outDir, 'particlesFilter' + args.outFileName + muonModifier + phaseModifier + '.txt')
 
     filterParticlesPerLayer(inputPartFileName, inputHitsName, outFileName)
-
 

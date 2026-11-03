@@ -11,22 +11,25 @@ parser = argparse.ArgumentParser(
                     description='Extract hits information from parquet files')
 
 parser.add_argument('-o', '--outFileName', default='')
+parser.add_argument('--outDir', default='.', help='Directory for output files (default: current directory).')
 parser.add_argument('-m', '--isMuonsOnly', action='store_true')
 parser.add_argument('-d', '--debug', action='store_true')
 parser.add_argument('-e', '--eventsForDebug', type=int, default=1)
 parser.add_argument('-n', '--numberOfEvents', type=int, default=10)
 
 args = parser.parse_args()
+outDir = args.outDir or '.'
+os.makedirs(outDir, exist_ok=True)
 
 muonModifier = ''
 if args.isMuonsOnly: muonModifier = 'MuonsOnly'
 
 # Output filename
-partFileName = 'particles' + args.outFileName + muonModifier + '.txt'
+partFileName = os.path.join(outDir, 'particles' + args.outFileName + muonModifier + '.txt')
 
 # Since the particles information is appended to the partFileName, it is better
 # to remove it before executing the code
-if os.path.exists(partFileName): os.system('rm ' + partFileName)
+if os.path.exists(partFileName): os.remove(partFileName)
 
 # Use this in streaming mode so that it doesn't directly download all files into local.
 # It will make available some datasets, but all can be iterated via a for loop, as shown below

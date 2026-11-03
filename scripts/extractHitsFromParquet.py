@@ -95,6 +95,7 @@ parser = argparse.ArgumentParser(
                     description='Extract hits information from parquet files')
 
 parser.add_argument('-o', '--outFileName', default='')
+parser.add_argument('--outDir', default='.', help='Directory for output files (default: current directory).')
 parser.add_argument('-p', '--isPhase2', action='store_true')
 parser.add_argument('-d', '--debug', action='store_true')
 parser.add_argument('-e', '--eventsForDebug', type=int, default=1)
@@ -107,6 +108,8 @@ parser.add_argument('--skipModules', action='store_true')
 parser.add_argument('-a', '--forAutograph', action='store_true')
 
 args = parser.parse_args()
+outDir = args.outDir or '.'
+os.makedirs(outDir, exist_ok=True)
 
 def phi2short(x: float) -> int:
     p2i = (2**15) / math.pi  # 32768 / pi
@@ -127,11 +130,12 @@ autographModifier = ''
 if args.forAutograph: autographModifier = 'OneEventForAutograph'
 
 # Autograph should only modify the hits file, but adding modifier to maps file if needed
-hitsFileName = 'hitsWithParticleID' + args.outFileName + phaseModifier + autographModifier + '.txt'
-mapFileName = 'mapHitsToParticles' + args.outFileName + phaseModifier + autographModifier + '.txt'
+hitsFileName = os.path.join(outDir, 'hitsWithParticleID' + args.outFileName + phaseModifier + autographModifier + '.txt')
+mapFileName = os.path.join(outDir, 'mapHitsToParticles' + args.outFileName + phaseModifier + autographModifier + '.txt')
+plotFileName = os.path.join(outDir, 'colliderMLGeometry.pdf')
 
-if os.path.exists(hitsFileName): os.system('rm ' + hitsFileName)
-if os.path.exists(mapFileName): os.system('rm ' + mapFileName)
+if os.path.exists(hitsFileName): os.remove(hitsFileName)
+if os.path.exists(mapFileName): os.remove(mapFileName)
 
 # These define the position of the layers in the open data detector geometry
 # taken from https://iopscience.iop.org/article/10.1088/1742-6596/2438/1/012110/pdf
@@ -205,7 +209,7 @@ for tracker_hits in tracker_hits_iter_dataset:
         if args.longStrips:
             plt.xlim(-3100,3100)
             plt.ylim(0, 1200)
-        plt.savefig("colliderMLGeometry.pdf")
+        plt.savefig(plotFileName)
 
     if args.debug:
         if numberOfEvents >= args.eventsForDebug: 
