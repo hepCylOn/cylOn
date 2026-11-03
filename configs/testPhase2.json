@@ -1,4 +1,7 @@
 {
+  "Source": {
+    "inputFile": "hitsCMSPhase2.txt"
+  },
   "SiPixelRawToClusterPhase1": {
     "includeErrors": true,
     "useQuality": true,

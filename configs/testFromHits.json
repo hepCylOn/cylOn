@@ -1,4 +1,7 @@
 {
+  "Source": {
+    "inputFile": "hitsCMSPhase1.txt"
+  },
   "BeamSpotESProducer": {
     "data": ""
   },

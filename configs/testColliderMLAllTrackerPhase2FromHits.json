@@ -1,4 +1,9 @@
 {
+  "Source": {
+    "inputFile": "hitsWithParticleIDAllTrackerPhase2.txt.gz",
+    "mapFile": "mapHitsToParticlesAllTrackerPhase2.txt.gz",
+    "partFile": "particlesFilterAllTrackerPhase2.txt.gz"
+  },
   "BeamSpotESProducer": {
     "data": "data/beamspot.bin"
   },

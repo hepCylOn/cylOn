@@ -1,4 +1,9 @@
 {
+  "Source": {
+    "inputFile": "hitsWithParticleIDPixelPlusShortStripsPhase2.txt",
+    "mapFile": "mapHitsToParticlesPixelPlusShortStripsPhase2.txt",
+    "partFile": "particlesFilterPixelPlusShortStripsPhase2.txt"
+  },
   "BeamSpotESProducer": {
     "data": ""
   },
