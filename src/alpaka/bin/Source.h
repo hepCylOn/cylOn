@@ -21,7 +21,7 @@ namespace edm {
   class Source {
   public:
     explicit Source(
-        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML, std::string const& trackerType);
+        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML, std::string const& trackerType, std::string const& inputFileName, std::string const& mapFileName, std::string const& partFileName);
 
     void reconfigure(int maxEvents, int runForMinutes);
     void startProcessing();
@@ -71,6 +71,9 @@ namespace edm {
     bool const runSimTracks_;
     bool const isColliderML_;
     std::string const trackerType_;
+    std::string const inputFileName_;
+    std::string const mapFileName_;
+    std::string const partFileName_;
 
   };
 }  // namespace edm

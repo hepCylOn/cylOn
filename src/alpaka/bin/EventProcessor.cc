@@ -26,7 +26,7 @@ namespace edm {
                                  bool isColliderML,
                                  std::string const& trackerType)
       : config_(config), 
-        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks, isColliderML, trackerType),
+        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits, isPhase2, runSimTracks, isColliderML, trackerType, config.getProducerConfig("Source").value("inputFile", std::string{}), config.getProducerConfig("Source").value("mapFile", std::string{}), config.getProducerConfig("Source").value("partFile", std::string{})),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {

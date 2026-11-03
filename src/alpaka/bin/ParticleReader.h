@@ -108,7 +108,7 @@ namespace particleReader {
       }
       return tokens;
   }
-inline sim::ParticleHost read_single_event_fromText(std::ifstream& file) {
+inline sim::ParticleHost read_single_event_fromText(std::istream& file) {
 
     std::string line;
 

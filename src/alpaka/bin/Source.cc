@@ -6,6 +6,10 @@
 #include <ios>
 #include <memory>
 #include <mutex>
+#include <istream>
+#include <streambuf>
+#include <stdexcept>
+#include <zlib.h>
 
 #include "Source.h"
 #include "ParticleReader.h"
@@ -15,7 +19,7 @@
 // #define INPUT_DEBUG
 
 namespace {
-  FEDRawDataCollection readRaw(std::ifstream &is, unsigned int nfeds) {
+  FEDRawDataCollection readRaw(std::istream &is, unsigned int nfeds) {
     FEDRawDataCollection rawCollection;
     for (unsigned int ifed = 0; ifed < nfeds; ++ifed) {
       unsigned int fedId;
@@ -29,11 +33,84 @@ namespace {
     return rawCollection;
   }
 
+  class GzipInputBuffer : public std::streambuf {
+  public:
+    explicit GzipInputBuffer(std::filesystem::path const& path)
+        : path_(path), file_(gzopen(path.c_str(), "rb")) {
+      if (file_ == nullptr) {
+        throw std::runtime_error("Cannot open gzip input file: " + path.string());
+      }
+      setg(buffer_, buffer_, buffer_);
+    }
+
+    ~GzipInputBuffer() override {
+      if (file_ != nullptr) {
+        gzclose(file_);
+      }
+    }
+
+  protected:
+    int_type underflow() override {
+      if (gptr() < egptr()) {
+        return traits_type::to_int_type(*gptr());
+      }
+
+      int count = gzread(file_, buffer_, static_cast<unsigned>(sizeof(buffer_)));
+      if (count < 0) {
+        int errorCode;
+        char const* message = gzerror(file_, &errorCode);
+        throw std::runtime_error(
+            "Error reading gzip input file " + path_.string() + ": " + message);
+      }
+      if (count == 0) {
+        return traits_type::eof();
+      }
+
+      setg(buffer_, buffer_, buffer_ + count);
+      return traits_type::to_int_type(*gptr());
+    }
+
+  private:
+    std::filesystem::path path_;
+    gzFile file_;
+    char buffer_[8192];
+  };
+
+  class GzipInputStream : public std::istream {
+  public:
+    explicit GzipInputStream(std::filesystem::path const& path)
+        : std::istream(nullptr), buffer_(path) {
+      rdbuf(&buffer_);
+    }
+
+  private:
+    GzipInputBuffer buffer_;
+  };
+
+  std::unique_ptr<std::istream> openInputFile(
+    std::filesystem::path const& path,
+    bool binary = false) {
+    if (path.extension() == ".gz") {
+      return std::make_unique<GzipInputStream>(path);
+    }
+
+    auto mode = std::ios::in;
+    if (binary) {
+      mode |= std::ios::binary;
+    }
+
+    auto file = std::make_unique<std::ifstream>(path, mode);
+    if (!*file) {
+      throw std::runtime_error("Cannot open input file: " + path.string());
+    }
+    return file;
+  }
+
 }  // namespace
 
 namespace edm {
   Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML, std::string const& trackerType) // Change to work with Phase-2
+      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation, bool fromHits, bool isPhase2, bool runSimTracks, bool isColliderML, std::string const& trackerType, std::string const& inputFileName, std::string const& mapFileName, std::string const& partFileName) // Change to work with Phase-2
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
         validation_(validation),
@@ -41,37 +118,33 @@ namespace edm {
         isPhase2_(isPhase2),
         runSimTracks_(runSimTracks),
         isColliderML_(isColliderML),
-        trackerType_(trackerType) {
+        trackerType_(trackerType),
+        inputFileName_(inputFileName),
+        mapFileName_(mapFileName),
+        partFileName_(partFileName) {
 
-    std::ifstream in_file;
+    std::unique_ptr<std::istream> in_file;
 
     std::string in_fileName;
 
     if (not fromHits_)
     {
       in_fileName = "raw.bin";
-      in_file.open(datadir / in_fileName, std::ios::binary);
+      if (!inputFileName.empty()) {
+        in_fileName = inputFileName;
+      }
+      auto inputPath = datadir / in_fileName;
+      in_file = openInputFile(inputPath, !fromHits_);
       std::cout << "Reading bin from " << datadir / in_fileName << std::endl;
       rawToken_ = reg.produces<FEDRawDataCollection>();
     }
     else
     {
-      if (not isPhase2_) {
-        if (not isColliderML) in_fileName =  "hitsCMSPhase1.txt";
-        // else in_fileName = "hitsWithoutParticleId.txt";
-        else in_fileName = "hitsWithParticleIdPhase1Parquet.txt";
+      if (!inputFileName.empty()) {
+        in_fileName = inputFileName;
       }
-      else {
-        if (not isColliderML) in_fileName =  "hitsCMSPhase2.txt";
-        // else in_fileName = "hitsWithoutParticleIdPhase2.txt";
-        else{
-          if (trackerType == "PixelOnly") in_fileName = "hitsWithParticleIDPixelOnlyPhase2.txt";
-          if (trackerType == "PixelPlusShortStrips") in_fileName = "hitsWithParticleIDPixelPlusShortStripsPhase2.txt";
-          if (trackerType == "AllTracker") in_fileName = "hitsWithParticleIDAllTrackerPhase2.txt";
-        }
-      }
-      // else in_fileName = "hitsMuonsOnlyMinLayers.txt"; // Just for testing with muons only
-      in_file.open(datadir / in_fileName);
+      auto inputPath = datadir / in_fileName;
+      in_file = openInputFile(inputPath, fromHits_);
       std::cout << "Reading hits from " << datadir / in_fileName  << std::endl;
       hitToken_ = reg.produces<reco::TrackingRecHitHost>();
     }
@@ -79,8 +152,8 @@ namespace edm {
     std::ifstream in_digiclusters;
     std::ifstream in_tracks;
     std::ifstream in_vertices;
-    std::ifstream in_particles;
-    std::ifstream in_map;
+    std::unique_ptr<std::istream> in_particles;
+    std::unique_ptr<std::istream> in_map;
 
     if (validation_) {
       if (not fromHits_){
@@ -114,31 +187,14 @@ namespace edm {
         }
         
         else {
-          if (not isPhase2) {
-            // in_particles    = std::ifstream(datadir / "particlesFilter.txt");
-            // in_map = std::ifstream(datadir / "mapHitsToParticles.txt");
-            in_particles    = std::ifstream(datadir / "particlesFilterPhase1Parquet.txt");
-            in_map = std::ifstream(datadir / "mapHitsToParticlesPhase1Parquet.txt");
+          if (!mapFileName.empty()) {
+            auto mapPath = datadir / mapFileName;
+            in_map = openInputFile(mapPath, !fromHits_);
           }
-          else {
-            if (trackerType == "PixelOnly") {
-              in_particles    = std::ifstream(datadir / "particlesFilterPixelOnlyPhase2.txt");
-              in_map = std::ifstream(datadir / "mapHitsToParticlesPixelOnlyPhase2.txt");
-            }
-            else if (trackerType == "PixelPlusShortStrips") {
-              in_particles    = std::ifstream(datadir / "particlesFilterPixelPlusShortStripsPhase2.txt");
-              in_map = std::ifstream(datadir / "mapHitsToParticlesPixelPlusShortStripsPhase2.txt");
-            }
-            else if (trackerType == "AllTracker") {
-              in_particles    = std::ifstream(datadir / "particlesFilterAllTrackerPhase2.txt");
-              in_map = std::ifstream(datadir / "mapHitsToParticlesAllTrackerPhase2.txt");
-            }
-            // in_particles    = std::ifstream(datadir / "particlesFilterPhase2.txt");
-            // in_map = std::ifstream(datadir / "mapHitsToParticlesPhase2.txt");
-          } 
-          // in_particles    = std::ifstream(datadir / "particlesMuonsOnlyMinLayers.txt"); // Just for testing with muons only
-          // in_map = std::ifstream(datadir / "mapMuonsOnlyMinLayers.txt"); // Just for testing with muons only
-
+          if (!partFileName.empty()) {
+            auto partPath = datadir / partFileName;
+            in_particles = openInputFile(partPath, !fromHits_);
+          }
         }
 
         particleToken_ = reg.produces<sim::ParticleHost>();
@@ -151,12 +207,12 @@ namespace edm {
     if(not fromHits_)
     {
       unsigned int nfeds;
-      in_file.exceptions(std::ifstream::badbit);
-      in_file.read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
-      while (not in_file.eof()) {
-        in_file.exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
+      in_file->exceptions(std::ifstream::badbit);
+      in_file->read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
+      while (not in_file->eof()) {
+        in_file->exceptions(std::ifstream::badbit | std::ifstream::failbit | std::ifstream::eofbit);
 
-        raw_.emplace_back(readRaw(in_file, nfeds));
+        raw_.emplace_back(readRaw(*in_file, nfeds));
 
         if (validation_) {
           unsigned int nm, nd, nc, nt, nv;
@@ -171,8 +227,8 @@ namespace edm {
         }
 
         // next event
-        in_file.exceptions(std::ifstream::badbit);
-        in_file.read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
+        in_file->exceptions(std::ifstream::badbit);
+        in_file->read(reinterpret_cast<char *>(&nfeds), sizeof(unsigned int));
       }
     }
     else
@@ -180,7 +236,7 @@ namespace edm {
       int32_t nEventsP, nEventsH, nEventsM;
 
       std::string line_hits;
-      while (std::getline(in_file, line_hits)) {
+      while (std::getline(*in_file, line_hits)) {
         if (!line_hits.empty()) break;
       }
       if (line_hits.rfind("events:", 0) != 0) {
@@ -191,7 +247,7 @@ namespace edm {
 
       if (isColliderML and validation) {
         std::string line_map;
-        while (std::getline(in_map, line_map)) {
+        while (std::getline(*in_map, line_map)) {
           if (!line_map.empty()) break;
         }
         if (line_map.rfind("events:", 0) != 0) {
@@ -214,12 +270,12 @@ namespace edm {
         // hits_.emplace_back(hitReader::read_single_event(in_file));
 
         // hits_.emplace_back(hitReader::read_single_event_fromText(in_file));
-        hits_.emplace_back(hitReaderTest::readEvent(in_file));
+        hits_.emplace_back(hitReaderTest::readEvent(*in_file));
         if (validation and isColliderML)
         {
-          particles_.emplace_back(particleReader::read_single_event_fromText(in_particles));
+          particles_.emplace_back(particleReader::read_single_event_fromText(*in_particles));
           // map_.emplace_back(mapReader::read_single_event_fromText(in_map));
-          map_.emplace_back(mapReaderTest::readEvent(in_map));
+          map_.emplace_back(mapReaderTest::readEvent(*in_map));
         }
           
 #ifdef INPUT_DEBUG

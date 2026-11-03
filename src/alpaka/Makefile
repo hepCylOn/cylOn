@@ -61,6 +61,7 @@ MY_LDFLAGS := -Wl,-rpath,$(LIB_DIR)/$(TARGET_NAME) -L$(LIB_DIR)/$(TARGET_NAME)
 MY_LDFLAGS += $(CATCH_LIB)/libCatch2Main.a
 MY_LDFLAGS += $(CATCH_LIB)/libCatch2.a
 MY_LDFLAGS += -L$(BOOST_LIB) -lboost_system -lboost_filesystem -lboost_thread
+MY_LDFLAGS += -lz
 ALL_DEPENDS := $(EXE_DEP)
 # Files for libraries
 LIBS :=

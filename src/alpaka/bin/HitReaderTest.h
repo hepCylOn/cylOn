@@ -43,7 +43,7 @@ namespace hitReaderTest {
         return value;
     }
 
-    inline reco::TrackingRecHitHost readEvent(std::ifstream& file) {
+    inline reco::TrackingRecHitHost readEvent(std::istream& file) {
 
         Event event;
 
@@ -148,7 +148,7 @@ namespace mapReaderTest {
         return value;
     }
 
-    inline utils::SimpleMapHost readEvent(std::ifstream& file) {
+    inline utils::SimpleMapHost readEvent(std::istream& file) {
 
         Event event;
 
