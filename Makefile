@@ -33,6 +33,8 @@ USER_LDFLAGS  :=
 HOST_CXXFLAGS := -O2 -fPIC -fdiagnostics-show-option -felide-constructors -fmessage-length=0 -fno-math-errno -ftree-vectorize -fvisibility-inlines-hidden --param vect-max-version-for-alias-checks=50 -msse3 -pipe -pthread -Werror=address -Wall -Werror=array-bounds -Wno-attributes -Werror=conversion-null -Werror=delete-non-virtual-dtor -Wno-deprecated -Werror=format-contains-nul -Werror=format -Wno-long-long -Werror=main -Werror=missing-braces -Werror=narrowing -Wno-non-template-friend -Wnon-virtual-dtor -Werror=overflow -Werror=overlength-strings -Wparentheses -Werror=pointer-arith -Wno-psabi -Werror=reorder -Werror=return-local-addr -Wreturn-type -Werror=return-type -Werror=sign-compare -Werror=strict-aliasing -Wstrict-overflow -Werror=switch -Werror=type-limits -Wunused -Werror=unused-but-set-variable -Wno-unused-local-typedefs -Werror=unused-value -Wno-error=unused-variable -Wno-vla -Werror=write-strings -Wfatal-errors
 # in case os linker resolve errors, try adding -mcmodel=large
 
+CURL_PROXY := $(if $(MYPROXY),-x "$(MYPROXY)")
+
 ############################################################################################################
 ### ROOT 
 ROOTCONFIG := $(shell which root-config 2>/dev/null)
@@ -80,7 +82,7 @@ export LDFLAGS_NVCXX := -cuda -Wl,-E -ldl -gpu=managed -stdpar
 export SO_LDFLAGS := -Wl,-z,defs
 export SO_LDFLAGS_NVCC := --linker-options '-z,defs'
 
-GCC_TOOLCHAIN := $(abspath $(dir $(shell which $(CXX)))/..)
+GCC_TOOLCHAIN ?= $(abspath $(dir $(shell which $(CXX)))/..)
 GCC_TARGET    := $(shell $(CXX) -dumpmachine)
 
 CLANG_FORMAT := clang-format-16
@@ -126,6 +128,8 @@ CUDA_VERSION := $(shell $(CUDA_NVCC) --version | grep release | sed -e's/.*relea
 
 CUDA_CCBIN:=$(CXX)
 CUDA_GCC_VERSION := 11
+CUDA_ARCHS ?= $(shell for arch in $$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | sed 's/[^0-9]//g' | sort -u); do nvcc --list-gpu-arch 2>/dev/null | grep -qx "compute_$$arch" && printf '%s ' "$$arch"; done)
+export CUDA_ARCH := $(CUDA_ARCHS)
 
 ### This was used when pulling gcc and others from cmssw (could be removed, keeping for testing for the moment)
 # # Default el8_amd64_gcc if CMSSW_ARCH not set in environment
@@ -794,7 +798,7 @@ $(DATA_DEPS): $(DATA_TAR_GZ) | $(DATA_BASE)/md5.txt
 	touch $(DATA_DEPS)
 
 $(DATA_TAR_GZ): | $(DATA_BASE)/url.txt
-	curl -x socks5://localhost:18080 -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
+	curl $(CURL_PROXY) -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
 
 # External rules
 $(EXTERNAL_BASE):
@@ -840,7 +844,7 @@ external_boost: $(BOOST_BASE)
 $(BOOST_BASE): CXXFLAGS:=
 $(BOOST_BASE):
 	$(eval BOOST_TMP := $(shell mktemp -d))
-	curl -x socks5://localhost:18080 -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
+	curl $(CURL_PROXY) -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
 	cd $(BOOST_TMP)/boost_1_78_0 && ./bootstrap.sh && ./b2 install --prefix=$@ --without-graph_parallel --without-mpi --without-python
 	@rm -rf $(BOOST_TMP)
 	$(eval undefine BOOST_TMP)
@@ -868,7 +872,7 @@ external_hwloc: $(HWLOC_BASE)
 $(HWLOC_BASE): CXXFLAGS:=
 $(HWLOC_BASE):
 	$(eval HWLOC_TMP := $(shell mktemp -d))
-	curl -x socks5://localhost:18080 -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
+	curl $(CURL_PROXY) -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
 	cd $(HWLOC_TMP)/ && ./configure --prefix=$@ --enable-shared
 	$(MAKE) -C $(HWLOC_TMP)
 	$(MAKE) -C $(HWLOC_TMP) install
@@ -915,8 +919,8 @@ external_kokkos_clean:
 external_julia: $(JULIA_BASE)
 
 $(JULIA_BASE):
-	mkdir -p $@ && curl -L https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-1.12.0-rc1-linux-x86_64.tar.gz | tar xz --strip-components=1 -C $@
+	mkdir -p $@ && curl $(CURL_PROXY) -L https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-1.12.0-rc1-linux-x86_64.tar.gz | tar xz --strip-components=1 -C $@
 
 # Json
 $(JSON_BASE):
-	mkdir -p $@ && curl -x socks5://localhost:18080 wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp > external/nlohmann/json.hpp   
+	mkdir -p $@ && curl $(CURL_PROXY) wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp > external/nlohmann/json.hpp   
