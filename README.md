@@ -101,6 +101,99 @@ This runs the equivalent of:
 ./alpaka --cuda --maxEvents 10 --fromHits --isPhase2 --isColliderML --validation --trackerType PixelOnly --numberOfThreads 4
 ```
 
+## Producing input data from ColliderML
+
+<details>
+
+<summary>Citations for the ColliderML dataset used</summary>
+
+https://arxiv.org/abs/2512.15230
+
+@misc{elitez2025collidermlreleaseopendatadetectorhighluminosity,
+      title={ColliderML: The First Release of an OpenDataDetector High-Luminosity Physics Benchmark Dataset}, 
+      author={Doğa Elitez and Paul Gessinger and Daniel Murnane and Marcus Selchou Raaholt and Andreas Salzburger and Stine Kofoed Skov and Andreas Stefl and Anna Zaborowska},
+      year={2025},
+      eprint={2512.15230},
+      archivePrefix={arXiv},
+      primaryClass={hep-ex},
+      url={https://arxiv.org/abs/2512.15230}, 
+}
+
+@dataset{colliderml_release1_2025,
+  title={{ColliderML Dataset Release 1}},
+  author={{ColliderML Collaboration}},
+  year={2025},
+  publisher={Hugging Face},
+  howpublished={\url{https://huggingface.co/datasets/OpenDataDetector/ColliderML-Release-1}},
+  note={Simulation performed using ACTS and the Open Data Detector}
+}
+
+</details>
+
+All the scripts used to generate ColliderML data can be found in the `scripts` folder;
+
+### Producing hits information and map from hits to particles association
+
+Script [extractHitsFromParquet.py](./scripts/extractHitsFromParquet.py) can be used to extract the hits information from the ColliderML dataset. It will save the hits in a .txt file that will contain the following info:
+
+```
+events:NUMBER_OF_EVENTS
+hits:NUMBER_OF_HITS_EV1
+modules:NUMBER_OF_LAYERS
+hit1_ph,hit1_ph,hit1_dummy_error,hit1_dummy_error,hit1_xg,hit1_yg,hit1_zg,hit1_rg,hit1_phiShort,hit1_ph,hit1_ph,hit1_ph,hit1_layerID,hit1_partID
+...
+hitN_ph,hitN_ph,hitN_dummy_error,hitN_dummy_error,hitN_xg,hitN_yg,hitN_zg,hitN_rg,hitN_phiShort,hitN_ph,hitN_ph,hitN_ph,hitN_layerID,hitN_partID
+0,nHits_layer(0),nHits_layer(1)+prev,...,nHitsLayer(N-1)+prev,nHitsLayer(N)+prev
+hits:NUMBER_OF_HITS_EV2
+...
+```
+
+The output .txt file can have a large size, depending on the amount of events size. It can be compressed with command: `gzip -c hits.txt > hits.txt.gz`, and `hits.txt.gz` can be directly used as an input to CylOn. The `-c` option keeps the input file.
+
+The map from hits to particles is also saved as a .txt file with the number of events as `events:NUMBER_OF_EVENTS`, the number of hits per event as `hits:NUMBER_OF_HITS`, and the partID associated to each hit, in the same order that they appear in the hits file.
+
+### Producing particles information
+
+Script [extractParticlesFromParquet.py](./scripts/extractParticlesFromParquet.py) can be used to extract the particles information from the ColliderML dataset. It will save the particles in a .txt file that will contain the following info:
+
+```
+particles:NUMBER_OF_PARTICLES_EV1
+part1_vx,part1_vy,part1_vz,part1_px,part1_py,part1_pz,part1_e,part1_pt,part1_eta,part1_phi,part1_m,part1_c,part1_pid,part1_id
+...
+partN_vx,partN_vy,partN_vz,partN_px,partN_py,partN_pz,partN_e,partN_pt,partN_eta,partN_phi,partN_m,partN_c,partN_pid,partN_id
+particles:NUMBER_OF_PARTICLES_EV2
+...
+```
+There is a pre-selection applied to the particles at this stage in terms of the particles pT (> 0.9 GeV), |eta| (< 3.2), |dz| (< 30 cm), dxy (< 2.5 cm) and |pid| (optional, set to the muon PDGID = 13).
+
+Afterwards, script [extractParticlesWithMoreHits.py](./scripts/extractParticlesWithMoreHits.py) can be used to only keep the particles associated to at least 4 hits, giving a better chance to the reconstruction algorithm to reconstruct these particles.
+
+<details>
+
+<summary>Example of how to run the scripts</summary>
+
+### Simple test workflow
+
+Run the commands below to produce some testing files:
+
+```sh
+# From the cylon directory do:
+
+python3 scripts/extractHitsFromParquet.py -o AllTracker --outDir data -p -s -l -n 10
+python3 scripts/extractParticlesFromParquet.py -o AllTracker --outDir data -n 10
+python3 scripts/extractParticlesWithMoreHits.py -o AllTracker --outDir data -p
+
+# Don't use the -c option below if you want to delete the input files
+
+gzip -c data/hitsWithParticleIDAllTrackerPhase2.txt > data/hitsWithParticleIDAllTrackerPhase2.txt.gz
+gzip -c data/mapHitsToParticlesAllTrackerPhase2.txt > data/mapHitsToParticlesAllTrackerPhase2.txt.gz
+gzip -c data/particlesFilterAllTrackerPhase2.txt > data/particlesFilterAllTrackerPhase2.txt.gz
+```
+
+The configs should be already set so that `./cylon.sh --backend cuda --max-events 10 --from-hits --phase2 --collider-ml --tracker-type AllTracker --validation` can be executed. If not, just change [testColliderMLAllTrackerPhase2FromHits.json](./configs/testColliderMLAllTrackerPhase2FromHits.json) to the correct file names.
+
+</details>
+
 ## Troubleshooting
 
 Executing `./cylon.sh` also executes the `Makefile` which can show some issues. Here are some of the problems that can appear (non-exhaustive list)
@@ -118,6 +211,8 @@ Or parsing it when running the make commmand:
 ```sh
 make -j 8 MYPROXY=http://proxy.example:8080 alpaka
 ```
+
+If no proxy is needed, leave `MYPROXY` unchanged.
 
 ### Checking the GCC toolchain
 
