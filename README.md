@@ -7,13 +7,31 @@ CylOn is a framework allowing to reconstruct HEP experiments tracks on multiple 
 - Alpaka-based heterogenous framework, with a simplified version. 
 
 > [!IMPORTANT] 
-> The vast majority of the algorithmic backbone comes from the work done in the original [Patatrack standalone pixel tracking repository](https://github.com/hpc4lhc/pixeltrack-standalone), from which this repository is forked, and the furter improvemnts brought to the framework in [cms-sw](https://github.com/cms-sw/cmssw). The full merit and credit goes to the developers there (some of which are also working on this project). Find here a list of references
+> The vast majority of the algorithmic backbone comes from the work done in the original [Patatrack standalone pixel tracking repository](https://github.com/hpc4lhc/pixeltrack-standalone), from which this repository is forked, and the furter improvements brought to the framework in [cms-sw](https://github.com/cms-sw/cmssw). The full merit and credit goes to the developers there (some of which are also working on this project). Find here a list of references
 > 
 > 
 
 ## Setup
 
-Use the command `make alpaka` to build the framework. Option `-j` can be used to parallelize the build. Check https://github.com/hepCylOn/cylOn/tree/checkpointFromHits#troubleshooting for more information on the needed definitions and possible issues that can happen at this step.
+From the framework's root, use the command `make alpaka` to build the framework. Option `-j` can be used to parallelize the build. Check https://github.com/hepCylOn/cylOn/tree/checkpointFromHits#troubleshooting for more information on the needed definitions and possible issues that can happen at this step.
+
+After setting up, set the environment with `. env.sh`. Then, create a virtual python environment to download the needed python libraries:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+After the intial setup, to use the framework just use the following commands from the `cylOn` directory:
+
+```sh
+. env.sh
+source .venv/bin/activate
+```
+
+To deactivate the python environment use the command `deactivate`.
 
 ## Running with `cylon.sh`
 
@@ -103,6 +121,7 @@ This runs the equivalent of:
 
 ## Producing input data from ColliderML
 
+-----
 <details>
 
 <summary>Citations for the ColliderML dataset used</summary>
@@ -134,6 +153,8 @@ https://arxiv.org/abs/2512.15230
 ```
 
 </details>
+
+-----
 
 All the scripts used to generate ColliderML data can be found in the `scripts` folder.
 
@@ -173,6 +194,8 @@ There is a pre-selection applied to the particles at this stage in terms of the 
 
 Afterwards, script [extractParticlesWithMoreHits.py](./scripts/extractParticlesWithMoreHits.py) can be used to only keep the particles associated to at least 4 hits, giving a better chance to the reconstruction algorithm to reconstruct these particles.
 
+-----
+
 <details>
 
 <summary>Example of how to run the scripts</summary>
@@ -198,6 +221,8 @@ gzip -c data/particlesFilterAllTrackerPhase2.txt > data/particlesFilterAllTracke
 The configs should be already set so that `./cylon.sh --backend cuda --max-events 10 --from-hits --phase2 --collider-ml --tracker-type AllTracker --validation` can be executed. If not, just change [testColliderMLAllTrackerPhase2FromHits.json](./configs/testColliderMLAllTrackerPhase2FromHits.json) to the correct file names.
 
 </details>
+
+-----
 
 ## Troubleshooting
 
