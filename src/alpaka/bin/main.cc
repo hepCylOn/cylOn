@@ -316,22 +316,11 @@ int main(int argc, char** argv) {
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
       if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
       if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
-      // if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
       if (not dumpHits) {
-        if (not fromHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+        if (not isPhase2) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
         else {
-          if (not isPhase2) {
-            if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
-            else esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase1");
-          }
-          else {
-            if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase2");
-            else{
-              if (trackerType == "PixelOnly") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPhase2");
-              if (trackerType == "PixelPlusShortStrips") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLPixelPlusShortStripsPhase2");
-              if (trackerType == "AllTracker") esmodules.emplace_back(prefix + "CAGeometryHostESProducerColliderMLAllTrackerPhase2");
-            }
-          }
+          if (not isColliderML) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase2");
+          else esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
         }
       }
 
@@ -348,20 +337,10 @@ int main(int argc, char** argv) {
       {
         if (not dumpHits)
         {
-          if (not fromHits) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
+          if (not isPhase2) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
           else {
-            if (not isPhase2) {
-              if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase1");
-              else edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase1");
-            }
-            else {
-              if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase2");
-              else{
-                if (trackerType == "PixelOnly") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPhase2");
-                if (trackerType == "PixelPlusShortStrips") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLPixelPlusShortStripsPhase2");
-                if (trackerType == "AllTracker") edmodules.emplace_back(prefix + "CAHitNtupletColliderMLAllTrackerPhase2");
-              }
-            }
+            if (not isColliderML) edmodules.emplace_back(prefix + "CAHitNtupletPhase2");
+            else edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
           }
           edmodules.emplace_back(prefix + "PixelVertexPhase1");
           if (transfer) {
@@ -383,24 +362,8 @@ int main(int argc, char** argv) {
       else 
       {
         if (isColliderML) {
-          if (not isPhase2) {
-            edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase1");
-            edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase1");
-          }
-          else {
-            if (trackerType == "PixelOnly"){
-              edmodules.emplace_back("SimPixelTrackProducerColliderMLPhase2");
-              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPhase2");
-            }
-            if (trackerType == "PixelPlusShortStrips") {
-              edmodules.emplace_back("SimPixelTrackProducerColliderMLPixelPlusShortStripsPhase2");
-              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2");
-            }
-            if (trackerType == "AllTracker") {
-              edmodules.emplace_back("SimPixelTrackProducerColliderMLAllTrackerPhase2");
-              edmodules.emplace_back("SimPixelTrackAnalyzerColliderMLAllTrackerPhase2");
-            }
-          }
+          edmodules.emplace_back("SimPixelTrackProducer");
+          edmodules.emplace_back("SimPixelTrackAnalyzer");
         }
       }
       alternatives.emplace_back(backend, weight, std::move(edmodules));

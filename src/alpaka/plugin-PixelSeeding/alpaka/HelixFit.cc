@@ -23,7 +23,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template class HelixFit<pixelTopology::GenericUpgrade>;
   template class HelixFit<pixelTopology::HIonPhase1>;
   template class HelixFit<pixelTopology::ColliderMLPhase1>;
-  template class HelixFit<pixelTopology::ColliderMLPhase2>;
-  template class HelixFit<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>;
-  template class HelixFit<pixelTopology::ColliderMLAllTrackerPhase2>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

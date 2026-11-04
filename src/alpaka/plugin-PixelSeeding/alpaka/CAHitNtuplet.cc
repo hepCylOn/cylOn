@@ -227,20 +227,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using CAHitNtuplet<pixelTopology::ColliderMLPhase1>::CAHitNtuplet;
   };
 
-  class CAHitNtupletColliderMLPhase2 : public CAHitNtuplet<pixelTopology::ColliderMLPhase2> {
-  public:
-    using CAHitNtuplet<pixelTopology::ColliderMLPhase2>::CAHitNtuplet;
-  };
-
-  class CAHitNtupletColliderMLPixelPlusShortStripsPhase2 : public CAHitNtuplet<pixelTopology::ColliderMLPixelPlusShortStripsPhase2> {
-  public:
-    using CAHitNtuplet<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>::CAHitNtuplet;
-  };
-
-  class CAHitNtupletColliderMLAllTrackerPhase2 : public CAHitNtuplet<pixelTopology::ColliderMLAllTrackerPhase2> {
-  public:
-    using CAHitNtuplet<pixelTopology::ColliderMLAllTrackerPhase2>::CAHitNtuplet;
-  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 
@@ -249,6 +235,3 @@ DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletHIonPhase1);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletPhase2);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletUpgrade);
 DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPhase1);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPhase2);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLPixelPlusShortStripsPhase2);
-DEFINE_FWK_ALPAKA_MODULE(CAHitNtupletColliderMLAllTrackerPhase2);

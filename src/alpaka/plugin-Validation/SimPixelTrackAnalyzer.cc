@@ -117,8 +117,7 @@ void writeHisto(std::vector<uint32_t>& vec, std::ofstream& file, std::vector<T>&
 }
   // class that calculate and stores all cut variables for a given doublet
   struct CellCutVariables {
-    template <typename TrackerTraits>
-    void calculateCutVariables(SimPixelTrack<TrackerTraits>::Doublet& doublet, SimPixelTrack<TrackerTraits> const& simPixelTrack) {
+    void calculateCutVariables(SimPixelTrack::Doublet& doublet, SimPixelTrack const& simPixelTrack) {
       // inner RecHit properties
       std::vector<double> inner_globalPosition = doublet.innerGlobalPos();
       inner_z_ = inner_globalPosition[2];
@@ -448,13 +447,13 @@ void writeHisto(std::vector<uint32_t>& vec, std::ofstream& file, std::vector<T>&
 // constructors and destructor
 // -------------------------------------------------------------------------------------------------------------
 
-template<typename TrackerTraits>
-SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Config const& cfg)
-    : simPixelTracks_getToken_(reg.consumes<SimPixelTrackCollection<TrackerTraits>>()),
+
+SimPixelTrackAnalyzer::SimPixelTrackAnalyzer(edm::ProductRegistry& reg, edm::Config const& cfg)
+    : simPixelTracks_getToken_(reg.consumes<SimPixelTrackCollection>()),
       particles_getToken_(reg.consumes<sim::ParticleHost>()),
       hits_getToken_(reg.consumes<reco::TrackingRecHitHost>()),
-      cellPtCut_(TrackerTraits::cellPtCut),
-      hardCurvCut_(TrackerTraits::hardCurvCut),
+      cellPtCut_(cfg.value("cellPtCut", 0.85)),
+      hardCurvCut_(cfg.value("hardCurvCut", 0.1)),
       minNumDoubletsPerNtuplet_(3) {//,
 
   auto getRequiredVector = [&]<typename T>(std::string const& key, size_t expected) {
@@ -477,7 +476,7 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
     return vec;
   };
 
-    auto getRequiredInt = [&](std::string const& key) {
+  auto getRequiredInt = [&](std::string const& key) {
     if (!cfg.contains(key)) {
       throw std::runtime_error("[SimPixelTrackAnalyzer - getRequiredInt ERROR] Missing required config key '" + key + "'");
     }
@@ -590,8 +589,8 @@ SimPixelTrackAnalyzer<TrackerTraits>::SimPixelTrackAnalyzer(edm::ProductRegistry
 //   hVector_firstHitR_.resize(numLayers_);
 }
 
-template<typename TrackerTraits>
-SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
+
+SimPixelTrackAnalyzer::~SimPixelTrackAnalyzer() {
   std::cout << totalDoublets << " -- " << totalPassedDoublets << std::endl;
 
   simdoublets::linSpace<double> (nBins, *(std::min_element(vectors.vecInnerZ.begin(), vectors.vecInnerZ.end())), *(std::max_element(vectors.vecInnerZ.begin(), vectors.vecInnerZ.end())), binsInnerZ);
@@ -721,10 +720,10 @@ SimPixelTrackAnalyzer<TrackerTraits>::~SimPixelTrackAnalyzer() {
 // -------------------------------------------------------------------------------------------------------------
 
 // function to apply cuts and set doublet to alive if it passes and to killed otherwise
-template<typename TrackerTraits>
-void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
-    SimPixelTrack<TrackerTraits>::Doublet& doublet,
-    SimPixelTrack<TrackerTraits> const& simPixelTrack,
+
+void SimPixelTrackAnalyzer::applyCuts(
+    SimPixelTrack::Doublet& doublet,
+    SimPixelTrack const& simPixelTrack,
     bool const hasValidNeighbors,
     bool const hasValidTripletNeighbors,
     int const layerPairIdIndex,
@@ -887,9 +886,9 @@ void SimPixelTrackAnalyzer<TrackerTraits>::applyCuts(
 }
 
 // // function that fills all histograms for cut variables
-template<typename TrackerTraits>
-void SimPixelTrackAnalyzer<TrackerTraits>::fillCutHistograms(
-    SimPixelTrack<TrackerTraits>::Doublet const& doublet,
+
+void SimPixelTrackAnalyzer::fillCutHistograms(
+    SimPixelTrack::Doublet const& doublet,
     bool hasValidNeighbors,
     bool hasValidTripletNeighbors,
     int const layerPairIdIndex,
@@ -1164,8 +1163,8 @@ void SimPixelTrackAnalyzer<TrackerTraits>::fillCutHistograms(
 
 // function that trys to find a valid Ntuplet for the given SimPixelTrack using the given geometry configuration
 // (layer pairs, starting pairs, minimum number of hits) ignoring all cuts on doublets/connections and returns if it was able to find one
-template<typename TrackerTraits>
-bool SimPixelTrackAnalyzer<TrackerTraits>::configAllowsForValidNtuplet(SimPixelTrack<TrackerTraits> const& simPixelTrack) const {
+
+bool SimPixelTrackAnalyzer::configAllowsForValidNtuplet(SimPixelTrack const& simPixelTrack) const {
   // if the number of layers is less than the minimum requirement, don't even bother building anything...
   if (simPixelTrack.numLayers() < minNumDoubletsPerNtuplet_ + 1)
     return false;
@@ -1209,12 +1208,12 @@ bool SimPixelTrackAnalyzer<TrackerTraits>::configAllowsForValidNtuplet(SimPixelT
 }
 
 // main function that fills the histograms
-template<typename TrackerTraits>
-void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+
+void SimPixelTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
 
   // get SimPixelTracks
-  SimPixelTrackCollection<TrackerTraits> const& simPixelTrackCollection = iEvent.get(simPixelTracks_getToken_);
+  SimPixelTrackCollection const& simPixelTrackCollection = iEvent.get(simPixelTracks_getToken_);
   sim::ParticleHost const& particles = iEvent.get(particles_getToken_);
   auto const& hGeometry = iSetup.get<::reco::CAGeometryHost>();
 
@@ -1270,7 +1269,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
     //   clusterSizeCutManager.reset();
 
       // calculate the cut variables for the given doublet
-      cellCutVariables.calculateCutVariables<TrackerTraits>(doublet, simPixelTrack);
+      cellCutVariables.calculateCutVariables(doublet, simPixelTrack);
 
       // first, get layer pair Id and exclude layer pairs that are not considered
       layerPairId = doublet.layerPairId();
@@ -1279,7 +1278,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
         layerPairIdIndex = layerPairId2Index_.at(layerPairId);
 
         // function to check if a doublet has inner neighbors from a considered layer pair
-        auto checkValidNeighbors = [&](SimPixelTrack<TrackerTraits>::Doublet const& d) {
+        auto checkValidNeighbors = [&](SimPixelTrack::Doublet const& d) {
           return (d.numInnerNeighbors() > 0 &&
                   !(simPixelTrack.getSimDoublet(d.innerNeighborIndex(0)).isKilledByMissingLayerPair()));
         };
@@ -1384,7 +1383,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
 
 // // booking the histograms
 // template <typename TrackerTraits>
-// void SimPixelTrackAnalyzer<TrackerTraits>::bookHistograms(DQMStore::IBooker& ibook,
+// void SimPixelTrackAnalyzer::bookHistograms(DQMStore::IBooker& ibook,
 //                                                           edm::Run const& run,
 //                                                           edm::EventSetup const& iSetup) {
 //   // set some common parameters
@@ -2307,7 +2306,7 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
 
 // // dummy default fillDescription
 // template <typename TrackerTraits>
-// void SimPixelTrackAnalyzer<TrackerTraits>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+// void SimPixelTrackAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 //   edm::ParameterSetDescription desc;
 //   descriptions.addWithDefaultLabel(desc);
 // }
@@ -2478,32 +2477,4 @@ void SimPixelTrackAnalyzer<TrackerTraits>::produce(edm::Event& iEvent, const edm
 //   descriptions.addWithDefaultLabel(desc);
 // }
 
-// define this as a plug-in
-// DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
-
-class SimPixelTrackAnalyzerColliderMLPhase1 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase1> {
-public:
-  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase1>::SimPixelTrackAnalyzer;
-};
-
-class SimPixelTrackAnalyzerColliderMLPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase2> {
-public:
-  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPhase2>::SimPixelTrackAnalyzer;
-};
-
-class SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2> {
-public:
-  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLPixelPlusShortStripsPhase2>::SimPixelTrackAnalyzer;
-};
-
-class SimPixelTrackAnalyzerColliderMLAllTrackerPhase2 : public SimPixelTrackAnalyzer<pixelTopology::ColliderMLAllTrackerPhase2> {
-public:
-  using SimPixelTrackAnalyzer<pixelTopology::ColliderMLAllTrackerPhase2>::SimPixelTrackAnalyzer;
-};
-
-// DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);
-
-DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase1);
-DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPhase2);
-DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLPixelPlusShortStripsPhase2);
-DEFINE_FWK_MODULE(SimPixelTrackAnalyzerColliderMLAllTrackerPhase2);
+DEFINE_FWK_MODULE(SimPixelTrackAnalyzer);

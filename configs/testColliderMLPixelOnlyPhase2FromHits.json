@@ -7,7 +7,7 @@
   "BeamSpotESProducer": {
     "data": ""
   },
-  "CAGeometryHostESProducerColliderMLPhase2": {
+  "CAGeometryHostESProducerGenericUpgrade": {
 
     "nLayers": 18,
 
@@ -61,7 +61,7 @@
 
     "dcaCuts": [0.0225, 0.0425, 0.1275, 0.0025, 0.1475, 0.1475, 0.1675, 0.1675, 0.1575, 0.0025, 0.0025, 0.1475, 0.1475, 0.1675, 0.1625, 0.1575, 0.0025, 0.0025]
   },
-  "CAHitNtupletColliderMLPhase2": {
+  "CAHitNtupletUpgrade": {
     "maxNumberOfDoublets": 2000000,
     "maxNumberOfTuples": 3000,
     
@@ -93,7 +93,7 @@
     "dupPassThrough": false,
     "useSimpleTripletCleaner": true
   },
-  "SimPixelTrackAnalyzerColliderMLPhase2": {
+  "SimPixelTrackAnalyzer": {
     "nPairs": 41,
 
     "nLayers": 18,
@@ -105,7 +105,11 @@
     "isBarrel": [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
 
     "ptCuts": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+
+    "hardCurvCut": 0.0915,
+
+    "cellPtCut": 0.85
   }
 }
 

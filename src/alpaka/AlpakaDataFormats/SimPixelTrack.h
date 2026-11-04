@@ -41,7 +41,6 @@
  * @author Jan Schulz (jan.gerrit.schulz@cern.ch)
  * @date January 2025
  */
-template <typename TrackerTraits>
 class SimPixelTrack {
 public:
   /**
@@ -422,7 +421,6 @@ private:
 };
 
 // collection of SimPixelTrack
-template <typename TrackerTraits>
-using SimPixelTrackCollection = std::vector<SimPixelTrack<TrackerTraits>>;
+using SimPixelTrackCollection = std::vector<SimPixelTrack>;
 
 #endif
