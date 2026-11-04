@@ -667,7 +667,11 @@ env.sh: Makefile
 	@echo '  echo "#! /bin/bash"                       >  .original_env'    >> $@
 	@echo '  echo "PATH=$$PATH"                         >> .original_env'   >> $@
 	@echo '  echo "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH"   >> .original_env'   >> $@
-	@echo 'fi'                                                              >> $@
+	@echo 'fi'                                                              >> $@ 
+	@echo 'export GCC_TOOLCHAIN=$(GCC_TOOLCHAIN)'                           >> $@
+ifneq ($(strip $(MYPROXY)),)
+	@echo 'export MYPROXY=$(MYPROXY)'                                       >> $@
+endif
 	@echo                                                                   >> $@
 	@# set the LD_LIBRARY_PATH
 	@echo -n 'export LD_LIBRARY_PATH='                                      >> $@
