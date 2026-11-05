@@ -224,7 +224,7 @@ The configs should be already set so that `./cylon.sh --backend cuda --max-event
 
 ## Updating a config's CA parameters
 
-The [autograph.py](./scripts/autograph.py) script extracts some of the CA parameters from the geometry defined by the input hits true position in the detector. To apply the newly extracted parameters, that are saved in a file named `line_sweep_edges.txt`, use the script below as
+The [autograph.py](./scripts/autograph.py) script extracts some of the CA parameters from the geometry defined by the input hits true position in the detector. To apply the newly extracted parameters, that are saved in a file named `line_sweep_edges.txt`, use the script [modifyConfigsCAParams.py](./scripts/modifyConfigsCAParams.py) as8 shown below to create a new config file with these parameters:
 
 ```bash
 python3 scripts/modifyConfigsCAParams.py -c configs/templateConfig.json -i line_sweep_edges.txt -o configs/OUTPUT_FILE_NAME.json
