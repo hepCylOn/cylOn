@@ -1,0 +1,90 @@
+{
+  "Source": {
+    "inputFile": "",
+    "mapFile": "",
+    "partFile": ""
+  },
+  "BeamSpotESProducer": {
+    "data": ""
+  },
+  "CAGeometryHostESProducerGenericUpgrade": {
+    "data": "",
+
+    "nLayers": 0,
+
+    "nPairs": 0,
+
+    "nModules": 0,
+
+    "pairGraph": [],
+
+    "startingPairs": [],
+
+    "layerStarts": [],
+
+    "phiCuts": [],
+
+    "minZ": [],
+
+    "maxZ": [],
+
+    "maxR": [],
+
+    "z0cut": [],
+
+    "thetaCuts": [],
+
+    "dcaCuts": []
+  },
+  "CAHitNtupletUpgrade": {
+    "maxNumberOfDoublets": 13000000,
+    "maxNumberOfTuples": 55000,
+    
+    "BField": 3.0,
+    "avgHitsPerTrack": 10.0,
+    "avgCellsPerHit": 45.0,
+    "avgCellsPerCell": 0.151,
+    "avgTracksPerCell": 0.040,
+    
+    "minHitsPerNtuplet": 4,
+    "minHitsForSharingCut": 10,
+    "ptmin": 0.9,
+    "hardCurvCut": 0.0,
+    "cellPtCut": 0.85,
+    
+    "dzdrFact": 15.2,
+    "minYsizeB1": 0,
+    "minYsizeB2": 0,
+    "maxDYsize12": 0,
+    "maxDYsize": 0,
+    "maxDYPred": 0,
+    
+    "useRiemannFit": false,
+    "fitNas4": false,
+    "earlyFishbone": true,
+    "lateFishbone": false,
+    "doStats": false,
+    "doSharedHitCut": true,
+    "dupPassThrough": false,
+    "useSimpleTripletCleaner": true
+  },
+  "SimPixelTrackAnalyzer": {
+    "nPairs": 0,
+
+    "nLayers": 0,
+
+    "pairGraph": [],
+
+    "startingPairs": [],
+
+    "isBarrel": [],
+
+    "ptCuts": [],
+
+    "hardCurvCut": 0.0,
+
+    "cellPtCut": 0.85
+  }
+}
+
+

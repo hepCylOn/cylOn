@@ -93,8 +93,6 @@ This runs the equivalent of:
 ./alpaka --cuda --maxEvents 10 --fromHits --isPhase2 --isColliderML --validation --trackerType PixelOnly
 ```
 
-This is useful, since running with `SimPixelTracks` extracts parameters for the CA algorithm. It still needs to be parsed to the config in an automated way.
-
 For completeness, an example with parsing an argument that needs a value would be:
 
 ```bash
@@ -223,6 +221,22 @@ The configs should be already set so that `./cylon.sh --backend cuda --max-event
 </details>
 
 -----
+
+## Updating a config's CA parameters
+
+The [autograph.py](./scripts/autograph.py) script extracts some of the CA parameters from the geometry defined by the input hits true position in the detector. To apply the newly extracted parameters, that are saved in a file named `line_sweep_edges.txt`, use the script below as
+
+```bash
+python3 scripts/modifyConfigsCAParams.py -c configs/templateConfig.json -i line_sweep_edges.txt -o configs/OUTPUT_FILE_NAME.json
+```
+
+Running with `SimPixelTracks` will produce plots that are used to extract updated CA parameters by the [plot-simPixelTracks.py](./scripts/plot-simPixelTracks.py) script in a .txt file. Apply them to a new config based on the output config of the step above:
+
+```bash
+python3 scripts/modifyConfigsCAParams.py -c configs/OUTPUT_FILE_NAME.json -i SIMPIXELTRACKS_OUTPUT.txt -o configs/OUTPUT_FILE_NAME.json -f -s
+```
+
+The `-s` option tells the script that it is using the output of the SimPixelTracks, which will modify distinct modules and entries of the config json.
 
 ## Troubleshooting
 
