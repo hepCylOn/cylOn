@@ -11,7 +11,7 @@
 
 class PixelTrackSoAFromCUDA : public edm::EDProducerExternalWork {
 public:
-  explicit PixelTrackSoAFromCUDA(edm::ProductRegistry& reg);
+  explicit PixelTrackSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelTrackSoAFromCUDA() override = default;
 
 private:
@@ -30,7 +30,7 @@ private:
 #endif
 };
 
-PixelTrackSoAFromCUDA::PixelTrackSoAFromCUDA(edm::ProductRegistry& reg)
+PixelTrackSoAFromCUDA::PixelTrackSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenCUDA_(reg.consumes<cms::cuda::Product<PixelTrackHeterogeneous>>()),
       tokenSOA_(reg.produces<PixelTrackHeterogeneous>()) {}
 

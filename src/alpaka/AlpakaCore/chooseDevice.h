@@ -1,5 +1,5 @@
-#ifndef HeterogeneousCore_AlpakaCore_chooseDevice_h
-#define HeterogeneousCore_AlpakaCore_chooseDevice_h
+#ifndef AlpakaCore_chooseDevice_h
+#define AlpakaCore_chooseDevice_h
 
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/alpaka/devices.h"
@@ -21,4 +21,4 @@ namespace cms::alpakatools {
 
 }  // namespace cms::alpakatools
 
-#endif  // HeterogeneousCore_AlpakaCore_chooseDevice_h
+#endif  // AlpakaCore_chooseDevice_h

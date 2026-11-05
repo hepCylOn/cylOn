@@ -5,14 +5,17 @@
 #include <string>
 #include <vector>
 
-#include "AlpakaCore/backend.h"
+#include "AlpakaCore/backendAdvanced.h"
 #include "Framework/EventSetup.h"
+#include "Framework/ConfigRegistry.h"
 
 #include "PluginManager.h"
 #include "StreamSchedule.h"
 #include "Source.h"
 
 namespace edm {
+  using namespace cms::alpakatools;
+  
   struct Alternative {
     Alternative() = default;
     Alternative(Backend backend, float weight, std::vector<std::string> path)
@@ -27,14 +30,15 @@ namespace edm {
 
   class EventProcessor {
   public:
-    explicit EventProcessor(int warmupEvents,
+    explicit EventProcessor(ConfigRegistry const& config,
+                            int warmupEvents,
                             int maxEvents,
                             int runForMinutes,
                             int numberOfStreams,
                             Alternatives alternatives,
                             std::vector<std::string> const& esproducers,
                             std::filesystem::path const& datadir,
-                            bool validation);
+                            bool validation, bool fromHits);
 
     int maxEvents() const { return source_.maxEvents(); }
     int processedEvents() const { return source_.processedEvents(); }
@@ -50,6 +54,7 @@ namespace edm {
 
     edmplugin::PluginManager pluginManager_;
     ProductRegistry registry_;
+    ConfigRegistry config_;
     Source source_;
     EventSetup eventSetup_;
     std::vector<StreamSchedule> schedules_;

@@ -45,7 +45,7 @@ namespace {
 
 using namespace std;
 namespace KOKKOS_NAMESPACE {
-  CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
+  CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg, edm::Config const& cfg)
       : m_params(true,              // onGPU
                  3,                 // minHitsPerNtuplet,
                  458752,            // maxNumberOfDoublets

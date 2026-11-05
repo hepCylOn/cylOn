@@ -8,7 +8,7 @@
 
 class TestProducer3 : public edm::EDProducer {
 public:
-  explicit TestProducer3(edm::ProductRegistry& reg);
+  explicit TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void produce(edm::Event& event, edm::EventSetup const& eventSetup) override;
@@ -16,7 +16,7 @@ private:
   edm::EDGetTokenT<unsigned int> getToken_;
 };
 
-TestProducer3::TestProducer3(edm::ProductRegistry& reg) : getToken_(reg.consumes<unsigned int>()) {}
+TestProducer3::TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg) : getToken_(reg.consumes<unsigned int>()) {}
 
 void TestProducer3::produce(edm::Event& event, edm::EventSetup const& eventSetup) {
   auto const value = event.get(getToken_);

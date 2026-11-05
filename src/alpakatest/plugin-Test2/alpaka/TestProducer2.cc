@@ -19,7 +19,7 @@ namespace {
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestProducer2 : public edm::EDProducerExternalWork {
   public:
-    explicit TestProducer2(edm::ProductRegistry& reg);
+    explicit TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void acquire(edm::Event const& event,
@@ -31,7 +31,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::EDGetTokenT<cms::alpakatools::Product<Queue, cms::alpakatools::device_buffer<Device, float[]>>> getToken_;
   };
 
-  TestProducer2::TestProducer2(edm::ProductRegistry& reg)
+  TestProducer2::TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg)
       : getToken_(reg.consumes<cms::alpakatools::Product<Queue, cms::alpakatools::device_buffer<Device, float[]>>>()) {
     nevents = 0;
   }

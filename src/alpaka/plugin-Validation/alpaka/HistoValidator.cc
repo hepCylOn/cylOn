@@ -6,18 +6,19 @@
 
 #include <alpaka/alpaka.hpp>
 
+#include <Eigen/Core>
+
 #include "AlpakaCore/Product.h"
 #include "AlpakaCore/ScopedContext.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
-#include "AlpakaDataFormats/PixelTrackHost.h"
-#include "AlpakaDataFormats/ZVertexHost.h"
-#include "AlpakaDataFormats/alpaka/PixelTrackAlpaka.h"
-#include "AlpakaDataFormats/alpaka/SiPixelClustersAlpaka.h"
-#include "AlpakaDataFormats/alpaka/SiPixelDigisAlpaka.h"
-#include "AlpakaDataFormats/alpaka/TrackingRecHit2DAlpaka.h"
-#include "AlpakaDataFormats/alpaka/ZVertexAlpaka.h"
+#include "AlpakaDataFormats/alpaka/SiPixelDigisSoACollection.h"
+#include "AlpakaDataFormats/alpaka/SiPixelClustersSoACollection.h"
+#include "AlpakaDataFormats/alpaka/TrackingRecHitsSoACollection.h"
+#include "AlpakaDataFormats/alpaka/TracksSoACollection.h"
+#include "AlpakaDataFormats/alpaka/ZVertexSoACollection.h"
 #include "AlpakaDataFormats/gpuClusteringConstants.h"
+#include "AlpakaDataFormats/TrackDefinitions.h"
 #include "Framework/EDProducer.h"
 #include "Framework/Event.h"
 #include "Framework/EventSetup.h"
@@ -29,7 +30,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class HistoValidator : public edm::EDProducerExternalWork {
   public:
-    explicit HistoValidator(edm::ProductRegistry& reg);
+    explicit HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void acquire(const edm::Event& iEvent,
@@ -38,30 +39,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
     void endJob() override;
 
-    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelDigisAlpaka>> digiToken_;
-    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelClustersAlpaka>> clusterToken_;
-    edm::EDGetTokenT<cms::alpakatools::Product<Queue, TrackingRecHit2DAlpaka>> hitToken_;
-    edm::EDGetTokenT<PixelTrackHost> trackToken_;
-    edm::EDGetTokenT<ZVertexHost> vertexToken_;
+    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>> digiToken_;
+    edm::EDGetTokenT<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>> clusterToken_;
+    edm::EDGetTokenT<cms::alpakatools::Product<Queue, reco::TrackingRecHitsSoACollection>> hitToken_;
+    edm::EDGetTokenT<cms::alpakatools::Product<Queue, reco::TracksSoACollection>> trackToken_;
+    edm::EDGetTokenT<cms::alpakatools::Product<Queue, ZVertexSoACollection>> vertexToken_;
 
     uint32_t nDigis_;
     uint32_t nModules_;
     uint32_t nClusters_;
     uint32_t nHits_;
-
-    std::optional<cms::alpakatools::host_buffer<uint16_t[]>> h_adc;
-    std::optional<cms::alpakatools::host_buffer<uint32_t[]>> h_clusInModule;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_lx;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_ly;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_lex;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_ley;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_gx;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_gy;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_gz;
-    std::optional<cms::alpakatools::host_buffer<float[]>> h_gr;
-    std::optional<cms::alpakatools::host_buffer<int32_t[]>> h_charge;
-    std::optional<cms::alpakatools::host_buffer<int16_t[]>> h_sizex;
-    std::optional<cms::alpakatools::host_buffer<int16_t[]>> h_sizey;
 
     static std::map<std::string, SimpleAtomicHisto> histos;
   };
@@ -101,12 +88,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       {"vertex_ndof", SimpleAtomicHisto(170, 0, 170)},
       {"vertex_pt2", SimpleAtomicHisto(100, 0, 4000)}};
 
-  HistoValidator::HistoValidator(edm::ProductRegistry& reg)
-      : digiToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisAlpaka>>()},
-        clusterToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersAlpaka>>()},
-        hitToken_{reg.consumes<cms::alpakatools::Product<Queue, TrackingRecHit2DAlpaka>>()},
-        trackToken_{reg.consumes<PixelTrackHost>()},
-        vertexToken_{reg.consumes<ZVertexHost>()} {}
+  HistoValidator::HistoValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
+      : digiToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelDigisSoACollection>>()},
+        clusterToken_{reg.consumes<cms::alpakatools::Product<Queue, SiPixelClustersSoACollection>>()},
+        hitToken_{reg.consumes<cms::alpakatools::Product<Queue, reco::TrackingRecHitsSoACollection>>()},
+        trackToken_{reg.consumes<cms::alpakatools::Product<Queue, reco::TracksSoACollection>>()},
+        vertexToken_{reg.consumes<cms::alpakatools::Product<Queue, ZVertexSoACollection>>()} {}
 
   void HistoValidator::acquire(const edm::Event& iEvent,
                                const edm::EventSetup& iSetup,
@@ -119,98 +106,109 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     nDigis_ = digis.nDigis();
     nModules_ = digis.nModules();
-    h_adc = digis.adcToHostAsync(ctx.stream());
 
     nClusters_ = clusters.nClusters();
-    h_clusInModule = cms::alpakatools::make_host_buffer<uint32_t[]>(ctx.stream(), nModules_);
-    alpaka::memcpy(ctx.stream(),
-                   *h_clusInModule,
-                   cms::alpakatools::make_device_view(ctx.device(), clusters.clusInModule(), nModules_));
 
     nHits_ = hits.nHits();
 
-    h_lx = hits.xlToHostAsync(ctx.stream());
-    h_ly = hits.ylToHostAsync(ctx.stream());
-    h_lex = hits.xerrToHostAsync(ctx.stream());
-    h_ley = hits.yerrToHostAsync(ctx.stream());
-    h_gx = hits.xgToHostAsync(ctx.stream());
-    h_gy = hits.ygToHostAsync(ctx.stream());
-    h_gz = hits.zgToHostAsync(ctx.stream());
-    h_gr = hits.rgToHostAsync(ctx.stream());
-    h_charge = hits.chargeToHostAsync(ctx.stream());
-    h_sizex = hits.xsizeToHostAsync(ctx.stream());
-    h_sizey = hits.ysizeToHostAsync(ctx.stream());
   }
 
   void HistoValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+    auto const& pdigis = iEvent.get(digiToken_);
+    cms::alpakatools::ScopedContextProduce<Queue> ctx{pdigis};
+    auto const& digis = ctx.get(iEvent, digiToken_);
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+      SiPixelDigisHost const& digis_host = digis;
+#else
+      SiPixelDigisHost const& digis_host =
+          cms::alpakatools::CopyToHost<SiPixelDigisDevice<Device>>::copyAsync(ctx.stream(), digis);
+      alpaka::wait(ctx.stream());
+#endif
+    auto const& clusters = ctx.get(iEvent, clusterToken_);
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+      SiPixelClustersHost const& clusters_host = clusters;
+#else
+      SiPixelClustersHost const& clusters_host =
+          cms::alpakatools::CopyToHost<SiPixelClustersDevice<Device>>::copyAsync(ctx.stream(), clusters);
+      alpaka::wait(ctx.stream());
+#endif
+    auto const& hits = ctx.get(iEvent, hitToken_);
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+      ::reco::TrackingRecHitHost const& hits_host = hits;
+#else
+      ::reco::TrackingRecHitHost const& hits_host =
+          cms::alpakatools::CopyToHost<::reco::TrackingRecHitDevice<Device>>::copyAsync(ctx.stream(), hits);
+      alpaka::wait(ctx.stream());
+#endif
     histos["module_n"].fill(nModules_);
     histos["digi_n"].fill(nDigis_);
     for (uint32_t i = 0; i < nDigis_; ++i) {
-      histos["digi_adc"].fill((*h_adc)[i]);
+      histos["digi_adc"].fill(digis_host.view()[i].adc());
     }
-    h_adc.reset();
 
     histos["cluster_n"].fill(nClusters_);
     for (uint32_t i = 0; i < nModules_; ++i) {
-      histos["cluster_per_module_n"].fill((*h_clusInModule)[i]);
+      histos["cluster_per_module_n"].fill(clusters_host.view()[i].clusInModule());
     }
-    h_clusInModule.reset();
 
     histos["hit_n"].fill(nHits_);
     for (uint32_t i = 0; i < nHits_; ++i) {
-      histos["hit_lx"].fill((*h_lx)[i]);
-      histos["hit_ly"].fill((*h_ly)[i]);
-      histos["hit_lex"].fill((*h_lex)[i]);
-      histos["hit_ley"].fill((*h_ley)[i]);
-      histos["hit_gx"].fill((*h_gx)[i]);
-      histos["hit_gy"].fill((*h_gy)[i]);
-      histos["hit_gz"].fill((*h_gz)[i]);
-      histos["hit_gr"].fill((*h_gr)[i]);
-      histos["hit_charge"].fill((*h_charge)[i]);
-      histos["hit_sizex"].fill((*h_sizex)[i]);
-      histos["hit_sizey"].fill((*h_sizey)[i]);
+      histos["hit_lx"].fill(hits_host.view()[i].xLocal());
+      histos["hit_ly"].fill(hits_host.view()[i].yLocal());
+      histos["hit_lex"].fill(hits_host.view()[i].xerrLocal());
+      histos["hit_ley"].fill(hits_host.view()[i].yerrLocal());
+      histos["hit_gx"].fill(hits_host.view()[i].xGlobal());
+      histos["hit_gy"].fill(hits_host.view()[i].yGlobal());
+      histos["hit_gz"].fill(hits_host.view()[i].zGlobal());
+      histos["hit_gr"].fill(hits_host.view()[i].rGlobal());
+      histos["hit_sizex"].fill(hits_host.view()[i].clusterSizeX());
+      histos["hit_sizey"].fill(hits_host.view()[i].clusterSizeY());
+      histos["hit_charge"].fill(hits_host.view()[i].chargeAndStatus().charge);
     }
-    h_lx.reset();
-    h_ly.reset();
-    h_lex.reset();
-    h_ley.reset();
-    h_gx.reset();
-    h_gy.reset();
-    h_gz.reset();
-    h_gr.reset();
-    h_charge.reset();
-    h_sizex.reset();
-    h_sizey.reset();
 
     {
-      auto const& tracks = iEvent.get(trackToken_);
+      auto const& tracks = ctx.get(iEvent, trackToken_);
       int nTracks = 0;
-      for (int i = 0; i < tracks->stride(); ++i) {
-        if (tracks->nHits(i) > 0 and tracks->quality(i) >= trackQuality::loose) {
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+      ::reco::TracksHost const& tracks_host = tracks;
+#else
+      ::reco::TracksHost const& tracks_host =
+          cms::alpakatools::CopyToHost<::reco::TracksDevice<Device>>::copyAsync(ctx.stream(), tracks);
+      alpaka::wait(ctx.stream());
+#endif
+      for (int i = 0; i < tracks_host.view().metadata().size(); ++i) {
+        if (nHits(tracks_host.view(),i) > 0 and tracks_host.view()[i].quality() >= ::pixelTrack::qualityByName("loose")) {
           ++nTracks;
-          histos["track_nhits"].fill(tracks->nHits(i));
-          histos["track_chi2"].fill(tracks->chi2(i));
-          histos["track_pt"].fill(tracks->pt(i));
-          histos["track_eta"].fill(tracks->eta(i));
-          histos["track_phi"].fill(tracks->phi(i));
-          histos["track_tip"].fill(tracks->tip(i));
-          histos["track_tip_zoom"].fill(tracks->tip(i));
-          histos["track_zip"].fill(tracks->zip(i));
-          histos["track_zip_zoom"].fill(tracks->zip(i));
-          histos["track_quality"].fill(tracks->quality(i));
+          histos["track_nhits"].fill(nHits(tracks_host.view(),i));
+          histos["track_chi2"].fill(tracks_host.view()[i].chi2());
+          histos["track_pt"].fill(tracks_host.view()[i].pt());
+          histos["track_eta"].fill(tracks_host.view()[i].eta());
+          histos["track_phi"].fill(tracks_host.view()[i].state()[0]);
+          histos["track_tip"].fill(tracks_host.view()[i].state()[1]);
+          histos["track_tip_zoom"].fill(tracks_host.view()[i].state()[1]);
+          histos["track_zip"].fill(tracks_host.view()[i].state()[4]);
+          histos["track_zip_zoom"].fill(tracks_host.view()[i].state()[4]);
+          histos["track_quality"].fill(static_cast<uint16_t>(tracks_host.view()[i].quality()));
         }
       }
       histos["track_n"].fill(nTracks);
     }
 
     {
-      auto const& vertices = iEvent.get(vertexToken_);
-      histos["vertex_n"].fill(vertices->nvFinal);
-      for (uint32_t i = 0; i < vertices->nvFinal; ++i) {
-        histos["vertex_z"].fill(vertices->zv[i]);
-        histos["vertex_chi2"].fill(vertices->chi2[i]);
-        histos["vertex_ndof"].fill(vertices->ndof[i]);
-        histos["vertex_pt2"].fill(vertices->ptv2[i]);
+      auto const& vertices = ctx.get(iEvent, vertexToken_);
+#if defined ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED or defined ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
+      ZVertexHost const& vertices_host = vertices;
+#else
+      ZVertexHost const& vertices_host =
+          cms::alpakatools::CopyToHost<ZVertexDevice<Device>>::copyAsync(ctx.stream(), vertices);
+      alpaka::wait(ctx.stream());
+#endif
+      histos["vertex_n"].fill(vertices_host.view().nvFinal());
+      for (uint32_t i = 0; i < vertices_host.view().nvFinal(); ++i) {
+        histos["vertex_z"].fill(vertices_host.view()[i].zv());
+        histos["vertex_chi2"].fill(vertices_host.view()[i].chi2());
+        histos["vertex_ndof"].fill(vertices_host.view<::reco::ZVertexTracksSoA>()[i].ndof());
+        histos["vertex_pt2"].fill(vertices_host.view()[i].ptv2());
       }
     }
   }

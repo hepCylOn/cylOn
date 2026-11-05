@@ -15,7 +15,7 @@
 namespace KOKKOS_NAMESPACE {
   class PixelVertexProducerKokkos : public edm::EDProducer {
   public:
-    explicit PixelVertexProducerKokkos(edm::ProductRegistry& reg);
+    explicit PixelVertexProducerKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelVertexProducerKokkos() override = default;
 
   private:
@@ -31,7 +31,7 @@ namespace KOKKOS_NAMESPACE {
     const float m_ptMin;
   };
 
-  PixelVertexProducerKokkos::PixelVertexProducerKokkos(edm::ProductRegistry& reg)
+  PixelVertexProducerKokkos::PixelVertexProducerKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenTrack_(
             reg.consumes<cms::kokkos::Product<cms::kokkos::shared_ptr<pixelTrack::TrackSoA, KokkosDeviceMemSpace>>>()),
         tokenVertex_(reg.produces<cms::kokkos::Product<cms::kokkos::shared_ptr<ZVertexSoA, KokkosDeviceMemSpace>>>()),

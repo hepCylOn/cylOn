@@ -13,12 +13,17 @@
 #define STR_EXPAND(x) #x
 #define STR(x) STR_EXPAND(x)
 
+#define FW_DEBUG
+
 namespace edmplugin {
   PluginManager::PluginManager() {
     std::ifstream pluginMap(STR(LIB_DIR) "/plugins.txt");
     std::string plugin, library;
     while (pluginMap >> plugin >> library) {
-      //std::cout << "plugin " << plugin << " in " << library << std::endl;
+#ifdef FW_DEBUG
+      std::cout << "plugin " << plugin << " in " << library << std::endl;
+      /// TODO: add error if plugin has no library
+#endif
       pluginToLibrary_[plugin] = library;
     }
   }

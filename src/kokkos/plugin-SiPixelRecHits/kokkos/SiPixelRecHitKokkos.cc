@@ -17,7 +17,7 @@
 namespace KOKKOS_NAMESPACE {
   class SiPixelRecHitKokkos : public edm::EDProducer {
   public:
-    explicit SiPixelRecHitKokkos(edm::ProductRegistry& reg);
+    explicit SiPixelRecHitKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~SiPixelRecHitKokkos() override = default;
 
   private:
@@ -33,7 +33,7 @@ namespace KOKKOS_NAMESPACE {
     pixelgpudetails::PixelRecHitGPUKernel gpuAlgo_;
   };
 
-  SiPixelRecHitKokkos::SiPixelRecHitKokkos(edm::ProductRegistry& reg)
+  SiPixelRecHitKokkos::SiPixelRecHitKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tBeamSpot(reg.consumes<cms::kokkos::Product<BeamSpotKokkos<KokkosDeviceMemSpace>>>()),
         token_(reg.consumes<cms::kokkos::Product<SiPixelClustersKokkos<KokkosDeviceMemSpace>>>()),
         tokenDigi_(reg.consumes<cms::kokkos::Product<SiPixelDigisKokkos<KokkosDeviceMemSpace>>>()),

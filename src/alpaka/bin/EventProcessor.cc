@@ -11,24 +11,27 @@
 #include "EventProcessor.h"
 
 namespace edm {
-  EventProcessor::EventProcessor(int warmupEvents,
+  EventProcessor::EventProcessor(ConfigRegistry const& config,
+                                 int warmupEvents,
                                  int maxEvents,
                                  int runForMinutes,
                                  int numberOfStreams,
                                  Alternatives alternatives,
                                  std::vector<std::string> const& esproducers,
                                  std::filesystem::path const& datadir,
-                                 bool validation)
-      : source_(maxEvents, runForMinutes, registry_, datadir, validation),
+                                 bool validation,
+                                 bool fromHits)
+      : config_(config), 
+        source_(maxEvents, runForMinutes, registry_, datadir, validation, fromHits),
         warmupEvents_(warmupEvents),
         maxEvents_(source_.maxEvents()),
         runForMinutes_(runForMinutes) {
     for (auto const& name : esproducers) {
       pluginManager_.load(name);
-      auto esp = ESPluginFactory::create(name, datadir);
+      auto const& cfg = config_.getProducerConfig(name);
+      auto esp = ESPluginFactory::create(name, cfg);
       esp->produce(eventSetup_);
     }
-
     // normalise the total weight to the number of streams
     float total = 0.;
     for (auto const& alternative : alternatives) {
@@ -43,7 +46,7 @@ namespace edm {
       lower_range = upper_range;
       upper_range = static_cast<int>(std::round(cumulative * numberOfStreams / total));
       for (int i = lower_range; i < upper_range; ++i) {
-        schedules_.emplace_back(registry_, pluginManager_, &source_, &eventSetup_, i, alternative.path);
+        schedules_.emplace_back(registry_, config_, pluginManager_, &source_, &eventSetup_, i, alternative.path);
       }
       streamsPerBackend_.emplace_back(alternative.backend, upper_range - lower_range);
     }

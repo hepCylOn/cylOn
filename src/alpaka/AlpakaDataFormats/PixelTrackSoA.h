@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "AlpakaCore/HistoContainer.h"
+#include "AlpakaCore/OneToManyAssoc.h"
 #include "AlpakaCore/config.h"
 #include "AlpakaCore/memory.h"
 #include "AlpakaDataFormats/TrajectoryStateSoA.h"
@@ -20,8 +21,8 @@ namespace pixelTrack {
     static constexpr int32_t stride() { return S; }
 
     using Quality = trackQuality::Quality;
-    using hindex_type = uint16_t;
-    using HitContainer = cms::alpakatools::OneToManyAssoc<hindex_type, S, 5 * S>;
+    using hindex_type = uint32_t;
+    using HitContainer = cms::alpakatools::OneToManyAssocBase<hindex_type, S, 5 * S>;
 
     // Always check quality is at least loose!
     // CUDA does not support enums  in __lgc ...
@@ -61,7 +62,7 @@ namespace pixelTrack {
 #ifdef GPU_SMALL_EVENTS
   constexpr uint32_t maxNumber() { return 2 * 1024; }
 #else
-  constexpr uint32_t maxNumber() { return 32 * 1024; }
+  constexpr uint32_t maxNumber() { return 128 * 1024; }
 #endif
 
   using TrackSoA = TrackSoAT<maxNumber()>;

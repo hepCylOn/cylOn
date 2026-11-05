@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -31,8 +30,8 @@ namespace edm {
       }
     };  // namespace impl
 
-    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir) {
-      return impl::getGlobalRegistry().get(name)->create(datadir);
+    std::unique_ptr<ESProducer> create(std::string const& name, Config const& cfg) {
+      return impl::getGlobalRegistry().get(name)->create(cfg);
     }
   }  // namespace ESPluginFactory
 }  // namespace edm

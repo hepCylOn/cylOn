@@ -10,6 +10,9 @@
 
 #include "Framework/Event.h"
 #include "DataFormats/FEDRawDataCollection.h"
+#include "AlpakaDataFormats/TrackingRecHitsHost.h"
+#include "AlpakaDataFormats/ParticleHost.h"
+#include "AlpakaDataFormats/SimpleMapHost.h"
 #include "DataFormats/DigiClusterCount.h"
 #include "DataFormats/TrackCount.h"
 #include "DataFormats/VertexCount.h"
@@ -18,7 +21,7 @@ namespace edm {
   class Source {
   public:
     explicit Source(
-        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation);
+        int maxEvents, int runForMinutes, ProductRegistry& reg, std::filesystem::path const& datadir, bool validation, bool fromHits);
 
     void reconfigure(int maxEvents, int runForMinutes);
     void startProcessing();
@@ -40,15 +43,31 @@ namespace edm {
     std::atomic<bool> shouldStop_ = false;
 
     std::atomic<int> numEvents_ = 0;
-    EDPutTokenT<FEDRawDataCollection> const rawToken_;
+    
+    EDPutTokenT<FEDRawDataCollection> rawToken_;
+    EDPutTokenT<reco::TrackingRecHitHost> hitToken_;
+    EDPutTokenT<sim::ParticleHost> particleToken_;
+    EDPutTokenT<utils::SimpleMapHost> mapToken_;
+
     EDPutTokenT<DigiClusterCount> digiClusterToken_;
     EDPutTokenT<TrackCount> trackToken_;
     EDPutTokenT<VertexCount> vertexToken_;
+
+// --- Storage for preloaded events ---
+    
     std::vector<FEDRawDataCollection> raw_;
+    std::vector<reco::TrackingRecHitHost> hits_;
+    std::vector<sim::ParticleHost> particles_;
+    std::vector<utils::SimpleMapHost> maps_;
+
     std::vector<DigiClusterCount> digiclusters_;
     std::vector<TrackCount> tracks_;
     std::vector<VertexCount> vertices_;
+      
     bool const validation_;
+    // boostrapping
+    bool const fromHits_;
+
   };
 }  // namespace edm
 

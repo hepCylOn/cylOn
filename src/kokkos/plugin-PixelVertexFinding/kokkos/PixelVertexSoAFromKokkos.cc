@@ -13,7 +13,7 @@
 namespace KOKKOS_NAMESPACE {
   class PixelVertexSoAFromKokkos : public edm::EDProducerExternalWork {
   public:
-    explicit PixelVertexSoAFromKokkos(edm::ProductRegistry& reg);
+    explicit PixelVertexSoAFromKokkos(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~PixelVertexSoAFromKokkos() override = default;
 
   private:
@@ -31,7 +31,7 @@ namespace KOKKOS_NAMESPACE {
     VerticesHostMemSpace m_soa;
   };
 
-  PixelVertexSoAFromKokkos::PixelVertexSoAFromKokkos(edm::ProductRegistry& reg)
+  PixelVertexSoAFromKokkos::PixelVertexSoAFromKokkos(edm::ProductRegistry& reg, edm::Config const& cfg)
       : tokenKokkos_(reg.consumes<cms::kokkos::Product<VerticesDeviceMemSpace>>()),
         tokenSOA_(reg.produces<VerticesHostMemSpace>()) {}
 

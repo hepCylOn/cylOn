@@ -16,7 +16,7 @@
 #include <tbb/info.h>
 #include <tbb/task_arena.h>
 
-#include "AlpakaCore/backend.h"
+#include "AlpakaCore/backendAdvanced.h"
 #include "AlpakaCore/initialise.h"
 #include "EventProcessor.h"
 #include "PosixClockGettime.h"
@@ -59,6 +59,7 @@ namespace {
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"
+        << " --config            Path to the json configuration file (default 'configs/test.json' in the directory of the executable)\n"
         << " --transfer          Transfer results from GPU to CPU (default is to leave them on GPU)\n"
         << " --validation        Run (rudimentary) validation at the end (implies --transfer)\n"
         << " --histogram         Produce histograms at the end (implies --transfer)\n"
@@ -106,6 +107,7 @@ bool getOptionalArgument(std::vector<std::string> const& args,
     return false;
   }
   value = *it;
+  ++i;
   return true;
 }
 
@@ -118,6 +120,8 @@ void getArgument(std::vector<std::string> const& args, std::vector<std::string>:
 }
 
 int main(int argc, char** argv) {
+
+  using namespace cms::alpakatools;
   // Parse command line arguments
   std::vector<std::string> args(argv, argv + argc);
   std::unordered_map<Backend, float> backends;
@@ -127,10 +131,14 @@ int main(int argc, char** argv) {
   int maxEvents = -1;
   int runForMinutes = -1;
   std::filesystem::path datadir;
+  std::filesystem::path config;
   bool transfer = false;
   bool validation = false;
   bool histogram = false;
   bool empty = false;
+  bool fromHits = false;
+  bool dumpHits = false;
+
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
       print_help(args.front());
@@ -139,25 +147,25 @@ int main(int argc, char** argv) {
     } else if (*i == "--serial") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::SERIAL, weight);
+      backends.insert_or_assign(Backend::SerialSync, weight);
 #endif
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
     } else if (*i == "--tbb") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::TBB, weight);
+      backends.insert_or_assign(Backend::TbbAsync, weight);
 #endif
 #ifdef ALPAKA_ACC_GPU_CUDA_PRESENT
     } else if (*i == "--cuda") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::CUDA, weight);
+      backends.insert_or_assign(Backend::CudaAsync, weight);
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
     } else if (*i == "--hip") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
-      backends.insert_or_assign(Backend::HIP, weight);
+      backends.insert_or_assign(Backend::ROCmAsync, weight);
 #endif
     } else if (*i == "--numberOfThreads") {
       getArgument(args, i, numberOfThreads);
@@ -171,11 +179,17 @@ int main(int argc, char** argv) {
       getArgument(args, i, runForMinutes);
     } else if (*i == "--data") {
       getArgument(args, i, datadir);
+    } else if (*i == "--config") {
+      getArgument(args, i, config);
     } else if (*i == "--transfer") {
       transfer = true;
     } else if (*i == "--validation") {
       transfer = true;
       validation = true;
+    } else if (*i == "--fromHits") {
+      fromHits = true;
+    } else if (*i == "--dumpHits") {
+      dumpHits = true;
     } else if (*i == "--histogram") {
       transfer = true;
       histogram = true;
@@ -200,8 +214,16 @@ int main(int argc, char** argv) {
   if (datadir.empty()) {
     datadir = std::filesystem::path(args[0]).parent_path() / "data";
   }
+  if (config.empty()) {
+    config = std::filesystem::path(args[0]).parent_path() / "configs/test.json";
+  }
+
   if (not std::filesystem::exists(datadir)) {
     std::cout << "Data directory '" << datadir << "' does not exist" << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (not std::filesystem::exists(config)) {
+    std::cout << "Config file '" << config << "' does not exist" << std::endl;
     return EXIT_FAILURE;
   }
   if (backends.empty()) {
@@ -238,22 +260,22 @@ int main(int argc, char** argv) {
 
   // Initialiase the selected backends
 #ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
-  if (backends.find(Backend::SERIAL) != backends.end()) {
+  if (backends.find(Backend::SerialSync) != backends.end()) {
     alpaka_serial_sync::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
-  if (backends.find(Backend::TBB) != backends.end()) {
+  if (backends.find(Backend::TbbAsync) != backends.end()) {
     alpaka_serial_sync::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_GPU_CUDA_PRESENT
-  if (backends.find(Backend::CUDA) != backends.end()) {
+  if (backends.find(Backend::CudaAsync) != backends.end()) {
     alpaka_cuda_async::initialise();
   }
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
-  if (backends.find(Backend::HIP) != backends.end()) {
+  if (backends.find(Backend::ROCmAsync) != backends.end()) {
     alpaka_rocm_async::initialise();
   }
 #endif
@@ -263,41 +285,58 @@ int main(int argc, char** argv) {
   edm::Alternatives alternatives;
   if (not empty) {
     // host-only ESModules
-    esmodules = {"BeamSpotESProducer", "SiPixelFedIdsESProducer"};
+    esmodules = {"BeamSpotESProducer"};
+    if (not fromHits) esmodules.emplace_back("SiPixelFedIdsESProducer");
     for (auto const& [backend, weight] : backends) {
-      std::string prefix = "alpaka_" + name(backend) + "::";
+      std::string prefix = "alpaka_" + backendName(backend) + "::";
       // "portable" ESModules
-      esmodules.emplace_back(prefix + "SiPixelFedCablingMapESProducer");
-      esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTESProducer");
-      esmodules.emplace_back(prefix + "PixelCPEFastESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelMappingHostESProducer"); 
+      if (not fromHits) esmodules.emplace_back(prefix + "SiPixelGainCalibrationForHLTHostESProducer");
+      if (not fromHits) esmodules.emplace_back(prefix + "PixelCPEFastESProducerPhase1");
+      // if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerGenericUpgrade");
+      if (not dumpHits) esmodules.emplace_back(prefix + "CAGeometryHostESProducerPhase1");
+
       // "portable" EDModules
       std::vector<std::string> edmodules;
-      edmodules.emplace_back(prefix + "BeamSpotToAlpaka");
-      edmodules.emplace_back(prefix + "SiPixelRawToCluster");
-      edmodules.emplace_back(prefix + "SiPixelRecHitAlpaka");
-      edmodules.emplace_back(prefix + "CAHitNtupletAlpaka");
-      edmodules.emplace_back(prefix + "PixelVertexProducerAlpaka");
-      if (transfer) {
-        edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
-        edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
-      }
-      if (validation) {
-        edmodules.emplace_back(prefix + "CountValidator");
-      }
-      if (histogram) {
-        edmodules.emplace_back(prefix + "HistoValidator");
+      edmodules.emplace_back(prefix + "BeamSpotToSoA");
+      
+      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRawToClusterPhase1");
+      if (not fromHits) edmodules.emplace_back(prefix + "SiPixelRecHitPhase1");
+      if (not fromHits and dumpHits) edmodules.emplace_back(prefix + "TrackingRecHitHostBinDumper");
+      if (fromHits and backend != Backend::SerialSync) edmodules.emplace_back(prefix + "TrackingRecHitsToDevice");
+
+      if (not dumpHits)
+      {
+        edmodules.emplace_back(prefix + "CAHitNtupletUpgrade");
+        edmodules.emplace_back(prefix + "PixelVertexPhase1");
+        if (transfer) {
+          edmodules.emplace_back(prefix + "PixelTrackSoAFromAlpaka");
+          edmodules.emplace_back(prefix + "PixelVertexSoAFromAlpaka");
+        }
+        if (validation) {
+          edmodules.emplace_back(prefix + "CountValidator");
+          // edmodules.emplace_back("SimpleTrackValidation");
+        }
+        if (histogram) {
+          edmodules.emplace_back(prefix + "HistoValidator");
+        }
       }
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
-  edm::EventProcessor processor(warmupEvents,
+
+  edm::ConfigRegistry cfg = edm::ConfigRegistry::loadFromFile(config);
+
+  edm::EventProcessor processor(cfg, 
+                                warmupEvents,
                                 maxEvents,
                                 runForMinutes,
                                 numberOfStreams,
                                 std::move(alternatives),
                                 std::move(esmodules),
                                 datadir,
-                                validation);
+                                validation,
+                                fromHits);
 
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events,";

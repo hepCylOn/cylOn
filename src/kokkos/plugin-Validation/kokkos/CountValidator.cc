@@ -22,7 +22,7 @@ namespace KOKKOS_NAMESPACE {
 
   class CountValidator : public edm::EDProducer {
   public:
-    explicit CountValidator(edm::ProductRegistry& reg);
+    explicit CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -51,7 +51,7 @@ namespace KOKKOS_NAMESPACE {
   std::mutex CountValidator::sumTrackDifferenceMutex;
   float CountValidator::sumTrackDifference = 0;
 
-  CountValidator::CountValidator(edm::ProductRegistry& reg)
+  CountValidator::CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
       : digiClusterCountToken_(reg.consumes<DigiClusterCount>()),
         trackCountToken_(reg.consumes<TrackCount>()),
         vertexCountToken_(reg.consumes<VertexCount>()),

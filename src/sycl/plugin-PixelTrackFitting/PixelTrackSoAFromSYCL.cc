@@ -11,7 +11,7 @@
 
 class PixelTrackSoAFromSYCL : public edm::EDProducerExternalWork {
 public:
-  explicit PixelTrackSoAFromSYCL(edm::ProductRegistry& reg);
+  explicit PixelTrackSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelTrackSoAFromSYCL() override = default;
 
 private:
@@ -26,7 +26,7 @@ private:
   cms::sycltools::host::unique_ptr<pixelTrack::TrackSoA> m_soa;
 };
 
-PixelTrackSoAFromSYCL::PixelTrackSoAFromSYCL(edm::ProductRegistry& reg)
+PixelTrackSoAFromSYCL::PixelTrackSoAFromSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenSYCL_(reg.consumes<cms::sycltools::Product<PixelTrackHeterogeneous>>()),
       tokenSOA_(reg.produces<PixelTrackHeterogeneous>()) {}
 

@@ -1,15 +1,28 @@
+
 TARGET_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+CATCH_DIR := $(BASE_DIR)/external/alpaka/thirdParty/catch2/install
+CATCH_INC := $(CATCH_DIR)/include
+CATCH_LIB := $(CATCH_DIR)/lib64
+
+BOOST_DIR := $(BASE_DIR)/external/boost/
+BOOST_INC := $(BOOST_DIR)/include
+BOOST_LIB := $(BOOST_DIR)/lib
+# all:
+# 	@echo "TARGET_DIR = $(TARGET_DIR)"
+# 	@echo "CATCH_DIR = $(CATCH_DIR)"
 TARGET_NAME := $(notdir $(TARGET_DIR))
 TARGET := $(BASE_DIR)/$(TARGET_NAME)
 include Makefile.deps
 EXTERNAL_DEPENDS := $(alpaka_EXTERNAL_DEPENDS)
+
+$(info > External deps: $(EXTERNAL_DEPENDS))
 
 $(TARGET):
 test_cpu: $(TARGET)
 	@echo
 	@echo "Testing $(TARGET)"
 	$(TARGET) --maxEvents 2 --serial
-	$(TARGET) --maxEvents 2 --tbb
+	$(TARGET) --maxEvents 2 -tbb
 	@echo "Succeeded"
 test_nvidiagpu: $(TARGET)
 	@echo
@@ -32,6 +45,11 @@ EXE_DEP := $(EXE_OBJ:$.o=$.d)
 LIBNAMES := $(filter-out plugin-% bin test Makefile% plugins.txt%,$(wildcard *))
 PLUGINNAMES := $(patsubst plugin-%,%,$(filter plugin-%,$(wildcard *)))
 MY_CXXFLAGS := -I$(TARGET_DIR) -DLIB_DIR=$(LIB_DIR)/$(TARGET_NAME) -DALPAKA_HOST_ONLY -DALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT -DALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
+MY_CXXFLAGS += -I$(CATCH_INC)
+MY_CXXFLAGS += -I$(BOOST_INC)
+# Set default host memory alignment to 128 bytes for soa layouts
+MY_CXXFLAGS += -DALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+# MY_CXXFLAGS += -std=c++20 
 ifdef CUDA_BASE
 MY_CXXFLAGS += -DALPAKA_ACC_GPU_CUDA_PRESENT -DALPAKA_ACC_GPU_CUDA_ONLY_MODE
 endif
@@ -40,6 +58,9 @@ MY_CXXFLAGS += -DALPAKA_ACC_GPU_HIP_PRESENT -DALPAKA_ACC_GPU_HIP_ONLY_MODE
 endif
 MY_LDFLAGS := -Wl,-rpath,$(LIB_DIR)/$(TARGET_NAME) -L$(LIB_DIR)/$(TARGET_NAME)
 
+MY_LDFLAGS += $(CATCH_LIB)/libCatch2Main.a
+MY_LDFLAGS += $(CATCH_LIB)/libCatch2.a
+MY_LDFLAGS += -L$(BOOST_LIB) -lboost_system -lboost_filesystem -lboost_thread
 ALL_DEPENDS := $(EXE_DEP)
 # Files for libraries
 LIBS :=
@@ -138,6 +159,7 @@ $(foreach lib,$(PLUGINNAMES),$(eval $(call PLUGIN_template,$(lib))))
 
 # Files for unit tests
 TESTS_PORTABLE_SRC := $(wildcard $(TARGET_DIR)/test/alpaka/*.cc)
+# TESTS_PORTABLE_SRC += $(wildcard $(TARGET_DIR)/test/alpaka/kernels/*dev.cc)
 # serial backend
 TESTS_SERIAL_OBJ := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(TESTS_PORTABLE_SRC:%=%.serial.o))
 TESTS_SERIAL_DEP := $(TESTS_SERIAL_OBJ:$.o=$.d)
@@ -164,6 +186,17 @@ TESTS_EXE := $(TESTS_SERIAL_EXE) $(TESTS_TBB_EXE) $(TESTS_CUDA_EXE) $(TESTS_ROCM
 ALL_DEPENDS += $(TESTS_SERIAL_DEP) $(TESTS_TBB_DEP) $(TESTS_CUDA_DEP) $(TESTS_ROCM_DEP)
 # Needed to keep the unit test object files after building $(TARGET)
 .SECONDARY: $(TESTS_SERIAL_OBJ) $(TESTS_TBB_OBJ) $(TESTS_CUDA_OBJ) $(TESTS_CUDADLINK) $(TESTS_ROCM_OBJ)
+
+# Non-Alpaka (simple) tests
+TESTS_SIMPLE_SRC := $(wildcard $(TARGET_DIR)/test/*.cc)
+TESTS_SIMPLE_OBJ := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(TESTS_SIMPLE_SRC:%=%.o))
+TESTS_SIMPLE_DEP := $(TESTS_SIMPLE_OBJ:%.o=%.d)
+# executables go under $(TEST_DIR)/$(TARGET_NAME)/test/
+TESTS_SIMPLE_EXE := $(patsubst $(SRC_DIR)/$(TARGET_NAME)/test/%.cc,$(TEST_DIR)/alpaka_%,$(TESTS_SIMPLE_SRC))
+
+TESTS_EXE += $(TESTS_SIMPLE_EXE)
+ALL_DEPENDS += $(TESTS_SIMPLE_DEP)
+.SECONDARY: $(TESTS_SIMPLE_OBJ)
 
 define RUNTEST_template
 run_$(1): $(1)
@@ -270,7 +303,22 @@ $(OBJ_DIR)/$(TARGET_NAME)/bin/%.cc.o: $(SRC_DIR)/$(TARGET_NAME)/bin/%.cc
 	      -e '/^$$/ d' -e 's/$$/ :/' -e 's/ *//' < $(@D)/$*.cc.d.tmp >> $(@D)/$*.cc.d; \
 	  rm $(@D)/$*.cc.d.tmp
 
-# Tests, assume all are portable
+# Simple tests (Alpaka independent, in src/alpaka/test/)
+# (using serial flags and co., and alpaka_* just to distinguish them from the others)
+$(OBJ_DIR)/$(TARGET_NAME)/test/%.o: $(SRC_DIR)/$(TARGET_NAME)/test/%.cc
+	@[ -d $(@D) ] || mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(MY_CXXFLAGS) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	@cp $(@D)/$*.d $(@D)/$*.d.tmp; \
+	  sed 's#\($(TARGET_NAME)/$*\)\.o[ :]*#\1.o \1.d : #g' < $(@D)/$*.d.tmp > $(@D)/$*.d; \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' -e 's/ *//' < $(@D)/$*.d.tmp >> $(@D)/$*.d; \
+	  rm $(@D)/$*.d.tmp
+
+$(TEST_DIR)/alpaka_%: $(OBJ_DIR)/$(TARGET_NAME)/test/%.o $(LIBS)
+	@mkdir -p $(dir $@)
+	$(CXX) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SERIAL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+
+# Tests, the portable ones
 # Serial backend
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.serial.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)

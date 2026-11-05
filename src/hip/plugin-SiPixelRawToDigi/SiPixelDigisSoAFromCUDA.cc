@@ -10,7 +10,7 @@
 
 class SiPixelDigisSoAFromCUDA : public edm::EDProducerExternalWork {
 public:
-  explicit SiPixelDigisSoAFromCUDA(edm::ProductRegistry& reg);
+  explicit SiPixelDigisSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~SiPixelDigisSoAFromCUDA() override = default;
 
 private:
@@ -30,7 +30,7 @@ private:
   size_t nDigis_;
 };
 
-SiPixelDigisSoAFromCUDA::SiPixelDigisSoAFromCUDA(edm::ProductRegistry& reg)
+SiPixelDigisSoAFromCUDA::SiPixelDigisSoAFromCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : digiGetToken_(reg.consumes<cms::hip::Product<SiPixelDigisCUDA>>()),
       digiPutToken_(reg.produces<SiPixelDigisSoA>()) {}
 

@@ -17,7 +17,7 @@
 
 class BeamSpotToCUDA : public edm::EDProducer {
 public:
-  explicit BeamSpotToCUDA(edm::ProductRegistry& reg);
+  explicit BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~BeamSpotToCUDA() override = default;
 
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -30,7 +30,7 @@ private:
 #endif
 };
 
-BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg)
+BeamSpotToCUDA::BeamSpotToCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : bsPutToken_(reg.produces<cms::cuda::Product<BeamSpotCUDA>>())
 #ifdef CUDAUVM_DISABLE_MANAGED_BEAMSPOT
       ,

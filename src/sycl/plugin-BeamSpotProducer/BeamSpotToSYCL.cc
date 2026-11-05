@@ -14,7 +14,7 @@
 
 class BeamSpotToSYCL : public edm::EDProducer {
 public:
-  explicit BeamSpotToSYCL(edm::ProductRegistry& reg);
+  explicit BeamSpotToSYCL(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~BeamSpotToSYCL() override = default;
 
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -23,7 +23,7 @@ private:
   const edm::EDPutTokenT<cms::sycltools::Product<BeamSpotSYCL>> bsPutToken_;
 };
 
-BeamSpotToSYCL::BeamSpotToSYCL(edm::ProductRegistry& reg)
+BeamSpotToSYCL::BeamSpotToSYCL(edm::ProductRegistry& reg, edm::Config const& cfg)
     : bsPutToken_{reg.produces<cms::sycltools::Product<BeamSpotSYCL>>()} {}
 
 void BeamSpotToSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {

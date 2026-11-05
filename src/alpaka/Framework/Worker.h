@@ -11,6 +11,7 @@
 #include "Framework/WaitingTaskHolder.h"
 #include "Framework/WaitingTaskList.h"
 #include "Framework/WaitingTaskWithArenaHolder.h"
+#include "Framework/ConfigRegistry.h"
 
 namespace edm {
   class Event;
@@ -51,7 +52,7 @@ namespace edm {
   template <typename T>
   class WorkerT : public Worker {
   public:
-    explicit WorkerT(ProductRegistry& reg) : producer_(reg), workStarted_{false} {}
+    explicit WorkerT(ProductRegistry& reg, Config const& cfg) : producer_(reg,cfg), workStarted_{false} {}
 
     void doWorkAsync(Event& event, EventSetup const& eventSetup, WaitingTaskHolder task) override {
       waitingTasksWork_.add(task);

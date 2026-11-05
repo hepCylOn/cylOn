@@ -10,7 +10,7 @@
 
 class PixelVertexProducerCUDA : public edm::EDProducer {
 public:
-  explicit PixelVertexProducerCUDA(edm::ProductRegistry& reg);
+  explicit PixelVertexProducerCUDA(edm::ProductRegistry& reg, edm::Config const& cfg);
   ~PixelVertexProducerCUDA() override = default;
 
 private:
@@ -25,7 +25,7 @@ private:
   const float m_ptMin;
 };
 
-PixelVertexProducerCUDA::PixelVertexProducerCUDA(edm::ProductRegistry& reg)
+PixelVertexProducerCUDA::PixelVertexProducerCUDA(edm::ProductRegistry& reg, edm::Config const& cfg)
     : tokenTrack_{reg.consumes<PixelTrack>()},
       tokenVertex_{reg.produces<ZVertex>()},
       m_gpuAlgo(true,   // oneKernel

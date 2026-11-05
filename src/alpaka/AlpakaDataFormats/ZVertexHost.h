@@ -1,10 +1,14 @@
-#ifndef AlpakaDataFormats_ZVertexHost_h
-#define AlpakaDataFormats_ZVertexHost_h
+#ifndef AlpakaDataFormats_VertexHost_H
+#define AlpakaDataFormats_VertexHost_H
 
-#include "AlpakaCore/config.h"
-#include "AlpakaCore/memory.h"
+#include <cstdint>
+
+#include <alpaka/alpaka.hpp>
+
+#include "Portable/PortableHostCollection.h"
 #include "AlpakaDataFormats/ZVertexSoA.h"
+#include "AlpakaCore/config.h"
 
-using ZVertexHost = cms::alpakatools::host_buffer<ZVertexSoA>;
+using ZVertexHost = PortableHostCollection2<reco::ZVertexSoA, reco::ZVertexTracksSoA>;
 
-#endif  // AlpakaDataFormats_ZVertexHost_h
+#endif  // AlpakaDataFormats_VertexHost_H

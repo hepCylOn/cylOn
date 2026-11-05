@@ -38,7 +38,7 @@ namespace KOKKOS_NAMESPACE {
     using Counters = cAHitNtupletGenerator::Counters;
 
   public:
-    CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg);
+    CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg, edm::Config const& cfg);
 
     ~CAHitNtupletGeneratorOnGPU();
 

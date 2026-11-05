@@ -14,7 +14,7 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestProducer3 : public edm::EDProducer {
   public:
-    explicit TestProducer3(edm::ProductRegistry& reg);
+    explicit TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg);
 
   private:
     void produce(edm::Event& event, edm::EventSetup const& eventSetup) override;
@@ -22,7 +22,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::EDGetTokenT<cms::alpakatools::Product<Queue, cms::alpakatools::device_buffer<Device, float[]>>> getToken_;
   };
 
-  TestProducer3::TestProducer3(edm::ProductRegistry& reg)
+  TestProducer3::TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg)
       : getToken_(reg.consumes<cms::alpakatools::Product<Queue, cms::alpakatools::device_buffer<Device, float[]>>>()) {}
 
   void TestProducer3::produce(edm::Event& event, edm::EventSetup const& eventSetup) {

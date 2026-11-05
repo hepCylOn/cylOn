@@ -1,4 +1,4 @@
-alpaka_EXTERNAL_DEPENDS := TBB EIGEN ALPAKA BOOST BACKTRACE
+alpaka_EXTERNAL_DEPENDS := TBB EIGEN ALPAKA BOOST BACKTRACE JSON
 ifdef CUDA_BASE
 alpaka_EXTERNAL_DEPENDS += CUDA
 endif
@@ -8,9 +8,10 @@ endif
 AlpakaCore_DEPENDS := Framework
 BeamSpotProducer_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats
 PixelTrackFitting_DEPENDS := Framework AlpakaCore AlpakaDataFormats
-PixelTriplets_DEPENDS := Framework AlpakaCore AlpakaDataFormats
+PixelSeeding_DEPENDS := Framework AlpakaCore AlpakaDataFormats
 PixelVertexFinding_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats
 SiPixelClusterizer_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats SiPixelRawToDigi
 SiPixelRawToDigi_DEPENDS := DataFormats
 SiPixelRecHits_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats CondFormats
 Validation_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats
+Utils_DEPENDS := Framework AlpakaCore AlpakaDataFormats DataFormats

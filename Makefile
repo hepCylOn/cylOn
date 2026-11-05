@@ -28,16 +28,53 @@ $(warning GCC 10.3 is known to have issues compiled CUDA code, please consider u
 endif
 
 # Build flags
-USER_CXXFLAGS :=
+USER_CXXFLAGS := 
+USER_LDFLAGS  :=
 HOST_CXXFLAGS := -O2 -fPIC -fdiagnostics-show-option -felide-constructors -fmessage-length=0 -fno-math-errno -ftree-vectorize -fvisibility-inlines-hidden --param vect-max-version-for-alias-checks=50 -msse3 -pipe -pthread -Werror=address -Wall -Werror=array-bounds -Wno-attributes -Werror=conversion-null -Werror=delete-non-virtual-dtor -Wno-deprecated -Werror=format-contains-nul -Werror=format -Wno-long-long -Werror=main -Werror=missing-braces -Werror=narrowing -Wno-non-template-friend -Wnon-virtual-dtor -Werror=overflow -Werror=overlength-strings -Wparentheses -Werror=pointer-arith -Wno-psabi -Werror=reorder -Werror=return-local-addr -Wreturn-type -Werror=return-type -Werror=sign-compare -Werror=strict-aliasing -Wstrict-overflow -Werror=switch -Werror=type-limits -Wunused -Werror=unused-but-set-variable -Wno-unused-local-typedefs -Werror=unused-value -Wno-error=unused-variable -Wno-vla -Werror=write-strings -Wfatal-errors
 # in case os linker resolve errors, try adding -mcmodel=large
+
+############################################################################################################
+### ROOT 
+ROOTCONFIG := $(shell which root-config 2>/dev/null)
+
+ifeq ($(ROOTCONFIG),)
+  $(warning "ROOT not found — building without ROOT support.")
+else
+  $(info Found ROOT in $(shell which root))
+
+#   TODO: improve this, commenting for the moment.
+#   ## Check ROOT gcc and mine
+#   ROOT_GCC := $(shell root -b -q -e 'std::cout << gROOT->GetCompilerVersion() << std::endl;' 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+#   # Get the compiler used for this build
+#   LOCAL_GCC := $(shell $(CXX) -dumpfullversion -dumpversion)
+
+#   # Extract just the major version numbers (e.g. 11 from 11.4.1)
+#   ROOT_GCC_MAJOR := $(word 1,$(subst ., ,$(ROOT_GCC)))
+#   LOCAL_GCC_MAJOR := $(word 1,$(subst ., ,$(LOCAL_GCC)))
+
+#   # Compare them — stop if they differ
+#   ifneq ($(ROOT_GCC_MAJOR),$(LOCAL_GCC_MAJOR))
+#     $(warning ROOT built with GCC $(ROOT_GCC) but current compiler is $(LOCAL_GCC))
+#     $(warning This may cause ABI incompatibilities (e.g. libstdc++ or TBB mismatches).)
+#     $(error Please switch to GCC $(ROOT_GCC_MAJOR) or use a ROOT built with GCC $(LOCAL_GCC_MAJOR))
+#   endif
+  #ROOTCFLAGS := $(shell $(ROOTCONFIG) --cflags)
+  
+  ## Consider using -isystem ?
+  ROOTINCLUDES := $(filter -I%,$(shell root-config --cflags))
+  ROOTLIBS   := $(shell $(ROOTCONFIG) --libs)
+  HOST_CXXFLAGS  += $(ROOTINCLUDES) -DHAVE_ROOT
+  USER_LDFLAGS   += $(ROOTLIBS)
+endif
+
+############################################################################################################
 
 # Compiler flags supported by GCC but not by the LLVM-based compilers (clang, hipcc, icpx, etc.)
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
-export CXXFLAGS := -std=c++17 $(HOST_CXXFLAGS) $(USER_CXXFLAGS) -g
+export CXXFLAGS := -std=c++20 $(HOST_CXXFLAGS) $(USER_CXXFLAGS) -g
 export NVCXX_CXXFLAGS := -std=c++20 -O0 -cuda -gpu=managed -stdpar -fpic -gopt $(USER_CXXFLAGS)
-export LDFLAGS := -O2 -fPIC -pthread -Wl,-E -lstdc++fs -ldl
+export LDFLAGS := -O2 -fPIC -pthread -Wl,-E -lstdc++fs -ldl $(USER_LDFLAGS)
 export LDFLAGS_NVCC := -ccbin $(CXX) --linker-options '-E' --linker-options '-lstdc++fs'
 export LDFLAGS_NVCXX := -cuda -Wl,-E -ldl -gpu=managed -stdpar
 export SO_LDFLAGS := -Wl,-z,defs
@@ -61,6 +98,9 @@ export LIB_DIR := $(BASE_DIR)/lib
 # Directory where to put unit test executables
 export TEST_DIR := $(BASE_DIR)/test
 
+# Scripts 
+export SCRIPTS_DIR := $(BASE_DIR)/scripts:$(BASE_DIR)/scripts/trackml
+
 # System external definitions
 # CUDA
 CUDA_BASE := /usr/local/cuda
@@ -79,6 +119,30 @@ export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
 export CUDA_NVCC := $(CUDA_BASE)/bin/nvcc
 CUDA_VERSION := $(shell $(CUDA_NVCC) --version | grep release | sed -e's/.*release //' -e's/,.*//' -e's/\.//')
+
+
+# Use GCC 11 toolchain for NVCC to avoid GCC 12 BF16 builtin incompatibilities
+# Here we assume the CMS GCC 11 toolchain is available via CVMFS
+
+CUDA_CCBIN:=$(CXX)
+CUDA_GCC_VERSION := 11
+
+### This was used when pulling gcc and others from cmssw (could be removed, keeping for testing for the moment)
+# # Default el8_amd64_gcc if CMSSW_ARCH not set in environment
+# CUDA_SCRAM_ARCH := $(if $(CMSSW_ARCH),$(CMSSW_ARCH),el8_amd64_gcc)
+
+# CUDA_GCC_BASE := /cvmfs/cms.cern.ch/$(CUDA_SCRAM_ARCH)$(CUDA_GCC_VERSION)
+# CUDA_GCC_BIN  := $(lastword $(wildcard $(CUDA_GCC_BASE)/external/gcc/$(CUDA_GCC_VERSION).*/bin))
+
+# ifneq ($(CUDA_GCC_BIN),)
+#   CUDA_CCBIN := $(lastword $(wildcard $(CUDA_GCC_BIN)/g++))
+#   ifneq ($(CUDA_CCBIN),)
+#     $(info Using $(CUDA_CCBIN) as NVCC host compiler)
+#   endif
+# endif
+
+$(info Using $(shell which $(CUDA_CCBIN)) as NVCC host compiler)
+
 # CUDA 12.8 and newer does not support non-ASCII characters in PTX, including in comments
 ifeq ($(shell test $(CUDA_VERSION) -ge 128 && echo 'buggy'),buggy)
 CUDA_DEBUG_FLAGS := --generate-line-info
@@ -87,7 +151,7 @@ CUDA_DEBUG_FLAGS := --generate-line-info --source-in-ptx
 endif
 define CUFLAGS_template
 $(2)NVCC_FLAGS := $$(foreach ARCH,$(1),-gencode arch=compute_$$(ARCH),code=[sm_$$(ARCH),compute_$$(ARCH)]) -Wno-deprecated-gpu-targets -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored --expt-relaxed-constexpr --expt-extended-lambda $(CUDA_DEBUG_FLAGS) --display-error-number --threads $$(words $(1)) --cudart=shared
-$(2)NVCC_COMMON := -std=c++17 -O3 -g $$($(2)NVCC_FLAGS) -ccbin $(CXX) --compiler-options '$(HOST_CXXFLAGS) $(USER_CXXFLAGS)'
+$(2)NVCC_COMMON := -std=c++20 -Xcompiler "-mno-avx512bf16 -mno-avx512vl" -O3 -g $$($(2)NVCC_FLAGS) -ccbin $(CUDA_CCBIN) --compiler-options '$(HOST_CXXFLAGS) $(USER_CXXFLAGS)'
 $(2)CUDA_CUFLAGS := -dc $$($(2)NVCC_COMMON) $(USER_CUDAFLAGS)
 $(2)CUDA_DLINKFLAGS := -dlink $$($(2)NVCC_COMMON)
 endef
@@ -280,6 +344,10 @@ HWLOC_BASE := $(EXTERNAL_BASE)/hwloc
 export HWLOC_DEPS := $(HWLOC_BASE)
 HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
+
+JSON_BASE := $(EXTERNAL_BASE)/nlohmann
+export JSON_DEPS := $(JSON_BASE)
+export JSON_CXXFLAGS := -isystem $(JSON_DEPS)/
 
 # TBB from external
 ifndef TBB_BASE
@@ -478,6 +546,11 @@ else ifeq ($(OPENMP_COMPILER), NVIDIA)
   export OPENMP_CXXFLAGS := -mp=gpu -gpu=cc80 -std=c++17 -fPIC --gcc-toolchain=$(GCC_TOOLCHAIN) $(OPENMP_EIGEN_CXXFLAGS)
 endif
 
+## Catch2 build (using the alpaka one for the moment)
+CATCH2_BUILD:=$(EXTERNAL_BASE)/alpaka/thirdParty/catch2
+$(CATCH2_BUILD)/lib/libCatch2WithMain.a:
+	cd $(CATCH2_DIR) && $(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=install -DCMAKE_INSTALL_LIBDIR=lib
+	$(CMAKE) --build $(CATCH2_BUILD) --target install
 
 # force the recreation of the environment file any time the Makefile is updated, before building any other target
 -include environment
@@ -591,7 +664,7 @@ ifneq ($(SYCL_BASE),)
 endif
 	@echo '$$LD_LIBRARY_PATH'                                               >> $@
 	@# set the PATH
-	@echo -n 'export PATH='                                                 >> $@
+	@echo -n 'export PATH=$(SCRIPTS_DIR):'                                                 >> $@
 ifdef CUDA_BASE
 	@echo -n '$(CUDA_BASE)/bin:'                                            >> $@
 endif
@@ -700,7 +773,7 @@ $(DATA_DEPS): $(DATA_TAR_GZ) | $(DATA_BASE)/md5.txt
 	touch $(DATA_DEPS)
 
 $(DATA_TAR_GZ): | $(DATA_BASE)/url.txt
-	curl -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
+	curl -x $(MYPROXY) -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
 
 # External rules
 $(EXTERNAL_BASE):
@@ -746,7 +819,7 @@ external_boost: $(BOOST_BASE)
 $(BOOST_BASE): CXXFLAGS:=
 $(BOOST_BASE):
 	$(eval BOOST_TMP := $(shell mktemp -d))
-	curl -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
+	curl -x $(MYPROXY) -L -s -S https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 | tar xj -C $(BOOST_TMP)
 	cd $(BOOST_TMP)/boost_1_78_0 && ./bootstrap.sh && ./b2 install --prefix=$@ --without-graph_parallel --without-mpi --without-python
 	@rm -rf $(BOOST_TMP)
 	$(eval undefine BOOST_TMP)
@@ -774,7 +847,7 @@ external_hwloc: $(HWLOC_BASE)
 $(HWLOC_BASE): CXXFLAGS:=
 $(HWLOC_BASE):
 	$(eval HWLOC_TMP := $(shell mktemp -d))
-	curl -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
+	curl -x $(MYPROXY) -L https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.2.tar.gz | tar xz --strip-components=1 -C $(HWLOC_TMP)
 	cd $(HWLOC_TMP)/ && ./configure --prefix=$@ --enable-shared
 	$(MAKE) -C $(HWLOC_TMP)
 	$(MAKE) -C $(HWLOC_TMP) install
@@ -822,3 +895,7 @@ external_julia: $(JULIA_BASE)
 
 $(JULIA_BASE):
 	mkdir -p $@ && curl -L https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-1.12.0-rc1-linux-x86_64.tar.gz | tar xz --strip-components=1 -C $@
+
+# Json
+$(JSON_BASE):
+	mkdir -p $@ && curl -x $(MYPROXY) wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp > external/nlohmann/json.hpp   

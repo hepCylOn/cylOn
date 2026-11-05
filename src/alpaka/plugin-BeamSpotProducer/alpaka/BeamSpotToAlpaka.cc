@@ -13,7 +13,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class BeamSpotToAlpaka : public edm::EDProducer {
   public:
-    explicit BeamSpotToAlpaka(edm::ProductRegistry& reg);
+    explicit BeamSpotToAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~BeamSpotToAlpaka() override = default;
 
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -24,7 +24,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::host_buffer<BeamSpotPOD> bsHost_;
   };
 
-  BeamSpotToAlpaka::BeamSpotToAlpaka(edm::ProductRegistry& reg)
+  BeamSpotToAlpaka::BeamSpotToAlpaka(edm::ProductRegistry& reg, edm::Config const& cfg)
       : bsPutToken_{reg.produces<cms::alpakatools::Product<Queue, BeamSpotAlpaka>>()},
         bsHost_{cms::alpakatools::make_host_buffer<BeamSpotPOD, Platform>()} {}
 

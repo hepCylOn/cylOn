@@ -27,7 +27,7 @@
 namespace KOKKOS_NAMESPACE {
   class SiPixelRawToCluster : public edm::EDProducerExternalWork {
   public:
-    explicit SiPixelRawToCluster(edm::ProductRegistry& reg);
+    explicit SiPixelRawToCluster(edm::ProductRegistry& reg, edm::Config const& cfg);
     ~SiPixelRawToCluster() override = default;
 
   private:
@@ -52,7 +52,7 @@ namespace KOKKOS_NAMESPACE {
     const bool useQuality_;
   };
 
-  SiPixelRawToCluster::SiPixelRawToCluster(edm::ProductRegistry& reg)
+  SiPixelRawToCluster::SiPixelRawToCluster(edm::ProductRegistry& reg, edm::Config const& cfg)
       : rawGetToken_(reg.consumes<FEDRawDataCollection>()),
         digiPutToken_(reg.produces<cms::kokkos::Product<SiPixelDigisKokkos<KokkosDeviceMemSpace>>>()),
         clusterPutToken_(reg.produces<cms::kokkos::Product<SiPixelClustersKokkos<KokkosDeviceMemSpace>>>()),

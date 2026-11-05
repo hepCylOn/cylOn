@@ -12,7 +12,7 @@
 
 class TestProducer3 : public edm::EDProducer {
 public:
-  explicit TestProducer3(edm::ProductRegistry& reg);
+  explicit TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void produce(edm::Event& event, edm::EventSetup const& eventSetup) override;
@@ -20,7 +20,7 @@ private:
   edm::EDGetTokenT<cms::hip::Product<cms::hip::device::unique_ptr<float[]>>> getToken_;
 };
 
-TestProducer3::TestProducer3(edm::ProductRegistry& reg)
+TestProducer3::TestProducer3(edm::ProductRegistry& reg, edm::Config const& cfg)
     : getToken_(reg.consumes<cms::hip::Product<cms::hip::device::unique_ptr<float[]>>>()) {}
 
 void TestProducer3::produce(edm::Event& event, edm::EventSetup const& eventSetup) {

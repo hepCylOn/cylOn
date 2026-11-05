@@ -14,7 +14,7 @@ namespace {
 
 class TestProducer2 : public edm::EDProducerExternalWork {
 public:
-  explicit TestProducer2(edm::ProductRegistry& reg);
+  explicit TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void acquire(edm::Event const& event,
@@ -28,7 +28,7 @@ private:
   std::future<int> future_;
 };
 
-TestProducer2::TestProducer2(edm::ProductRegistry& reg) : getToken_(reg.consumes<unsigned int>()) {}
+TestProducer2::TestProducer2(edm::ProductRegistry& reg, edm::Config const& cfg) : getToken_(reg.consumes<unsigned int>()) {}
 
 void TestProducer2::acquire(edm::Event const& event,
                             edm::EventSetup const& eventSetup,

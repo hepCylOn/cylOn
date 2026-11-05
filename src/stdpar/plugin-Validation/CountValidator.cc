@@ -26,7 +26,7 @@ namespace {
 
 class CountValidator : public edm::EDProducer {
 public:
-  explicit CountValidator(edm::ProductRegistry& reg);
+  explicit CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg);
 
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
@@ -42,7 +42,7 @@ private:
   edm::EDGetTokenT<ZVertex> vertexToken_;
 };
 
-CountValidator::CountValidator(edm::ProductRegistry& reg)
+CountValidator::CountValidator(edm::ProductRegistry& reg, edm::Config const& cfg)
     : digiClusterCountToken_(reg.consumes<DigiClusterCount>()),
       trackCountToken_(reg.consumes<TrackCount>()),
       vertexCountToken_(reg.consumes<VertexCount>()),
